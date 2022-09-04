@@ -1,2 +1,2 @@
-# amphritite
+# amphitrite
 x-selection software
