@@ -127,3 +127,10 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# IDEA ignores
+**/.idea/workspace.xml **/.idea/tasks.xml
+
+**/.yarn/unplugged/
+**/.yarn/cache/
+.pnp.js

@@ -1,0 +1,3 @@
+Flask==2.2.2
+gunicorn==20.1.0
+# This is required for dev environment not sure about deployed app python-dotenv:0.21.0

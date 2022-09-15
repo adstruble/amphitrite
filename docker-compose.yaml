@@ -1,0 +1,30 @@
+version: '3.8'
+
+networks:
+  web_app:
+    driver: bridge
+
+services:
+  server:
+    image: server:0.0.1
+    networks:
+      web_app:
+        aliases:
+          - web_app.server
+  client:
+    image: client:0.0.1
+    networks:
+      web_app:
+        aliases:
+          - web_app.client
+  nginx:
+    depends_on:
+      - server
+      - client
+    image: nginx:0.0.1
+    networks:
+      web_app:
+        aliases:
+          - web-app.nginx
+    ports:
+      - "3050:80"
