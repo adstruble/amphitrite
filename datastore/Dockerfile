@@ -1,0 +1,3 @@
+FROM arm64v8/postgres:14.3-alpine
+ENV POSTGRES_PASSWORD postgres
+EXPOSE 5432
