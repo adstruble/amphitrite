@@ -1,9 +1,11 @@
+#!/usr/bin/env python3
 from flask import Flask
+
+from blueprints import test
 
 app = Flask(__name__)
 
-from app import routes
-
+app.register_blueprint(test.tests)
 
 if app.config['DEBUG']:
     APPLICATION_ROOT = '/amphitrite'
@@ -18,3 +20,4 @@ if app.config['DEBUG']:
         "/amphitrite": app,
     })
     run_simple('localhost', 5000, application, use_reloader=True)
+

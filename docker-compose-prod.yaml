@@ -41,3 +41,7 @@ services:
       datastore:
         aliases:
           - datastore.datastore
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+volumes:
+  postgres-data:

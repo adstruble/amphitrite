@@ -1,17 +1,17 @@
-from app import app
-
 import math
 import random
 
+from flask import Blueprint
 
-@app.route('/')
-@app.route('/index')
+tests = Blueprint('tests', __name__)
+
+
+@tests.route('/')
 def index():
 	return "Hello, World!"
 
 
-@app.route('/getPerson')
+@tests.route('/getPerson')
 def get_person():
 	people = ["Evan", "Mandi", "Katherine"]
 	return {"person": people[math.floor((random.random() * 1000) % 3)]}
-

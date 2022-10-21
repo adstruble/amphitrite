@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import click
 import docker
@@ -20,9 +20,24 @@ def build_all():
     client = docker.from_env()
     version = _get_version_tag()
     for component, config in components.items():
-        dockerfile_path = os.path.join(os.path.dirname(__file__), config['home_dir'])
-        print(dockerfile_path)
-        client.images.build(path=dockerfile_path, tag=f"amphitrite/{component}:{version}")
+        build_component(component)
+
+@cli.command()
+@click.option('--component', '-c', help="Component to be build")
+def build_component(component):
+    click.echo(f"Building component: {component}... ")
+
+    try:
+        config = components[component]
+    except KeyError:
+        click.echo(f'Component: {component} does not exist. Exiting.')
+        exit(1)
+
+    client = docker.from_env()
+    version = _get_version_tag()
+    dockerfile_path = os.path.join(os.path.dirname(__file__), config['home_dir'])
+    print(dockerfile_path)
+    client.images.build(path=dockerfile_path, tag=f"amphitrite/{component}:{version}")
 
 
 def _get_version_tag():
