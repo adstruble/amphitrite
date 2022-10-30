@@ -66,4 +66,6 @@ CREATE TABLE amphitrite.version {
     major int NOT NULL;
     minor int NOT NULL;
     patch int NOT NULL;
-}
+};
+
+INSERT INTO amphitrite.version (major, minor, patch) VALUES (0, 0, 0);
