@@ -17,16 +17,19 @@ def cli():
 @cli.command()
 def build_all():
     click.echo("Building...")
-    client = docker.from_env()
-    version = _get_version_tag()
     for component, config in components.items():
-        build_component(component)
+        print(component)
+        _build_component(component)
+
 
 @cli.command()
 @click.option('--component', '-c', help="Component to be build")
 def build_component(component):
     click.echo(f"Building component: {component}... ")
+    _build_component(component)
 
+
+def _build_component(component):
     try:
         config = components[component]
     except KeyError:
