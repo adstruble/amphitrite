@@ -96,7 +96,7 @@ def get_logging_config(loglevel: str = None) -> Dict[str, Any]:
                 'level': loglevel, 'handlers': ['gerror'],
             },
             'amphitrite': {
-                'level': loglevel, 'handlers': ['amphitrites']
+                'level': loglevel, 'handlers': ['amphitrite']
             },
             cli_logger_name: {
                 'level': loglevel, 'handlers': ['cli']
