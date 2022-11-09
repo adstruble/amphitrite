@@ -40,7 +40,7 @@ def _build_component(component):
     version = _get_version_tag()
     dockerfile_path = os.path.join(os.path.dirname(__file__), config['home_dir'])
     print(dockerfile_path)
-    client.images.build(path=dockerfile_path, tag=f"amphitrite/{component}:{version}")
+    client.images.build(path=dockerfile_path, tag=f"amphitrite/{component}:{version}", forcerm=True)
 
 
 def _get_version_tag():
