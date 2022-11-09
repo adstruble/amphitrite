@@ -2,6 +2,8 @@ import sqlalchemy
 
 DEFAULT_DB_PARAMS = {"host": "datastore.datastore", "database": "amphitrite"}
 
+AMPHIADMIN_DB_PARAMS = DEFAULT_DB_PARAMS | {'user': 'amphiadmin', 'password': 'amphiadmin'}
+
 
 class PGConnections:
     # A singleton classes to make connections once and then fetch them

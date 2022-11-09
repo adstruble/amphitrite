@@ -6,18 +6,20 @@ from time import sleep
 from gunicorn.arbiter import Arbiter
 
 # Configurations
-from sqlalchemy import text
 
 from create_sql.utils import apply_sql_migration
 from create_sql import utils as create_sql_utils
+from db_utils.common_selects import get_version
 from db_utils.db_connection import get_engine_user_postgres
 from amphi_logging.logger import get_logger
+from exceptions.exceptions import DBConnectionError
 
 bind = ['0.0.0.0:5001']
 timeout = 300     # 5 min
 
 WAIT_FOR_POSTGRES_TIME = 10
 SLEEP_TIME = 1
+
 
 # Server event hooks
 def on_starting(server: Arbiter) -> None:
@@ -36,28 +38,44 @@ def on_starting(server: Arbiter) -> None:
     attempt = 0
     while attempt < total_attempts:
         try:
-            with engine.connect() as conn:
-                db_exists = conn.execute("SELECT datname FROM pg_catalog. pg_database WHERE datname = 'amphitrite'")\
-                                .fetchone() is not None
-                if not db_exists:
-                    with open(os.path.join(create_sql_dir, "create_tables_V0.0.0.sql")) as sql_file:
-                        query = text(sql_file.read())
-                        conn.execute(query)
+
+            db_exists = engine.execute("SELECT datname FROM pg_catalog. pg_database WHERE datname = 'amphitrite'")\
+                            .fetchone() is not None
+            if not db_exists:
+                try:
+                    conn = engine.connect()
+                    conn.execute("CREATE USER amphiadmin "
+                                 "WITH ENCRYPTED PASSWORD 'amphiadmin' CREATEROLE CONNECTION LIMIT 10")
+                    conn.execute('commit')
+                    conn.execute("CREATE DATABASE amphitrite WITH OWNER amphiadmin")
+                    conn.close()
+                except Exception as e:
+                    if conn is not None:  # noqa
+                        conn.close()      # noqa
+                    raise e
+                version = {'major': 0, 'minor': 0, 'patch': 0}
+                break
+            else:
+                version = get_version(conn)
 
         except Exception as e:
             logger.warning(f"Unable to connect to postgres due to {e}, waiting {SLEEP_TIME}s before retrying.")
             attempt += 1
             sleep(1)
+            if attempt == total_attempts:
+                raise DBConnectionError(f"Unable to connection to database after {total_attempts} attempts."
+                                        f"Aborting amphitrite server startup")
 
     for f in sorted(os.listdir(create_sql_dir)):
         try:
-            version = create_sql_utils.get_version_from_migration_filename(f)
-            res = conn.execute('SELECT major, minor, patch '
-                               '  FROM amphitrite.version ORDER BY major, minor, patch DESC LIMIT 1').fetchone()
-            if version[0] <= res['major']:
-                if version[1] <= res['minor']:
-                    if version[2] <= ['patch']:
+            migration_version = create_sql_utils.get_version_from_migration_filename(f)
+            if migration_version['major'] <= version['major']:  # noqa
+                if migration_version['minor'] <= version['minor']:
+                    if migration_version['patch'] <= version['patch']:
                         continue
+            apply_sql_migration(os.path.join(create_sql_dir, f))
+            logger.info(f"Applied sql migration: {migration_version}")
+            version = migration_version
 
         except Exception as e:
             logger.exception("Exception applying SQL migration. Aborting SQL Migration.", e)
