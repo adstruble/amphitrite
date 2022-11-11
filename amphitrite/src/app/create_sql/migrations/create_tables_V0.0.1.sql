@@ -5,68 +5,66 @@ CREATE USER amphireadonly WITH ENCRYPTED PASSWORD 'amphireadonly' CONNECTION LIM
 GRANT amphireadonly to amphiadmin;
 ALTER DEFAULT PRIVILEGES FOR USER amphireadonly IN SCHEMA public GRANT SELECT ON TABLES TO amphireadonly;
 
-CREATE SCHEMA amphitrite;
-
 CREATE TYPE sex AS ENUM ('f', 'm');
 
-CREATE TABLE amphitrite.element (
+CREATE TABLE element (
     id SERIAL PRIMARY KEY,
     created_at timestamp,
     last_modified timestamp
 );
 
-CREATE TABLE amphitrite.amphi_user (
+CREATE TABLE amphi_user (
     username varchar(100) NOT NULL,
     password varchar(100) NOT NULL,
     enabled bool NOT NULL,
     PRIMARY KEY (id)
-) INHERITS (amphitrite.element);
+) INHERITS (element);
 
-ALTER TABLE amphitrite.element ADD COLUMN last_modified_by int NOT NULL REFERENCES amphitrite.amphi_user(id);
+ALTER TABLE element ADD COLUMN last_modified_by int NOT NULL REFERENCES amphi_user(id);
 
-CREATE TABLE amphitrite.family (
+CREATE TABLE family (
     sibling_birth_year int NOT NULL,
     tag int NOT NULL, -- TODO Should this be text?'
     di float, -- This can be calculated, but probably want to store it
     do_not_cross bool NOT NULL DEFAULT FALSE, -- This is to be indicated manually by crosser,
     PRIMARY KEY (id)
-) INHERITS (amphitrite.element);
+) INHERITS (element);
 
-CREATE TABLE amphitrite.fish (
+CREATE TABLE fish (
     sex sex NOT NULL,
     box int,
     spawn_year int,
     alive bool NOT NULL,
-    sibling_in int REFERENCES amphitrite.family (id),
+    sibling_in int REFERENCES family (id),
     PRIMARY KEY (id)
-) INHERITS (amphitrite.element);
+) INHERITS (element);
 
-CREATE TABLE amphitrite.refuge_tag (
+CREATE TABLE refuge_tag (
     tag text[] NOT NULL, -- TODO can we put a length on this text field
     date_tagged timestamp NOT NULL,
     date_untagged timestamp,
-    fish int NOT NULL REFERENCES amphitrite.fish(id),
+    fish int NOT NULL REFERENCES fish(id),
     PRIMARY KEY (id)
-    ) INHERITS (amphitrite.element);
-CREATE INDEX tagged_fish_idx on amphitrite.refuge_tag (fish);
+    ) INHERITS (element);
+CREATE INDEX tagged_fish_idx on refuge_tag (fish);
 
-CREATE TABLE amphitrite.crossed_with (
-    female      int NOT NULL REFERENCES amphitrite.fish (id),
-    male        int NOT NULL REFERENCES amphitrite.fish (id),
+CREATE TABLE crossed_with (
+    female      int NOT NULL REFERENCES fish (id),
+    male        int NOT NULL REFERENCES fish (id),
     cross_date  timestamp NOT NULL,
-    parents_of  int REFERENCES amphitrite.family(id),
+    parents_of  int REFERENCES family(id),
     PRIMARY KEY (id)
-    ) INHERITS (amphitrite.element);
+    ) INHERITS (element);
 
-CREATE TABLE amphitrite.notes (
+CREATE TABLE notes (
     text text,
     PRIMARY KEY (id)
-) INHERITS (amphitrite.element);
+) INHERITS (element);
 
-CREATE TABLE amphitrite.version (
+CREATE TABLE version (
     major int NOT NULL,
     minor int NOT NULL,
     patch int NOT NULL
 );
 
-INSERT INTO amphitrite.version (major, minor, patch) VALUES (0, 0, 1);
+INSERT INTO version (major, minor, patch) VALUES (0, 0, 1);

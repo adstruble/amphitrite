@@ -1,3 +1,5 @@
+from contextlib import contextmanager
+
 import sqlalchemy
 
 DEFAULT_DB_PARAMS = {"host": "datastore.datastore", "database": "amphitrite"}
@@ -5,7 +7,7 @@ DEFAULT_DB_PARAMS = {"host": "datastore.datastore", "database": "amphitrite"}
 AMPHIADMIN_DB_PARAMS = DEFAULT_DB_PARAMS | {'user': 'amphiadmin', 'password': 'amphiadmin'}
 
 
-class PGConnections:
+class _PGConnections:
     # A singleton classes to make connections once and then fetch them
     __instance = None
 
@@ -29,8 +31,22 @@ class PGConnections:
         return self._engines[conn_string]
 
 
+@contextmanager
+def get_connection(database_params):
+    engine = _PGConnections().get_engine(database_params)
+    conn = engine.connect()
+    tx = conn.begin()
+
+    # This is where we'd set up session params if we want to do that
+    try:
+        yield conn
+        tx.commit()
+    finally:
+        conn.invalidate()
+
+
 def get_engine_user_postgres():
-    return PGConnections().get_engine({'database': 'postgres',
-                                       'user': 'postgres',
-                                       'host': 'datastore.datastore',
-                                       'password': 'postgres'})
+    return _PGConnections().get_engine({'database': 'postgres',
+                                        'user': 'postgres',
+                                        'host': 'datastore.datastore',
+                                        'password': 'postgres'})
