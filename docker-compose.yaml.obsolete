@@ -1,0 +1,41 @@
+version: '3.8'
+
+networks:
+  web_app:
+    driver: bridge
+  datastore:
+    driver: bridge
+
+services:
+  amphitrite:
+    image: amphitrite:0.0.1
+    networks:
+      web_app:
+        aliases:
+          - web_app.amphitrite
+      datastore:
+        aliases:
+          - datastore.amphitrite
+  client:
+    image: client:0.0.1
+    networks:
+      web_app:
+        aliases:
+          - web_app.client
+  nginx:
+    depends_on:
+      - server
+      - client
+    image: nginx:0.0.1
+    networks:
+      web_app:
+        aliases:
+          - web-app.nginx
+    ports:
+      - "3050:80"
+  postgres:
+    image: postgres:0.0.1
+    networks:
+      datastore:
+        aliases:
+          - datastore.postgres

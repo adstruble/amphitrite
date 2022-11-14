@@ -12,13 +12,15 @@ from create_sql import utils as create_sql_utils
 from db_utils.common_selects import get_version
 from db_utils.db_connection import get_engine_user_postgres, AMPHIADMIN_DB_PARAMS, get_connection
 from amphi_logging.logger import get_logger
-from exceptions.exceptions import DBConnectionError
+from exceptions.exceptions import DBConnectionError, AmphitriteEnvironmentError
 
 bind = ['0.0.0.0:5001']
 timeout = 300     # 5 min
 
 WAIT_FOR_POSTGRES_TIME = 10
 SLEEP_TIME = 1
+
+SECRET_KEY = os.getenv('AMPHI_JWT_SECRET_KEY', 'my_precious')
 
 
 # Server event hooks
@@ -29,6 +31,10 @@ def on_starting(server: Arbiter) -> None:
     # Server event hooks
 
     logger = get_logger('gunicorn.error')
+
+    if SECRET_KEY is None:
+        raise AmphitriteEnvironmentError("AMPHI_JWT_SECRET_KEY environment variable must be set on host. "
+                                         "Exiting amphitrite server start.")
 
     create_sql_dir = os.path.join(os.path.dirname(sys.modules['create_sql'].__file__), 'migrations')
 

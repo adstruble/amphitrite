@@ -4,6 +4,8 @@ import click
 import docker
 import os
 
+from docker.errors import BuildError
+
 components = {'client': {'home_dir': 'client'},
               'server': {'home_dir': 'amphitrite'},
               'datastore': {'home_dir': 'datastore'}}
@@ -15,21 +17,23 @@ def cli():
 
 
 @cli.command()
-def build_all():
+@click.option('--forcerm', default=True, help="Force removal of all containers even with build failure")
+def build_all(forcerm):
     click.echo("Building...")
     for component, config in components.items():
         print(component)
-        _build_component(component)
+        _build_component(component, forcerm)
 
 
 @cli.command()
 @click.option('--component', '-c', help="Component to be build")
-def build_component(component):
+@click.option('--forcerm', default=True, help="Force removal of all containers even with build failure")
+def build_component(component, forcerm):
     click.echo(f"Building component: {component}... ")
-    _build_component(component)
+    _build_component(component, forcerm)
 
 
-def _build_component(component):
+def _build_component(component, forcerm: bool):
     try:
         config = components[component]
     except KeyError:
@@ -40,7 +44,10 @@ def _build_component(component):
     version = _get_version_tag()
     dockerfile_path = os.path.join(os.path.dirname(__file__), config['home_dir'])
     print(dockerfile_path)
-    client.images.build(path=dockerfile_path, tag=f"amphitrite/{component}:{version}", forcerm=True)
+    try:
+        client.images.build(path=dockerfile_path, tag=f"amphitrite/{component}:{version}", rm=True, forcerm=forcerm)
+    except BuildError as e:
+        print(e)
 
 
 def _get_version_tag():

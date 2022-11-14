@@ -1,4 +1,4 @@
-version: '3.8'
+  version: '3.8'
 
 networks:
   web_app:
@@ -19,6 +19,8 @@ networks:
       driver: default
 services:
   server:
+    environment:
+      AMPHI_JWT_SECRET_KEY: ${AMPHI_JWT_SECRET_KEY-}
     image: amphitrite/server:0.0.1
     networks:
       web_app:
