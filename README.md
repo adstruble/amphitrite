@@ -3,6 +3,8 @@
 x-selection software
 
 ## Building
+### Requirements
+Docker
 ### To build everything
 From root amphitrite directory:
 
