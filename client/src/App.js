@@ -1,27 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import logo from './logo.svg';
+import React, { useState} from 'react';
 import './App.css';
 import Login from './views/Login/Login.js'
-
-function setToken(userToken){
-  sessionStorage.setItem('token', JSON.stringify(userToken));
-}
-
-function getToken(){}
+import useToken from "./components/App/useToken";
 
 function App() {
   const [person, setPerson] = useState("starter");
-  const token = getToken()
+  const {token, setToken } = useToken();
 
-  if (!token) {
-    return <Login setToken={token}/>
+  if(!token) {
+    return <Login setToken={setToken} />
   }
-
-  useEffect(() => {
-    fetch('/amphitrite/getPerson').then(res => res.json()).then(data => {
-	setPerson(data.person);
-    });
-  }, []);
 
   return (
     <div className="App">

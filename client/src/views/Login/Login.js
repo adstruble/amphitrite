@@ -1,4 +1,4 @@
-import React from "react";
+import React, {useState} from "react";
 import {
     Container,
     Row,
@@ -16,18 +16,33 @@ import {
 
 import classnames from "classnames";
 
-export default class Login extends React.Component{
+async function loginUser(credentials) {
+    return fetch('/amphitrite/login',{
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(credentials)
+    })
+        .then(data => data.json())
+}
 
+export default function Login({setToken}) {
+    const [username, setUsername] = useState('');
+    const [password, setPassword] = useState('');
+    const [nameFocus, setNameFocus] = useState(false);
+    const [passwordFocus, setPasswordFocus] = useState(false);
 
-    constructor(props) {
-        super(props);
-        this.state = {
-            nameFocus: false
-        }
+    const handleBreedClick = async e => {
+        e.preventDefault();
+        const token = await loginUser({
+            username,
+            password
+        });
+        setToken(token);
     }
 
-    render(){
-        return (<div className="content">
+    return (<div className="content">
             <Container>
                 <Row>
                     <Col className="offset-lg-0 offset-md-3" lg="5" md="6">
@@ -43,7 +58,7 @@ export default class Login extends React.Component{
                                 <Form className="form">
                                     <InputGroup
                                         className={classnames({
-                                            "input-group-focus": this.state.nameFocus
+                                            "input-group-focus": nameFocus
                                         })}
                                     >
                                         <Button addonType="prepend">
@@ -54,11 +69,12 @@ export default class Login extends React.Component{
                                         <Input
                                             placeholder="Name"
                                             type="text"
-                                            onFocus={() => this.setState({"nameFocus": true})}
-                                            onBlur={() => this.setState({"nameFocus": true})}
+                                            onFocus={() => setNameFocus(true)}
+                                            onBlur={() => setNameFocus(true)}
+                                            onChange={e => setUsername(e.target.value)}
                                         />
                                     </InputGroup>
-                                    {/*<InputGroup
+                                    <InputGroup
                                         className={classnames({
                                             "input-group-focus": passwordFocus
                                         })}
@@ -71,14 +87,15 @@ export default class Login extends React.Component{
                                         <Input
                                             placeholder="Password"
                                             type="text"
-                                            onFocus={(e) => setPasswordFocus(true)}
-                                            onBlur={(e) => setPasswordFocus(false)}
+                                            oonFocus={() => setPasswordFocus(true)}
+                                                onBlur={() => setPasswordFocus(true)}
+                                                onChange={e => setPassword(e.target.value)}
                                         />
-                                    </InputGroup>*/}
+                                    </InputGroup>
                                 </Form>
                             </CardBody>
                             <CardFooter>
-                                <Button className="btn-round" color="primary" size="lg">
+                                <Button className="btn-round" color="primary" size="lg" onclick={handleBreedClick}>
                                     Breed Fish
                                 </Button>
                             </CardFooter>
@@ -88,5 +105,5 @@ export default class Login extends React.Component{
                 </Row>
             </Container>
         </div>);
-    }
+
 }

@@ -23,3 +23,8 @@ def encode_auth_token(self, user_id):
         )
     except Exception as e:
         return e
+
+
+def maybe_authenticate_user(username, password):
+    if not (username and password):
+        return None
