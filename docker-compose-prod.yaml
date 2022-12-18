@@ -1,4 +1,4 @@
-version: '3.8'
+version: '3.3'
 networks:
   web_app:
     driver: bridge
@@ -6,7 +6,7 @@ networks:
       com.docker.network.bridge.name: dnet_web_app
     ipam:
       config:
-        - subnet: 180.18.0.0/24
+        - subnet: 181.18.0.0/24
       driver: default
   datastore:
     driver: bridge
@@ -14,7 +14,7 @@ networks:
       com.docker.network.bridge.name: dnet_datastore
     ipam:
       config:
-        - subnet: 180.18.1.0/24
+        - subnet: 181.18.1.0/24
       driver: default
 services:
   server:

@@ -1,6 +1,5 @@
-import React, {useState} from "react";
+    import React, {useState} from "react";
 import {
-    Container,
     Row,
     Col,
     Card,
@@ -42,68 +41,65 @@ export default function Login({setToken}) {
         setToken(token);
     }
 
-    return (<div className="content">
-            <Container>
-                <Row>
-                    <Col className="offset-lg-0 offset-md-3" lg="5" md="6">
-                        <Card className="card-register">
-                            <CardHeader>
-                                <CardImg
-                                    alt="..."
-                                    src={require("../../assets/img/square-purple-1.png")}
-                                />
-                                <CardTitle tag="h4">Login</CardTitle>
-                            </CardHeader>
-                            <CardBody>
-                                <Form className="form">
-                                    <InputGroup
-                                        className={classnames({
-                                            "input-group-focus": nameFocus
-                                        })}
-                                    >
-                                        <Button addonType="prepend">
-                                            <InputGroupText>
-                                                <i className="tim-icons icon-single-02" />
-                                            </InputGroupText>
-                                        </Button>
-                                        <Input
-                                            placeholder="Name"
-                                            type="text"
-                                            onFocus={() => setNameFocus(true)}
-                                            onBlur={() => setNameFocus(true)}
-                                            onChange={e => setUsername(e.target.value)}
-                                        />
-                                    </InputGroup>
-                                    <InputGroup
-                                        className={classnames({
-                                            "input-group-focus": passwordFocus
-                                        })}
-                                    >
-                                        <Button addonType="prepend">
-                                            <InputGroupText>
-                                                <i className="tim-icons icon-lock-circle" />
-                                            </InputGroupText>
-                                        </Button>
-                                        <Input
-                                            placeholder="Password"
-                                            type="text"
-                                            oonFocus={() => setPasswordFocus(true)}
-                                                onBlur={() => setPasswordFocus(true)}
-                                                onChange={e => setPassword(e.target.value)}
-                                        />
-                                    </InputGroup>
-                                </Form>
-                            </CardBody>
-                            <CardFooter>
-                                <Button className="btn-round" color="primary" size="lg" onclick={handleBreedClick}>
-                                    Breed Fish
-                                </Button>
-                            </CardFooter>
-                        </Card>
+    return (
+            <Row>
+                <Col className="offset-lg-0 offset-md-3" lg="5" md="6">
+                    <Card className="card-register">
+                        <CardHeader>
+                            <CardImg
+                                alt="..."
+                                src={require("../../assets/img/square-purple-1.png")}
+                            />
+                            <CardTitle tag="h4">Login</CardTitle>
+                        </CardHeader>
+                        <CardBody>
+                            <Form className="form">
+                                <InputGroup
+                                    className={classnames({
+                                        "input-group-focus": nameFocus
+                                    })}
+                                >
+                                    <div className="input-group-addon">
+                                        <InputGroupText>
+                                            <i className="tim-icons icon-single-02" />
+                                        </InputGroupText>
+                                    </div>
+                                    <Input
+                                        placeholder="Name"
+                                        type="text"
+                                        onFocus={() => setNameFocus(true)}
+                                        onBlur={() => setNameFocus(true)}
+                                        onChange={e => setUsername(e.target.value)}
+                                    />
+                                </InputGroup>
+                                <InputGroup
+                                    className={classnames({
+                                        "input-group-focus": passwordFocus
+                                    })}
+                                >
+                                    <div className="input-group-addon">
+                                        <InputGroupText>
+                                            <i className="tim-icons icon-lock-circle" />
+                                        </InputGroupText>
+                                    </div>
+                                    <Input
+                                        placeholder="Password"
+                                        type="text"
+                                        oonFocus={() => setPasswordFocus(true)}
+                                            onBlur={() => setPasswordFocus(true)}
+                                            onChange={e => setPassword(e.target.value)}
+                                    />
+                                </InputGroup>
+                            </Form>
+                        </CardBody>
+                        <CardFooter>
+                            <Button className="btn-round" color="primary" size="lg" onclick={handleBreedClick}>
+                                Breed Fish
+                            </Button>
+                        </CardFooter>
+                    </Card>
 
-                    </Col>
-                </Row>
-            </Container>
-        </div>);
+                </Col>
+            </Row>);
 
 }
