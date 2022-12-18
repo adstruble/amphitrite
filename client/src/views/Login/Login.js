@@ -59,7 +59,7 @@ export default function Login({setToken}) {
                                         "input-group-focus": nameFocus
                                     })}
                                 >
-                                    <div className="input-group-addon">
+                                    <div className="input-group-prepend">
                                         <InputGroupText>
                                             <i className="tim-icons icon-single-02" />
                                         </InputGroupText>
@@ -68,7 +68,7 @@ export default function Login({setToken}) {
                                         placeholder="Name"
                                         type="text"
                                         onFocus={() => setNameFocus(true)}
-                                        onBlur={() => setNameFocus(true)}
+                                        onBlur={() => setNameFocus(false)}
                                         onChange={e => setUsername(e.target.value)}
                                     />
                                 </InputGroup>
@@ -77,7 +77,7 @@ export default function Login({setToken}) {
                                         "input-group-focus": passwordFocus
                                     })}
                                 >
-                                    <div className="input-group-addon">
+                                    <div className="input-group-prepend">
                                         <InputGroupText>
                                             <i className="tim-icons icon-lock-circle" />
                                         </InputGroupText>
@@ -85,9 +85,9 @@ export default function Login({setToken}) {
                                     <Input
                                         placeholder="Password"
                                         type="text"
-                                        oonFocus={() => setPasswordFocus(true)}
-                                            onBlur={() => setPasswordFocus(true)}
-                                            onChange={e => setPassword(e.target.value)}
+                                        onFocus={() => setPasswordFocus(true)}
+                                        onBlur={() => setPasswordFocus(false)}
+                                        onChange={e => setPassword(e.target.value)}
                                     />
                                 </InputGroup>
                             </Form>
