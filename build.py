@@ -47,7 +47,12 @@ def _build_component(component, forcerm: bool):
     try:
         client.images.build(path=dockerfile_path, tag=f"amphitrite/{component}:{version}", rm=True, forcerm=forcerm)
     except BuildError as e:
-        print(e)
+        print("Error during build:" + str(e))
+        build_log = ""
+        for log in e.build_log:
+            build_log += log.get('stream', '')
+        print(build_log)
+
 
 
 def _get_version_tag():
