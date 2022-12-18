@@ -14,6 +14,7 @@ import {
 } from "reactstrap";
 
 import classnames from "classnames";
+    import PropTypes from "prop-types";
 
 async function loginUser(credentials) {
     return fetch('/amphitrite/login',{
@@ -26,7 +27,7 @@ async function loginUser(credentials) {
         .then(data => data.json())
 }
 
-export default function Login({setToken}) {
+export default function Login({setToken, squares7and8}) {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [nameFocus, setNameFocus] = useState(false);
@@ -44,6 +45,16 @@ export default function Login({setToken}) {
     return (
             <Row>
                 <Col className="offset-lg-0 offset-md-3" lg="5" md="6">
+                    <div
+                        className="square square-7"
+                        id="square7"
+                        style={{ transform: squares7and8 }}
+                    />
+                    <div
+                        className="square square-8"
+                        id="square8"
+                        style={{ transform: squares7and8 }}
+                    />
                     <Card className="card-register">
                         <CardHeader>
                             <CardImg
@@ -100,6 +111,10 @@ export default function Login({setToken}) {
                     </Card>
 
                 </Col>
-            </Row>);
-
+            </Row>
+    );
 }
+Login.propTypes = {
+    setToken: PropTypes.func.isRequired,
+    squares7and8: PropTypes.string.isRequired
+};
