@@ -1,4 +1,4 @@
-FROM arm64v8/postgres:14.3-alpine
+FROM postgres:14.6-alpine
 ENV POSTGRES_PASSWORD postgres
 
 COPY postgres_config/postgresql.conf      /tmp/postgresql.conf

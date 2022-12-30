@@ -1,7 +1,7 @@
-FROM arm64v8/python:3.9.14
+FROM python:3.11.1
 
 RUN useradd amphitrite
-WORKDIR /home/amphitrite
+WORKDIR /home/amphitrite3
 
 COPY requirements.txt .
 RUN pip install -r requirements.txt
