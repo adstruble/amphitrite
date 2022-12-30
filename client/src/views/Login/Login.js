@@ -1,4 +1,4 @@
-    import React, {useState} from "react";
+import React, {useState} from "react";
 import {
     Row,
     Col,
@@ -14,17 +14,17 @@ import {
 } from "reactstrap";
 
 import classnames from "classnames";
-    import PropTypes from "prop-types";
+import PropTypes from "prop-types";
 
 async function loginUser(credentials) {
+
     return fetch('/amphitrite/login',{
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
         body: JSON.stringify(credentials)
-    })
-        .then(data => data.json())
+    }).then(data => data.json())
 }
 
 export default function Login({setToken, squares7and8}) {
@@ -32,6 +32,7 @@ export default function Login({setToken, squares7and8}) {
     const [password, setPassword] = useState('');
     const [nameFocus, setNameFocus] = useState(false);
     const [passwordFocus, setPasswordFocus] = useState(false);
+
 
     const handleBreedClick = async e => {
         e.preventDefault();
@@ -76,7 +77,7 @@ export default function Login({setToken, squares7and8}) {
                                         </InputGroupText>
                                     </div>
                                     <Input
-                                        placeholder="Name"
+                                        placeholder="Username"
                                         type="text"
                                         onFocus={() => setNameFocus(true)}
                                         onBlur={() => setNameFocus(false)}
@@ -104,7 +105,7 @@ export default function Login({setToken, squares7and8}) {
                             </Form>
                         </CardBody>
                         <CardFooter>
-                            <Button className="btn-round" color="primary" size="lg" onclick={handleBreedClick}>
+                            <Button className="btn-round" color="primary" size="lg" onClick={handleBreedClick}>
                                 Breed Fish
                             </Button>
                         </CardFooter>

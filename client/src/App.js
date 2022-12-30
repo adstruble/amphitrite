@@ -6,7 +6,6 @@ import useToken from "./components/App/useToken";
 import {Container} from "reactstrap"
 
 function App() {
-    const [person, setPerson] = useState("starter");
     const {token, setToken} = useToken();
     const [squares1to6, setSquares1to6] = React.useState("");
     const [squares7and8, setSquares7and8] = React.useState("");
@@ -39,20 +38,25 @@ function App() {
         );
     };
 
-
+    const getContainerContent = () => {
+        if (!token) {
+            return(<Login setToken={setToken} squares7and8={squares7and8}/>);
+        }else{
+            return(
+                <div className="App">
+                    <p>Hello {token}!!</p>
+                </div>
+            );
+        }
+    }
     return (
         <div className="wrapper">
             <div className="page-header">
                 <div className="page-header-image"/>
                 <div className="content">
+                    {
                     <Container>
-                        if (!token) {
-                        <Login setToken={setToken} squares7and8={squares7and8}/>
-                        }else{
-                        <div className="App">
-                            <p>Hello {token}!!</p>
-                        </div>
-                        }
+                        {getContainerContent()}
                         <div className="register-bg"/>
                         <div
                             className="square square-1"
@@ -85,7 +89,8 @@ function App() {
                             style={{transform: squares1to6}}
                         />
                     </Container>
-                </div>
+
+                    }</div>
             </div>
         </div>
     )
