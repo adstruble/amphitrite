@@ -36,3 +36,14 @@
     transform: rotate(360deg);
   }
 }
+
+img.logout {
+  width: 20px;
+  float: left;
+  filter: brightness(0) saturate(100%) invert(100%);
+}
+
+.logout span {
+  display: inline-block;
+  padding-left: 8px;
+}
