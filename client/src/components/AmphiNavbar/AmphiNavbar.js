@@ -1,4 +1,5 @@
 import React from "react";
+import { useNavigate, Link } from "react-router-dom";
 
 import {
     Navbar,
@@ -6,13 +7,23 @@ import {
 } from "reactstrap";
 
 import Logout from "../../assets/img/box-arrow-right.svg";
+import {NavLink} from "react-bootstrap";
+import App from "../../App";
+import ReactDOM from "react-dom/client";
 
-export default function AmphiNavbar({setToken}) {
+export default function AmphiNavbar() {
     const [color, setColor] = React.useState("bg-info");
+    const navigate = useNavigate();
 
     const handleLogoutClick = async e => {
         e.preventDefault();
-        setToken(null);
+        sessionStorage.removeItem('token');
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(
+            <React.StrictMode>
+                <App/>
+            </React.StrictMode>
+        );
     }
 
     return (
@@ -25,11 +36,21 @@ export default function AmphiNavbar({setToken}) {
             </div>
             <Nav navbar>
                 <NavItem>
+                    <NavLink tag={Link} to="/managefish">
+                        Manage Fish
+                    </NavLink>
+                </NavItem>
+                <NavItem>
+                    <NavLink tag={Link} to="/crossfish">
+                        Cross Fish
+                    </NavLink>
+                </NavItem>
+                <NavItem>
                     <Button className="nav-link d-none d-lg-block"
                             color="default"
                             onClick={handleLogoutClick}>
                         <div className="logout">
-                            <img src={Logout} className="logout"/>
+                            <img alt="logout" src={Logout} className="logout"/>
                             <span>Sign Out</span>
                         </div>
                     </Button>

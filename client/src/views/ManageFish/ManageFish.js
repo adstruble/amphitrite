@@ -1,22 +1,14 @@
-import AmphiNavbar from '../../components/AmphiNavbar/AmphiNavbar.js'
 import {Container, Table} from "reactstrap";
+import {Ratio} from "react-bootstrap";
 export default function ManageFish() {
 
     return (
-        <div>
-            <AmphiNavbar/>
+        <div className="wrapper">
+            <Container>
+                <Table>
 
-            <div className="wrapper">
-                <div className="page-header">
-                    <div className="page-header-image"/>
-                    <div className="content">
-                        <Container>
-                            <Table>
-                            </Table>
-                        </Container>
-                    </div>
-                </div>
-            </div>
+                </Table>
+            </Container>
         </div>
    );
 }
