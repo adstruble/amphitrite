@@ -4,3 +4,7 @@ class DBConnectionError(Exception):
 
 class AmphitriteEnvironmentError(Exception):
     pass
+
+
+class BadFishDataDuplicateTag(Exception):
+    pass

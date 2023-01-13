@@ -24,7 +24,7 @@ ALTER TABLE element ADD COLUMN last_modified_by int NOT NULL REFERENCES amphi_us
 
 CREATE TABLE family (
     sibling_birth_year int NOT NULL,
-    tag int NOT NULL, -- TODO Should this be text?'
+    group_id int NOT NULL, -- TODO Should this be text? Do we even need it?'
     di float, -- This can be calculated, but probably want to store it
     do_not_cross bool NOT NULL DEFAULT FALSE, -- This is to be indicated manually by crosser,
     PRIMARY KEY (id)
@@ -33,11 +33,20 @@ CREATE TABLE family (
 CREATE TABLE fish (
     sex sex NOT NULL,
     box int,
-    spawn_year int,
+    -- spawn_year int, -- TODO Isn't this same as sibling_birth_year, removing for now
     alive bool NOT NULL,
-    sibling_in int REFERENCES family (id),
+    sibling_in int REFERENCES family (id) NOT NULL,
     PRIMARY KEY (id)
 ) INHERITS (element);
+
+CREATE TABLE gene (
+    name varchar(100) NOT NULL,
+    allele_1 char NOT NULL,
+    allele_2 char NOT NULL,
+    fish int REFERENCES fish(id) NOT NULL,
+    PRIMARY KEY (name, fish)
+)INHERITS (element);
+CREATE INDEX gene_fish_idx on gene(fish);
 
 CREATE TABLE refuge_tag (
     tag text[] NOT NULL, -- TODO can we put a length on this text field
@@ -60,6 +69,11 @@ CREATE TABLE notes (
     text text,
     PRIMARY KEY (id)
 ) INHERITS (element);
+
+CREATE TABLE notes_element (
+    note int REFERENCES notes(id),
+    element int REFERENCES element(id)
+);
 
 CREATE TABLE version (
     major int NOT NULL,
