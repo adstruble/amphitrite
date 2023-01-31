@@ -1,10 +1,20 @@
+import time
 from contextlib import contextmanager
 
 import sqlalchemy
+from sqlalchemy.engine import Connection
 
-DEFAULT_DB_PARAMS = {"host": "datastore.datastore", "database": "amphitrite"}
+from amphi_logging.logger import get_logger
+
+DEFAULT_DB_PARAMS = {"host": "datastore.datastore",
+                     "database": "amphitrite",
+                     'user': 'amphiuser',
+                     'password': 'amphiuser'}
 
 AMPHIADMIN_DB_PARAMS = DEFAULT_DB_PARAMS | {'user': 'amphiadmin', 'password': 'amphiadmin'}
+SET_SESSION_TEMPLATE: str = "SET SESSION %s = '%s';"
+
+LOGGER = get_logger('db_utils')
 
 
 class _PGConnections:
@@ -32,10 +42,15 @@ class _PGConnections:
 
 
 @contextmanager
-def get_connection(database_params):
+def get_connection(database_params, username, setup_tx=True) -> Connection:
+
+    intermediate_time = int(time.time() * 1000)
     engine = _PGConnections().get_engine(database_params)
     conn = engine.connect()
     tx = conn.begin()
+
+    if setup_tx:
+        _setup_transaction(conn, username)
 
     # This is where we'd set up session params if we want to do that
     try:
@@ -43,6 +58,12 @@ def get_connection(database_params):
         tx.commit()
     finally:
         conn.invalidate()
+
+
+def _setup_transaction(conn, username):
+    conn.exec_driver_sql('SET CONSTRAINTS ALL DEFERRED')
+    conn.exec_driver_sql('SELECT reset_access()')
+    conn.exec_driver_sql(f"SELECT session_add_user('{username}')")
 
 
 def get_engine_user_postgres():

@@ -7,4 +7,12 @@ class AmphitriteEnvironmentError(Exception):
 
 
 class BadFishDataDuplicateTag(Exception):
-    pass
+    def __init__(self, tag,):
+        self.message = f"Duplicate tag of value: {tag} found"
+        super().__init__(self.message)
+
+
+class BadFishDataTagFormatWrong(Exception):
+    def __init__(self, tag,):
+        self.message = f"Incorrectly format tag: {tag} found"
+        super().__init__(self.message)

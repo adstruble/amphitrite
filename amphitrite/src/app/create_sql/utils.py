@@ -1,5 +1,3 @@
-import os
-
 from sqlalchemy import text
 
 from amphi_logging.logger import get_logger
@@ -15,7 +13,7 @@ def get_version_from_migration_filename(filename):
 
 def apply_sql_migration(sql_filename):
 
-    with get_connection(AMPHIADMIN_DB_PARAMS) as conn:
+    with get_connection(AMPHIADMIN_DB_PARAMS, 'amphiadmin', setup_tx=False) as conn:
         with open(sql_filename) as file:
             query = text(file.read())
             conn.execute(query)
