@@ -4,6 +4,8 @@ import React from "react";
 import {Outlet} from "react-router-dom";
 
 export default function Root(){
+    //const [alertText, setAlertText] = useState("");
+    //const [alertLevel, setAlertLevel] = useState("")
 
     return (
         <div className="App index-page">

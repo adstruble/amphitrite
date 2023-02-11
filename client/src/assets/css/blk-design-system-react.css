@@ -6135,7 +6135,7 @@ a.badge-darker.focus {
   opacity: 0.75;
 }
 
-button.close {
+.btn-close {
   padding: 0;
   background-color: transparent;
   border: 0;
@@ -11524,10 +11524,10 @@ a.text-darker:focus {
   top: 50%;
   margin-top: -11px;
 }
-.alert button.close {
+.alert .btn-close {
   position: absolute;
   right: 15px;
-  top: 50%;
+  /* This caused issues with x placement in alert in singlefileupload top: 50%;*/
   margin-top: -13px;
   width: 25px;
   height: 25px;
@@ -11602,7 +11602,6 @@ a.text-darker:focus {
   background-image: linear-gradient(to bottom left, #344675, #263148, #344675);
   background-size: 210% 210%;
   background-position: top right;
-  background-color: #344675;
   transition: all 0.15s ease;
   box-shadow: none;
   color: #ffffff;
@@ -17917,7 +17916,7 @@ code {
   margin-left: 0;
   margin-right: 0;
 }
-.rtl .alert button.close {
+.rtl .alert .btn-close {
   left: 10px !important;
   right: auto !important;
 }
@@ -18418,18 +18417,6 @@ textarea.form-control:active {
 
 .input-group .input-group-btn {
   padding: 0 12px;
-}
-
-.form-group input[type="file"] {
-  opacity: 0;
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 100;
 }
 
 .form-text {
@@ -23945,7 +23932,7 @@ td.rdtYear:hover {
   color: #ffffff;
 }
 
-.alert button.close {
+.alert .btn-close {
   margin-top: -1px;
   color: #ffffff;
   opacity: 0.9;
@@ -23953,7 +23940,7 @@ td.rdtYear:hover {
   line-height: 0;
   outline: 0;
 }
-.alert button.close::after {
+.alert .btn-close::after {
   display: inline-block;
   font: normal normal normal 1em/1 "Nucleo";
   vertical-align: middle;
@@ -23963,7 +23950,7 @@ td.rdtYear:hover {
   font-size: 1rem;
   content: "\ea48";
 }
-.alert button.close span {
+.alert .btn-close span {
   display: none !important;
 }
 

@@ -1,19 +1,18 @@
-import uuid
-
 from flask import Blueprint, request, flash
 
 from amphi_logging.logger import get_logger
+from importer.import_master import import_master_data
 from model.user import maybe_authenticate_user, encode_auth_token
 from flask import current_app
 
-login = Blueprint('managefish', __name__)
+manage_fish = Blueprint('manage_fish', __name__)
 
 logger = get_logger('manage-fish')
 
 
-@login.route('/managefish/uploadbulk', methods=(['POST']))
-def uploadbulk():
+@manage_fish.route('/manage_fish/bulk_upload', methods=(['POST']))
+def bulk_upload():
     if 'file' not in request.files:
-        logger.error("No file in request for upload bulk")
-        return
-    import_masterdata(request.files['file'])
+        logger.error("No file in request for bulk upload")
+        return {"error": "No file in request for bulk upload"}
+    return import_master_data(request.files['file'], 'amphiadmin')

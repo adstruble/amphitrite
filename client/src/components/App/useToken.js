@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import jwt_decode from 'jwt-decode'
+
 
 export default function useToken() {
     const [token, setToken] = useState(getToken());
@@ -14,9 +16,15 @@ export default function useToken() {
         return userToken?.token
     }
 
+   function getUsername() {
+        const decoded_token = jwt_decode(getToken());
+        return decoded_token.username;
+    }
+
     return {
         setToken: saveToken,
-        token
+        token,
+        getUsername: getUsername
     }
 
 }

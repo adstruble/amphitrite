@@ -4,7 +4,7 @@ import logging
 import jwt
 
 
-def encode_auth_token(user_id, secret_key):
+def encode_auth_token(username, secret_key):
     """
     Generates the Auth Token
     :return: string
@@ -13,7 +13,7 @@ def encode_auth_token(user_id, secret_key):
         payload = {
             'exp': datetime.datetime.utcnow() + datetime.timedelta(days=0, seconds=5),
             'iat': datetime.datetime.utcnow(),
-            'sub': user_id
+            'username': username
         }
         return jwt.encode(
             payload,

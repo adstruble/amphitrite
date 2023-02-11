@@ -72,7 +72,10 @@ def batch_insert_records(table_data: list[InsertTableData], username):
                          """
                 try:
                     cursor.execute(insert_str)
-
+                    result = cursor.fetchone()
                 except errors.ForeignKeyViolation as fkv:
                     LOGGER.exception(f"ForeignKeyViolation: {fkv.args} {fkv.diag}", fkv)
+                    return {"error": f"ForeignKeyViolation: {fkv.args} {fkv.diag}"}
             cursor.close()
+
+            return {"success": result[0]}
