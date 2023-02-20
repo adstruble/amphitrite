@@ -44,7 +44,6 @@ class _PGConnections:
 @contextmanager
 def get_connection(database_params, username, setup_tx=True) -> Connection:
 
-    intermediate_time = int(time.time() * 1000)
     engine = _PGConnections().get_engine(database_params)
     conn = engine.connect()
     tx = conn.begin()

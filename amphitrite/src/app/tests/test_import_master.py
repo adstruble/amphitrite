@@ -9,7 +9,9 @@ class Test(TestCase):
     def test_import_masterdata(self):
         with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
                   'resources/import/masterdata_220929.csv'), 'r') as master_data_file:
-            import_master_data(master_data_file, 'amphiadmin')
+            results = import_master_data(master_data_file, 'amphiadmin')
+            self.assertEqual(1, len(results))
+            self.assertTrue('success' in results.keys())
 
         self.assertEqual(3583, execute_statements("SELECT COUNT(*) FROM fish", 'amphiadmin'))
 

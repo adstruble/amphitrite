@@ -13,13 +13,29 @@ export default function ManageFish() {
         setFormModal(true);
     }
 
-    const fishUploadedSuccess = message => {
-        setFormModal(false);
-        if (message === "cancel"){
+    const fishUploadCallback = result => {
+
+        if ("success" in result) {
+            let message = "Records successfully imported. ";
+            for (let k in result['success']) {
+                message += k + ": " + result['success'][k] + " ";
+            }
+            setAlertText(message);
+            setAlertLevel("success");
             return;
         }
-        setAlertText(message);
-        setAlertLevel("success");
+        setAlertText(result["error"]);
+        setAlertLevel("danger");
+    }
+
+    const fishUploadInProgress = () => {
+        setFormModal(false);
+        setAlertText("Bulk upload in progress...");
+        setAlertLevel("info");
+    }
+
+    const fishUploadCancel = () => {
+        setFormModal(false);
     }
 
     return (
@@ -27,13 +43,13 @@ export default function ManageFish() {
             <Container>
                 <Row>
                     <Alert isOpen={alertText.length > 0} color={alertLevel} onClose={() => setAlertText("")} dismissible>
-                        <>if (alertLevel == "danger"){<strong>Error: </strong>}</><>{alertText}</>
+                        {alertLevel === "danger" && <strong>Error: </strong>} {alertText}
                     </Alert>
                 </Row>
                 <Row>
                     <FileUploadSingle formModalProp={formModal} fileUploadUrl="manage_fish/bulk_upload"
-                                      closeCallback={fishUploadedSuccess}/>
-
+                                      submitReturnCallback={fishUploadCallback} submitCallback={fishUploadInProgress}
+                    cancelCallback={fishUploadCancel}/>
                     <Button className="btn" color="default" type="button" onClick={handleUploadFishClick}>
                         Upload Fish
                     </Button>

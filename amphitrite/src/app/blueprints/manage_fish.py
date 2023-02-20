@@ -1,3 +1,5 @@
+import io
+
 from flask import Blueprint, request, flash
 
 from amphi_logging.logger import get_logger
@@ -15,4 +17,12 @@ def bulk_upload():
     if 'file' not in request.files:
         logger.error("No file in request for bulk upload")
         return {"error": "No file in request for bulk upload"}
-    return import_master_data(request.files['file'], 'amphiadmin')
+
+    try:
+        username = request.headers['username']
+    except: # noqa
+        logger.error("Unable to process request, error accessing username from request headers.")
+        return {"error": "Request for bulk upload cannot be handled, due to error determining user"}
+
+    csv_data_as_text = io.TextIOWrapper(request.files['file'].stream, encoding="utf-8")
+    return import_master_data(csv_data_as_text, username)

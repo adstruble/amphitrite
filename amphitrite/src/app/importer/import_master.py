@@ -30,8 +30,18 @@ def import_master_data(data, username):  # birthyear can be parsed from file
     genes = []
     notes = {}  # TODO
 
-    csv_lines = csv.reader(data)
-    next(csv_lines, None)
+    header = ""
+    try:
+        csv_lines = csv.reader(data)
+        header = next(csv_lines, None)
+        # Check that we actually have a master sheet by looking for correct column header
+        if not (header[MasterDataCols.ALLELE_1.value] == 'Htr-GVL-001_0'):
+            raise Exception("Not a valid master sheet")
+
+    except: # noqa
+        LOGGER.error(f"Data for master sheet upload is not in valid CSV format. Header of submitted file: {header}")
+        return {"error": "Data for master sheet upload is not in valid CSV format."}
+
     for line in csv.reader(data):
         refuge_tag = line[MasterDataCols.Id.value]
         if refuge_tag in refuge_tags:
@@ -54,6 +64,7 @@ def import_master_data(data, username):  # birthyear can be parsed from file
             family_id = "\\N"
         elif csv_fam_id not in families:
             families[csv_fam_id] = {"sibling_birth_year": sibling_birth_year,
+                                    # MasterDataCols.Family_Id is prepended with 2_ when it's a previous years fish
                                     "group_id": group_id,
                                     "id": family_id,
                                     "tag_temp": refuge_tag,
@@ -106,14 +117,13 @@ def import_master_data(data, username):  # birthyear can be parsed from file
                   InsertTableData('refuge_tag', list(refuge_tags.values())),
                   gene_table_data]
 
-    batch_insert_records(table_data, username)
+    return batch_insert_records(table_data, username)
 
 
 def _maybe_correct_for_2_year_olds(year, refuge_tag, csv_fam_id):
     sibling_birth_year = year
     if refuge_tag[0] == '2':
         sibling_birth_year = year - 1  # This is a 2-year-old
-        # MasterDataCols.Family_Id and MasterDataCols.refuge_tag are prepended with 2_ when it's a previous years fish
         refuge_tag = refuge_tag[2:]
         csv_fam_id = csv_fam_id[2:]
 

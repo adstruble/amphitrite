@@ -3,7 +3,7 @@ import {Alert, Button, Input, Modal} from "reactstrap";
 import PropTypes from "prop-types";
 import useToken from "../App/useToken";
 
-export default function FileUploadSingle({fileUploadUrl, closeCallback, formModalProp}) {
+export default function FileUploadSingle({fileUploadUrl, submitReturnCallback, submitCallback, cancelCallback, formModalProp}) {
 
     const [formModal, setFormModal] = useState(false);
     const [file, setFile] = useState();
@@ -27,14 +27,11 @@ export default function FileUploadSingle({fileUploadUrl, closeCallback, formModa
         }
     };
 
-    const handleCancelClick = () => {
-        closeCallback("cancel");
-    }
-
     const handleUploadClick = () => {
         if (!file) {
             return;
         }
+        setSubmitDisabled(true);
         const formData = new FormData();
         formData.append('file', file);
         // 👇 Uploading the file using the fetch API to the server
@@ -47,17 +44,20 @@ export default function FileUploadSingle({fileUploadUrl, closeCallback, formModa
         })
             .then((res) => res.json())
             .then((data) => {
-                if ("success" in data){
-                    closeCallback(data["success"])
-                }
-                else{
-                    setShowSubmitAlert(true);
-                    setSubmitAlert(data["error"])
-                }
+                submitReturnCallback(data);
+                setSubmitDisabled(false);
             }
             )
-            .catch((err) => console.error(err));
+            .catch((err) => {
+                    console.error(err);
+                    setSubmitDisabled(false);
+                    submitReturnCallback({"error": err.message});
+                }
+            )
+
+        submitCallback();
     };
+
 
     return(
         <Modal
@@ -65,7 +65,7 @@ export default function FileUploadSingle({fileUploadUrl, closeCallback, formModa
             isOpen={formModal}
             toggle={() => setFormModal(false)}>
             <div className="modal-header justify-content-center">
-                <button className="btn-close" onClick={handleCancelClick}>
+                <button className="btn-close" onClick={cancelCallback}>
                     <i className="tim-icons icon-simple-remove text-white" />
                 </button>
                 <div className="text-muted text-center ml-auto mr-auto">
@@ -89,7 +89,7 @@ export default function FileUploadSingle({fileUploadUrl, closeCallback, formModa
             </div>
             <div className="modal-footer">
                     <Button color="default" className="btn" type="button"
-                            onClick={handleCancelClick}>Cancel</Button>
+                            onClick={cancelCallback}>Cancel</Button>
 
                     <Button color="success" type="button" onClick={handleUploadClick}
                             disabled={submitDisabled}>Submit</Button>
@@ -100,6 +100,8 @@ export default function FileUploadSingle({fileUploadUrl, closeCallback, formModa
 }
 FileUploadSingle.propTypes = {
     fileUploadUrl: PropTypes.string.isRequired,
-    closeCallback: PropTypes.func.isRequired,
+    submitReturnCallback: PropTypes.func.isRequired,
+    submitCallback: PropTypes.func.isRequired,
+    cancelCallback: PropTypes.func.isRequired,
     formModalProp: PropTypes.bool.isRequired
 }
