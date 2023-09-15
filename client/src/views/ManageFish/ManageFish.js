@@ -1,16 +1,35 @@
-import {Alert, Button, Container, Modal, Row, Table} from "reactstrap";
+import {Alert, Button, Container, Modal, Row} from "reactstrap";
+import {Body, Cell, Header, HeaderCell, HeaderRow, Table, Row as TableRow} from '@table-library/react-table-library/table';
+import { useTheme } from '@table-library/react-table-library/theme';
+import { DEFAULT_OPTIONS, getTheme } from '@table-library/react-table-library/baseline';
+
 import FileUploadSingle from "../../components/Upload/SingleFileUpload";
 import React, {useState} from "react";
 import {useOutletContext} from "react-router-dom";
+import fetchData from "../../server/post";
+import useToken from "../../components/App/useToken";
+import {usePagination} from "@table-library/react-table-library/pagination";
+
+
 export default function ManageFish() {
+    const LIMIT = 20;
+    const {token, setToken, getUsername} = useToken();
     const [formModal, setFormModal] = useState(false);
 
     const [alertText, setAlertText] = useState("");
     const [alertLevel, setAlertLevel] = useState(""); //useOutletContext();
 
+    const [tableData, setTableData] = useState({
+        nodes: [],
+    });
+
     const handleUploadFishClick = async e => {
         e.preventDefault();
         setFormModal(true);
+    };
+
+    const setFishList = (fishList) => {
+        setTableData({nodes: fishList});
     }
 
     const fishUploadCallback = result => {
@@ -22,11 +41,13 @@ export default function ManageFish() {
             }
             setAlertText(message);
             setAlertLevel("success");
+
+            doGetFish(0,'family_id', false).then();
             return;
         }
         setAlertText(result["error"]);
         setAlertLevel("danger");
-    }
+    };
 
     const fishUploadInProgress = () => {
         setFormModal(false);
@@ -38,7 +59,50 @@ export default function ManageFish() {
         setFormModal(false);
     }
 
+    const doGetFish = React.useCallback(async (offset, order_by, desc) => {
+        fetchData('/manage_fish/get_fishes', getUsername(),  {
+            offset: offset,
+            limit: LIMIT,
+            order_by: order_by,
+            DESC: desc
+        }, setFishList);
+    }, [fetchData]);
+
+    React.useEffect(() => {
+        doGetFish(0,'family_id', false).then();
+    }, [doGetFish]);
+
+
+    const THEME = {
+        Row: `
+        &.table_row {
+            background-color: (0,0,0,0);
+        }
+      `,
+    };
+
+    const theme = useTheme([THEME, getTheme()]);
+
+    const pagination = usePagination(
+        tableData,
+        {
+            state: {
+                page: 0,
+                size: LIMIT,
+            },
+            onChange: onPaginationChange,
+        },
+        {
+            isServer: true,
+        }
+    );
+
+    function onPaginationChange(action, state) {
+        doGetFish(state.page * LIMIT,'family_id', false).then();
+    }
+
     return (
+
         <div className="wrapper">
             <Container>
                 <Row>
@@ -55,9 +119,58 @@ export default function ManageFish() {
                     </Button>
                 </Row>
                 <Row>
-                    <Table>
+                    <div style={{ height: "300vh", width:"100%" }}>
+                    <div
+                        style={{
+                            height: "12vh",
+                            flex: "1",
+                            display: "flex",
+                            flexDirection: "column",
+                            position: "relative",
+                        }}
+                    >
+                        <div
+                            style={{
+                                flex: "1",
+                                display: "flex",
+                                flexDirection: "column",
+                                position: "absolute",
+                                top: "0",
+                                left: "0",
+                                right: "0",
+                                bottom: "0",
+                            }}
+                        >
 
-                    </Table>
+
+                            <Table data={tableData} theme={theme} pagination={pagination} layout={{fixedHeader: true}} >
+                                {(tableList) => (
+                                    <>
+                                    <Header>
+                                        <HeaderRow className='table_row'>
+                                            <HeaderCell>Family ID</HeaderCell>
+                                            <HeaderCell>Sex</HeaderCell>
+                                            <HeaderCell>Refuge Tag</HeaderCell>
+                                            <HeaderCell>Box</HeaderCell>
+                                        </HeaderRow>
+                                    </Header>
+                                    <Body>
+                                    {tableList.map((fish) => (
+                                        <TableRow className='table_row' key={fish.id} item={fish}>
+                                            <Cell>{fish.group_id}</Cell>
+                                            <Cell>{fish.sex}</Cell>
+                                            <Cell>{fish.tag}</Cell>
+                                            <Cell>{fish.box}</Cell>
+                                        </TableRow>
+                                    ))}
+                                    </Body>
+                                    </>
+                                )}
+
+                            </Table>
+                        </div>
+                    </div>
+                    </div>
                 </Row>
             </Container>
 
