@@ -119,14 +119,15 @@ export default function ManageFish() {
                     </Button>
                 </Row>
                 <Row>
-                    <div style={{ height: "300vh", width:"100%" }}>
                     <div
                         style={{
-                            height: "12vh",
+                            height: "100vh",
+                            width: "100%",
                             flex: "1",
                             display: "flex",
                             flexDirection: "column",
                             position: "relative",
+                            marginTop: ".5rem"
                         }}
                     >
                         <div
@@ -141,9 +142,7 @@ export default function ManageFish() {
                                 bottom: "0",
                             }}
                         >
-
-
-                            <Table data={tableData} theme={theme} pagination={pagination} layout={{fixedHeader: true}} >
+                            <Table style={{marginBottom: "0px"}} data={{nodes:[]}} theme={theme} pagination={pagination} >
                                 {(tableList) => (
                                     <>
                                     <Header>
@@ -166,10 +165,43 @@ export default function ManageFish() {
                                     </Body>
                                     </>
                                 )}
-
                             </Table>
                         </div>
-                    </div>
+                        <div
+                            style={{
+                                flex: "1",
+                                display: "flex",
+                                flexDirection: "column",
+                                position: "absolute",
+                                inset: "45px 0px 0px 0px"
+                            }}
+                        >
+                            <Table data={tableData} theme={theme} pagination={pagination}>
+                                {(tableList) => (
+                                        <>
+                                            <Header>
+                                                <HeaderRow style={{display:"none"}}>
+                                                    <HeaderCell></HeaderCell>
+                                                    <HeaderCell></HeaderCell>
+                                                    <HeaderCell></HeaderCell>
+                                                    <HeaderCell></HeaderCell>
+                                                </HeaderRow>
+                                            </Header>
+
+                                        <Body>
+                                            {tableList.map((fish) => (
+                                                <TableRow className='table_row' key={fish.id} item={fish}>
+                                                    <Cell>{fish.group_id}</Cell>
+                                                    <Cell>{fish.sex}</Cell>
+                                                    <Cell>{fish.tag}</Cell>
+                                                    <Cell>{fish.box}</Cell>
+                                                </TableRow>
+                                            ))}
+                                        </Body>
+</>
+                                )}
+                            </Table>
+                        </div>
                     </div>
                 </Row>
             </Container>
