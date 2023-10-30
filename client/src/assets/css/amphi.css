@@ -1,0 +1,44 @@
+body{
+    overflow-y:hidden;
+}
+.table_row.tr-header {
+    background-color: #2b3858!important;
+}
+
+.table_row.tr-header th:first-child{
+    border-radius:.2143rem 0 0 0 ;
+}
+
+.table_row.tr-header th:last-child{
+    border-radius: 0 .2143rem 0 0 ;
+}
+
+.table_row{
+    background-color: rgba(0, 0, 0, 0) !important; /* Need important to override react-table css class on same element */
+    text-align: start;
+}
+
+td.table_bottom{
+    background-color: transparent;
+    padding-left:0!important;
+    padding-right: 0!important;
+    padding-bottom: 0!important;
+}
+
+.table_bottom>div{
+    border-radius: 0 0 .2143rem .2143rem;
+    background-color: #2b3858;
+}
+
+ul.pagination {
+    padding-top:20px;
+    margin-bottom: 0;
+    justify-content: right;
+}
+
+.amphi_table_container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    width: 100%;
+}

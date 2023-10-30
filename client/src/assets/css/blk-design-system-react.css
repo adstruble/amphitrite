@@ -654,15 +654,6 @@ pre code {
   margin-right: -15px;
   margin-left: -15px;
 }
-
-.table_row.tr-header {
-  background-color: #2b3858!important;
-}
-.table_row{
-  background-color: rgba(0, 0, 0, 0) !important; /* Need important to override react-table css class on same element */
-  text-align: start;
-}
-
 .no-gutters {
   margin-right: 0;
   margin-left: 0;

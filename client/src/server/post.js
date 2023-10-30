@@ -11,15 +11,14 @@ export default function fetchData(fetchUrl, username, params, setData, fetchCall
 })
     .then((res) => res.json())
     .then((data) => {
-        console.log(data)
-        if('success' in data)
-            console.log(data['success'])
-            setData(data['success']);
-            if (fetchCallback != null) {
-                fetchCallback(data);
+            if ('success' in data) {
+                console.log(data['success'])
+                setData(data['success']);
+                if (fetchCallback != null) {
+                    fetchCallback(data);
+                }
             }
-        }
-        // TODO: Handle Failure
+        } // TODO: Handle Failure
     )
     .catch((err) => {
             console.error(err);
