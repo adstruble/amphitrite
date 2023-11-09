@@ -12,6 +12,7 @@ import ManageFish from "./views/ManageFish/ManageFish";
 import BkgrdPath from "./assets/img/path1.png";
 import ErrorPage from "./error-page";
 import Root from "./views/Root/Root";
+import CrossFish from "./views/CrossFish/CrossFish";
 
 const router = createBrowserRouter([
     {
@@ -21,10 +22,10 @@ const router = createBrowserRouter([
         children: [
             {
                 path: "crossfish",
-                element: <div>To be implemented</div>,
+                element: <CrossFish/>,
             },
             {
-                path: "managefish",
+                path: "/managefish",
                 element: <ManageFish/>,
             },
             {

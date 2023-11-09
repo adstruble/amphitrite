@@ -1,5 +1,7 @@
 import logging
 
+from blueprints.manage_fish import logger
+
 
 def validate_order_by(order_bys: list, valid_values, default=None):
     """
@@ -21,3 +23,11 @@ def validate_order_by(order_bys: list, valid_values, default=None):
     if not order_by_cols:
         return f"{order_by_clause} {default}"
     return f"{order_by_clause} {order_by_cols[:-2]}"
+
+
+def maybe_get_username(headers, request_error):
+    try:
+        return headers['username']
+    except: # noqa
+        logger.error("Unable to process request, error accessing username from request headers.")
+    return {"error": f"Request for {request_error} cannot be handled, due to error determining user"}

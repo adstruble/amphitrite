@@ -3,7 +3,12 @@ import {Alert, Button, Input, Modal} from "reactstrap";
 import PropTypes from "prop-types";
 import useToken from "../App/useToken";
 
-export default function FileUploadSingle({fileUploadUrl, submitReturnCallback, submitCallback, cancelCallback, formModalProp}) {
+export default function FileUploadSingle({fileUploadUrl,
+                                             submitReturnCallback,
+                                             submitCallback,
+                                             cancelCallback,
+                                             formModalProp,
+                                         formModalTitle}) {
 
     const [formModal, setFormModal] = useState(false);
     const [file, setFile] = useState();
@@ -69,7 +74,7 @@ export default function FileUploadSingle({fileUploadUrl, submitReturnCallback, s
                     <i className="tim-icons icon-simple-remove text-white" />
                 </button>
                 <div className="text-muted text-center ml-auto mr-auto">
-                    <h3 className="mb-0">Upload Bulk Fish Data (master sheet)</h3>
+                    <h3 className="mb-0">{formModalTitle}</h3>
                 </div>
             </div>
             <div className="modal-body">
@@ -103,5 +108,6 @@ FileUploadSingle.propTypes = {
     submitReturnCallback: PropTypes.func.isRequired,
     submitCallback: PropTypes.func.isRequired,
     cancelCallback: PropTypes.func.isRequired,
-    formModalProp: PropTypes.bool.isRequired
+    formModalProp: PropTypes.bool.isRequired,
+    formModalTitle: PropTypes.string.isRequired
 }

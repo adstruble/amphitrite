@@ -1,15 +1,12 @@
 import {Alert, Button, Container, Row} from "reactstrap";
 
-import FileUploadSingle from "../../components/Upload/SingleFileUpload";
+import FishDataUpload from "../../components/Upload/FishDataUpload";
 import React, {useState} from "react";
 import {useOutletContext} from "react-router-dom";
 import AmphiTable from "../../components/Table/AmphiTable";
 
 
 export default function ManageFish() {
-    const [formModal, setFormModal] = useState(false);
-    const [alertText, setAlertText] = useState("");
-    const [alertLevel, setAlertLevel] = useState(""); //useOutletContext();
     const [reloadTable, setReloadTable] = useState(0);
 
     const FISH_HEADER = [
@@ -19,55 +16,19 @@ export default function ManageFish() {
         {name: "Box", col_key: "box", order_by: "box", visible: true, order_direction: "ASC"}
     ];
 
-    const handleUploadFishClick = async e => {
-        e.preventDefault();
-        setFormModal(true);
-    };
-
-
-    const fishUploadCallback = result => {
-
-        if ("success" in result) {
-            let message = "Records successfully imported. ";
-            for (let k in result['success']) {
-                message += k + ": " + result['success'][k] + " ";
-            }
-            setAlertText(message);
-            setAlertLevel("success");
-            setReloadTable(reloadTable + 1);
-            return;
-        }
-        setAlertText(result["error"]);
-        setAlertLevel("danger");
-    };
-
-    const fishUploadInProgress = () => {
-        setFormModal(false);
-        setAlertText("Bulk upload in progress...");
-        setAlertLevel("info");
-    }
-
-    const fishUploadCancel = () => {
-        setFormModal(false);
+    const handleFishUploadedCallback = () => {
+        setReloadTable(reloadTable + 1);
     }
 
     return (
 
         <div className="wrapper">
             <Container>
-                <Row>
-                    <Alert isOpen={alertText.length > 0} color={alertLevel} onClose={() => setAlertText("")} dismissible>
-                        {alertLevel === "danger" && <strong>Error: </strong>} {alertText}
-                    </Alert>
-                </Row>
-                <Row>
-                    <FileUploadSingle formModalProp={formModal} fileUploadUrl="manage_fish/bulk_upload"
-                                      submitReturnCallback={fishUploadCallback} submitCallback={fishUploadInProgress}
-                    cancelCallback={fishUploadCancel}/>
-                    <Button className="btn" color="default" type="button" onClick={handleUploadFishClick}>
-                        Upload Fish
-                    </Button>
-                </Row>
+                <FishDataUpload dataUploadUrl="manage_fish/bulk_upload"
+                                uploadCallback={handleFishUploadedCallback}
+                                formModalTitle="Upload Bulk Fish Data (master sheet)"
+                                uploadButtonText="Upload Fish"
+                    />
                 <Row style={{ marginTop:-50 }}>
                     <AmphiTable getTableDataUrl="manage_fish/get_fishes"
                                 reloadData={reloadTable}

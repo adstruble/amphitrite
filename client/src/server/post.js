@@ -13,7 +13,7 @@ export default function fetchData(fetchUrl, username, params, setData, fetchCall
     .then((data) => {
             if ('success' in data) {
                 console.log(data['success'])
-                setData(data['success']);
+                setData(data['success'], params);
                 if (fetchCallback != null) {
                     fetchCallback(data);
                 }

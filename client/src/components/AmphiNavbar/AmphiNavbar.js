@@ -1,5 +1,5 @@
 import React from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, NavLink } from "react-router-dom";
 
 import {
     Navbar,
@@ -7,7 +7,6 @@ import {
 } from "reactstrap";
 
 import Logout from "../../assets/img/box-arrow-right.svg";
-import {NavLink} from "react-bootstrap";
 import App from "../../App";
 import ReactDOM from "react-dom/client";
 

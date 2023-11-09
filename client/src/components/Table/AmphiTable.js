@@ -12,17 +12,63 @@ import {Pagination, PaginationItem, PaginationLink} from "reactstrap";
 export default function AmphiTable({getTableDataUrl, reloadData, headerData}){
     const {token, setToken, getUsername} = useToken();
     const [tableSize, setTableSize] = useState(0);
+    const [currElementCnt, setCurrElementCnt] = useState(0);
+    //const [headerData, setHeaderData] = useState(headerDataStart)
+    const [currPage, setCurrPage] = useState(0)
     const LIMIT = 20;
 
     const [tableNodes, setTableNodes] = useState({
         nodes: [],
     });
 
+    const pagination = usePagination(
+        tableNodes,
+        {
+            state: {
+                page: currPage,
+                size: LIMIT,
+            },
+            onChange: onPaginationChange,
+        },
+        {
+            isServer: true,
+        }
+    );
 
-    const setTableData = (tableData) => {
-        setTableNodes({nodes: tableData['data']});
-        setTableSize(tableData['size']);
+    function onPaginationChange(action, state) {
+        setCurrPage(state.page)
+        doGetTableData(state.page * LIMIT).then();
     }
+
+    function updateOrderBy(clickedHeader){
+        return;
+        /*let newHeaders = []
+        headerData.map((header) => {
+            if (header.col_key === clickedHeader.col_key){
+                if(header.direction === "ASC"){
+                    header.direction = "DESC";
+                }else{
+                    header.direction = "ASC";
+                }
+                newHeaders.unshift(header)
+            }else{
+                newHeaders.push(header)
+            }
+        });
+        setHeaderData(newHeaders);
+        doGetTableData(currPage * LIMIT).then();*/
+    }
+
+    const setTableData = (tableData, params) => {
+        setTableNodes({nodes: tableData['data']});
+        console.error("table size: " + tableData['size'])
+        setTableSize(tableData['size']);
+        if (tableData['size'] <= (params.offset + LIMIT)){
+            setCurrElementCnt(tableData['size'])
+        }else{
+            setCurrElementCnt(params.offset + LIMIT)
+        }
+    };
 
     const determineOrderBy = () => {
         const sortedHeaders = (headerData.sort((a, b) => {
@@ -39,7 +85,7 @@ export default function AmphiTable({getTableDataUrl, reloadData, headerData}){
         return newOrderBy
     }
 
-    const doGetTableData = React.useCallback(async (offset, desc) => {
+    const doGetTableData = React.useCallback(async (offset) => {
         const newOrderBy = determineOrderBy();
         fetchData(getTableDataUrl, getUsername(),  {
             offset: offset,
@@ -51,7 +97,7 @@ export default function AmphiTable({getTableDataUrl, reloadData, headerData}){
 
 
     React.useEffect(() => {
-        doGetTableData(0, false).then();
+        doGetTableData(0).then();
     }, [doGetTableData, reloadData]);
 
 
@@ -65,26 +111,12 @@ export default function AmphiTable({getTableDataUrl, reloadData, headerData}){
 
     const theme = useTheme([THEME, getTheme()]);
 
-    const pagination = usePagination(
-        tableNodes,
-        {
-            state: {
-                page: 0,
-                size: LIMIT,
-            },
-            onChange: onPaginationChange,
-        },
-        {
-            isServer: true,
-        }
-    );
-    function onPaginationChange(action, state) {
-        doGetTableData(state.page * LIMIT, false).then();
-    }
-
     return (
-        <div className='amphi_table_container'>
+        <div className='amphi-table-container'>
             <Pagination>
+                <PaginationItem >
+                    <span>{pagination.state.page * LIMIT + 1 }-{currElementCnt} of {tableSize}</span>
+                </PaginationItem>
                 <PaginationItem disabled={pagination.state.page === 0}>
                     <PaginationLink onClick={() => pagination.fns.onSetPage(pagination.state.page - 1)}>
                                     <span aria-hidden={true}>
@@ -92,7 +124,7 @@ export default function AmphiTable({getTableDataUrl, reloadData, headerData}){
                                     </span>
                     </PaginationLink>
                 </PaginationItem>
-                <PaginationItem disabled={pagination.state.page === tableSize}>
+                <PaginationItem disabled={tableSize <= (pagination.state.page + 1) * LIMIT}>
                     <PaginationLink onClick={() => pagination.fns.onSetPage(pagination.state.page + 1)}>
                                     <span aria-hidden={true}>
                                         <i aria-hidden={true} className="tim-icons icon-minimal-right"/>
@@ -127,9 +159,17 @@ export default function AmphiTable({getTableDataUrl, reloadData, headerData}){
                         {(headerData) => (
                             <>
                                 <Header>
-                                    <HeaderRow className='table_row'>
-                                        {headerData.map((header) => (
-                                            <HeaderCell>{header.name}</HeaderCell>))}
+                                    <HeaderRow className='table-row'>
+                                        {headerData.map((header) => {
+                                            if(header.order_by){
+                                            return(<HeaderCell
+                                                onClick={()=>{updateOrderBy(header)}}
+                                                className="icon-minimal-up icon-minimal-down">{header.name}</HeaderCell>);
+                                        }else{
+                                            return(<HeaderCell>header.name</HeaderCell>)
+                                        }
+                                        })
+                                        }
                                     </HeaderRow>
                                 </Header>
                             </>
@@ -160,7 +200,7 @@ export default function AmphiTable({getTableDataUrl, reloadData, headerData}){
 
                                 <Body>
                                     {tableList.map((fish) => (
-                                        <Row className='table_row' key={fish.id} item={fish}>
+                                        <Row className='table-row' key={fish.id} item={fish}>
                                             <Cell>{fish.group_id}</Cell>
                                             <Cell>{fish.sex}</Cell>
                                             <Cell>{fish.tag}</Cell>
@@ -168,7 +208,7 @@ export default function AmphiTable({getTableDataUrl, reloadData, headerData}){
                                         </Row>
                                     ))}
                                     <Row key='bottom' item={null}>
-                                        <Cell className='table_bottom' gridColumnStart={1} gridColumnEnd={5}>&nbsp;</Cell>
+                                        <Cell className='table-bottom' gridColumnStart={1} gridColumnEnd={5}>&nbsp;</Cell>
                                     </Row>
                                 </Body>
                             </>
