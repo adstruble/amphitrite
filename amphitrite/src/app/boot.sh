@@ -15,4 +15,5 @@ else
   echo "ENV: CLUSTER"
 fi
 
+exec python /home/amphitrite3/src/app/start_manager.py &
 exec gunicorn --access-logfile - --error-logfile - -c "$CONF" amphitrite:app

@@ -2,6 +2,10 @@ class DBConnectionError(Exception):
     pass
 
 
+class SharedStateManagerError(Exception):
+    pass
+
+
 class AmphitriteEnvironmentError(Exception):
     pass
 

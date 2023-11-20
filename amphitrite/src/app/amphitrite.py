@@ -5,7 +5,9 @@ from flask import Flask
 
 from blueprints import test
 from blueprints import login
+from blueprints.common import common
 from blueprints.manage_fish import manage_fish
+from blueprints.cross_fish import cross_fish
 from exceptions.exceptions import AmphitriteEnvironmentError
 
 app = Flask(__name__)
@@ -18,6 +20,8 @@ if app.config['SECRET_KEY'] is None:
 app.register_blueprint(test.tests)
 app.register_blueprint(login.login)
 app.register_blueprint(manage_fish)
+app.register_blueprint(common)
+app.register_blueprint(cross_fish)
 
 if app.config['DEBUG']:
     APPLICATION_ROOT = '/amphitrite'

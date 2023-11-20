@@ -68,7 +68,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
-CREATE TYPE sex AS ENUM ('F', 'M');
+CREATE TYPE sex AS ENUM ('F', 'M', 'UNKNOWN');
 
 CREATE TABLE element (
     id uuid PRIMARY KEY,
@@ -117,8 +117,10 @@ CREATE TABLE gene (
 CREATE INDEX gene_fish_idx on gene(fish);
 
 CREATE TABLE refuge_tag (
-    tag varchar(6) NOT NULL, -- TODO Is length of 6 ok?  Also note that this is nonunique across
-    -- years, we could add a year column and and a unique constraint across the 2 columns
+    tag varchar(12) NOT NULL, -- Making length of 12. Normally it is 6, but there are 'special fish' that
+    -- may have different format that we want to allow. (So far (231109) these are all dead)
+    -- Also note that this tag fiels is non-unique across years, we could add a year column and add a unique constraint
+    -- across the 2 columns
     date_tagged timestamp,
     date_untagged timestamp,
     fish uuid NOT NULL REFERENCES fish(id) DEFERRABLE,

@@ -18,6 +18,16 @@ export default function FileUploadSingle({fileUploadUrl,
     const [showSubmitAlert, setShowSubmitAlert] = useState(false);
     const [submitAlert, setSubmitAlert] = useState("Unknown error")
 
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+
+        return () => {
+            setMounted(false);
+        };
+    }, []);
+
     useEffect(() => {
         setFormModal(formModalProp );
     }, [formModalProp]);
@@ -31,6 +41,37 @@ export default function FileUploadSingle({fileUploadUrl,
             }
         }
     };
+
+    const waitForJob = (jobId) => {
+        setTimeout(() => {
+            if (!mounted){
+                return;
+            }
+            fetch("/amphitrite/common/check_job/" + jobId, {
+                method: "GET",
+                headers: {
+                    username: getUsername()
+                }
+            }) .then((res) => res.json())
+                .then((data) => {
+                    if(!"state" in data){
+                        console.error("Unexpected response while waiting for job: " + jobId + " to complete.");
+                    }
+                    if(data['state'] === "Complete"){
+                        submitReturnCallback(data['result'])
+                    }else if(data['state'] === "NotFound"){
+                        submitReturnCallback({"error": "Waiting upload job:" + jobId +" not found."});
+                    }else if(data['state'] === "Failed"){
+                        submitReturnCallback({"error": data['result']})
+                    }else {
+                        // TODO STOP Waiting for job if we've navigated from page
+                        waitForJob(jobId);
+                        return;
+                    }
+                    setSubmitDisabled(false);
+                });
+            }, 1000);
+    }
 
     const handleUploadClick = () => {
         if (!file) {
@@ -49,6 +90,11 @@ export default function FileUploadSingle({fileUploadUrl,
         })
             .then((res) => res.json())
             .then((data) => {
+                if ("job_id" in data) {
+                    // The server has accepted this as a job that client can then check o status of
+                    waitForJob(data["job_id"])
+                    return;
+                }
                 submitReturnCallback(data);
                 setSubmitDisabled(false);
             }

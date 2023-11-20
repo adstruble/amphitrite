@@ -1,6 +1,6 @@
-import logging
+from amphi_logging.logger import get_logger
 
-from blueprints.manage_fish import logger
+LOGGER = get_logger()
 
 
 def validate_order_by(order_bys: list, valid_values, default=None):
@@ -29,5 +29,5 @@ def maybe_get_username(headers, request_error):
     try:
         return headers['username']
     except: # noqa
-        logger.error("Unable to process request, error accessing username from request headers.")
+        LOGGER.error("Unable to process request, error accessing username from request headers.")
     return {"error": f"Request for {request_error} cannot be handled, due to error determining user"}

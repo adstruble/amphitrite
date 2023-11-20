@@ -1,6 +1,7 @@
 import time
 from csv import DictWriter
 from io import StringIO
+from sqlite3 import IntegrityError
 
 from psycopg2 import errors, ProgrammingError
 
@@ -46,7 +47,7 @@ def batch_insert_records(table_data: list[InsertTableData], username):
 
                     cursor.execute(f"CREATE TABLE IF NOT EXISTS {table.name}_insert (LIKE {table.name} INCLUDING DEFAULTS EXCLUDING INDEXES)"),
                     cursor.execute(f"TRUNCATE TABLE {table.name}_insert")
-                    cursor.execute(f"ALTER TABLE {table.name}_insert ADD COLUMN IF NOT EXISTS tag_temp varchar(6)")
+                    cursor.execute(f"ALTER TABLE {table.name}_insert ADD COLUMN IF NOT EXISTS tag_temp varchar(12)")
                     cursor.execute(f"ALTER TABLE {table.name}_insert ADD COLUMN IF NOT EXISTS sibling_birth_year_temp int")
                     cursor.execute(f"SELECT drop_null_constraints('{table.name}_insert')")
 
@@ -78,10 +79,15 @@ def batch_insert_records(table_data: list[InsertTableData], username):
             cursor.close()
         return {"success": results}
 
-    except errors.ForeignKeyViolation as fkv:
-        LOGGER.exception(f"ForeignKeyViolation: {fkv.args} {fkv.diag}", fkv)
-        return {"error": f"ForeignKeyViolation: {fkv.args} {fkv.diag}"}
-    except Exception:
-        return {"error": results}
+    except IntegrityError as ie:
+        if ie.orig is errors.ForeignKeyViolation:
+            LOGGER.exception(f"ForeignKeyViolation: {ie.orig.args} {ie.orig.diag}", fkv)
+            return {"error": f"ForeignKeyViolation: {ie.orig.args} {ie.orig.diag}"}
+        else:
+            LOGGER.exception("Exception during batch insert of records", ie.orig)
+            return {"error": str(ie.orig)}
+    except Exception as any:
+        LOGGER.exception("Exception during batch insert of records", any)
+        return {"error": str(any)}
 
 

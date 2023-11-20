@@ -3,18 +3,14 @@ import io
 from flask import Blueprint, request
 
 from amphi_logging.logger import get_logger
-from blueprints.utils import validate_order_by, maybe_get_username
-from importer.import_master import import_master_data
-from model.fish import get_fishes_from_db
-from model.user import maybe_authenticate_user, encode_auth_token
-from flask import current_app
+from blueprints.utils import maybe_get_username
 
-manage_fish = Blueprint('cross_fish', __name__)
+cross_fish = Blueprint('cross_fish', __name__)
 
 logger = get_logger('cross-fish')
 
 
-@manage_fish.route('/cross_fish/upload_crosses', methods=(['POST']))
+@cross_fish.route('/cross_fish/upload_crosses', methods=(['POST']))
 def bulk_upload():
     if 'file' not in request.files:
         logger.error("No file in request for uploaded crosses")

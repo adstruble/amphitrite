@@ -1,5 +1,6 @@
 import PropTypes from "prop-types";
 
+
 export default function fetchData(fetchUrl, username, params, setData, fetchCallback=null, fetchException=null) {
     fetch("/amphitrite/" + fetchUrl, {
         method: "POST",

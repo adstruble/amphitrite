@@ -16,6 +16,11 @@
       <option name="ignoredIdentifiers">
         <list>
           <option value="test_import_master.import_master_data" />
+          <option value="multiprocessing.managers.BaseManager.clean_job" />
+          <option value="multiprocessing.managers.BaseManager.check_job" />
+          <option value="multiprocessing.managers.BaseManager.add_server_job" />
+          <option value="multiprocessing.managers.BaseManager.complete_job_internal" />
+          <option value="multiprocessing.managers.BaseManager.complete_job" />
         </list>
       </option>
     </inspection_tool>
