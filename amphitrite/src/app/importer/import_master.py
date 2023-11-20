@@ -7,6 +7,7 @@ from enum import Enum
 from amphi_logging.logger import get_logger
 from db_utils.insert import InsertTableData, batch_insert_records
 from exceptions.exceptions import BadFishDataDuplicateTag, BadFishDataTagFormatWrong
+from importer.import_utils import _parse_year_from_filename
 from utils.server_state import complete_job, JobState
 
 LOGGER = get_logger('importer')
@@ -22,8 +23,8 @@ class MasterDataCols(Enum):
     ALLELE_N = 154
 
 
-def import_master_data(t_file_dir, username, job_id):  # birthyear can be parsed from file
-    year = datetime.today().year
+def import_master_data(t_file_dir, username, job_id, filename):
+    year = _parse_year_from_filename(filename)
 
     refuge_tags = {}
     fishes = []
@@ -132,7 +133,7 @@ def import_master_data(t_file_dir, username, job_id):  # birthyear can be parsed
         else:
             complete_job(job_id, JobState.Complete, insert_result)
     except Exception as any:
-        LOGGER.error(f"Completing job-id failure {job_id}")
+        LOGGER.error(f"Failed {job_id} due to: {any}")
         complete_job(job_id, JobState.Failed, {"error": str(any)})
 
 

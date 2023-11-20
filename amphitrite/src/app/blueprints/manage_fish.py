@@ -1,3 +1,4 @@
+import fileinput
 import os.path
 import tempfile
 import threading
@@ -34,7 +35,7 @@ def bulk_upload():
 
     add_server_job(job_id)
     t = threading.Thread(name="import_master", target=import_master_data,
-                         args=(t_file_dir, username_or_err, job_id),
+                         args=(t_file_dir, username_or_err, job_id, request.files['file'].filename),
                          daemon=True)
     t.start()
     return {"job_id": job_id}

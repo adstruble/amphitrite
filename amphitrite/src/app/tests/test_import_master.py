@@ -7,11 +7,12 @@ from importer.import_master import import_master_data
 
 class Test(TestCase):
     def test_import_masterdata(self):
-        with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                  'resources/import/masterdata_220929.csv'), 'r') as master_data_file:
-            results = import_master_data(master_data_file, 'amphiadmin')
-            self.assertEqual(1, len(results))
-            self.assertTrue('success' in results.keys())
+        class MockTempDir:
+            name = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'resources/import')
+
+        results = import_master_data(MockTempDir(), 'amphiadmin', '220929', 'masterdata_220929.csv')
+        self.assertEqual(1, len(results))
+        self.assertTrue('success' in results.keys())
 
         self.assertEqual(3583, execute_statements("SELECT COUNT(*) FROM fish", 'amphiadmin').get_single_result())
 
