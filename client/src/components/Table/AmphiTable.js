@@ -8,6 +8,7 @@ import {getTheme} from "@table-library/react-table-library/baseline";
 import {usePagination} from "@table-library/react-table-library/pagination";
 import PropTypes from "prop-types";
 import {Pagination, PaginationItem, PaginationLink} from "reactstrap";
+import AmphiHeaderCell from "./AmphiHeaderCell";
 
 export default function AmphiTable({getTableDataUrl, reloadData, headerData}){
     const {token, setToken, getUsername} = useToken();
@@ -115,7 +116,7 @@ export default function AmphiTable({getTableDataUrl, reloadData, headerData}){
         <div className='amphi-table-container'>
             <Pagination>
                 <PaginationItem >
-                    <span>{pagination.state.page * LIMIT + 1 }-{currElementCnt} of {tableSize}</span>
+                    <span>{currElementCnt ? pagination.state.page * LIMIT + 1 : 0 }-{currElementCnt} of {tableSize}</span>
                 </PaginationItem>
                 <PaginationItem disabled={pagination.state.page === 0}>
                     <PaginationLink onClick={() => pagination.fns.onSetPage(pagination.state.page - 1)}>
@@ -161,13 +162,7 @@ export default function AmphiTable({getTableDataUrl, reloadData, headerData}){
                                 <Header>
                                     <HeaderRow className='table-row'>
                                         {headerData.map((header) => {
-                                            if(header.order_by){
-                                            return(<HeaderCell
-                                                onClick={()=>{updateOrderBy(header)}}
-                                                className="icon-minimal-up icon-minimal-down">{header.name}</HeaderCell>);
-                                        }else{
-                                            return(<HeaderCell>header.name</HeaderCell>)
-                                        }
+                                            return(<AmphiHeaderCell header={header} updateOrderBy={updateOrderBy}/>);
                                         })
                                         }
                                     </HeaderRow>

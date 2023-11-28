@@ -1,0 +1,23 @@
+version: '3.3'
+networks:
+  datastore:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: dnet_datastore
+    ipam:
+      config:
+        - subnet: 181.18.1.0/24
+      driver: default
+services:
+  datastore:
+    image: amphitrite/datastore:0.0.1
+    networks:
+      datastore:
+        aliases:
+          - datastore.datastore
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+volumes:
+  postgres-data:

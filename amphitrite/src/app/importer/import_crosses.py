@@ -81,7 +81,8 @@ def determine_parents_for_backup_tanks(t_file_dir, job_id):
         tank_keys.sort()
 
         print(tank_keys)
-        add_sibling_group(tanks, tank_keys, tanks_included=set(), sibling_groups_included=set())
+        add_sibling_group(tanks, tank_keys, tanks_included=tanks_included,
+                            sibling_groups_included=sibling_groups_included)
         LOGGER.info(tanks_included)
 
     except Exception as any:

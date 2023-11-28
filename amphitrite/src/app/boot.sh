@@ -11,9 +11,10 @@ if [ "$1" = "dev" ]; then
   echo "ENV: DEV"
   echo "Setting to use local conf file..."
   CONF="file:configs/gunicorn_conf_local.py"
+  exec python ./start_manager.py &
 else
   echo "ENV: CLUSTER"
+  exec python /home/amphitrite/src/app/start_manager.py &
 fi
 
-exec python /home/amphitrite3/src/app/start_manager.py &
 exec gunicorn --access-logfile - --error-logfile - -c "$CONF" amphitrite:app

@@ -2,6 +2,7 @@ import time
 from contextlib import contextmanager
 
 import sqlalchemy
+from sqlalchemy import Engine
 from sqlalchemy.engine import Connection
 
 from amphi_logging.logger import get_logger
@@ -30,7 +31,7 @@ class _PGConnections:
     def __init__(self):
         self._engines = {}
 
-    def get_engine(self, database_params):
+    def get_engine(self, database_params) -> Engine:
         conn_string = "postgresql://{}:{}@{}/{}".format(database_params['user'],
                                                         database_params['password'],
                                                         database_params['host'],
@@ -65,7 +66,7 @@ def _setup_transaction(conn, username):
     conn.exec_driver_sql(f"SELECT session_add_user('{username}')")
 
 
-def get_engine_user_postgres():
+def get_engine_user_postgres() -> Engine:
     return _PGConnections().get_engine({'database': 'postgres',
                                         'user': 'postgres',
                                         'host': 'datastore.datastore',

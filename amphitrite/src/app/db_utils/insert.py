@@ -4,6 +4,7 @@ from io import StringIO
 from sqlite3 import IntegrityError
 
 from psycopg2 import errors, ProgrammingError
+from sqlalchemy import text
 
 from amphi_logging.logger import get_logger
 from db_utils.db_connection import get_connection, DEFAULT_DB_PARAMS
@@ -45,11 +46,11 @@ def batch_insert_records(table_data: list[InsertTableData], username):
                     # df.to_csv(buffer, index=False, header=False, sep=",", quoting=csv.QUOTE_MINIMAL, na_rep="\\N")
                     buffer.seek(0)
 
-                    cursor.execute(f"CREATE TABLE IF NOT EXISTS {table.name}_insert (LIKE {table.name} INCLUDING DEFAULTS EXCLUDING INDEXES)"),
-                    cursor.execute(f"TRUNCATE TABLE {table.name}_insert")
-                    cursor.execute(f"ALTER TABLE {table.name}_insert ADD COLUMN IF NOT EXISTS tag_temp varchar(12)")
-                    cursor.execute(f"ALTER TABLE {table.name}_insert ADD COLUMN IF NOT EXISTS sibling_birth_year_temp int")
-                    cursor.execute(f"SELECT drop_null_constraints('{table.name}_insert')")
+                    cursor.execute(text(f"CREATE TABLE IF NOT EXISTS {table.name}_insert (LIKE {table.name} INCLUDING DEFAULTS EXCLUDING INDEXES)")),
+                    cursor.execute(text(f"TRUNCATE TABLE {table.name}_insert"))
+                    cursor.execute(text(f"ALTER TABLE {table.name}_insert ADD COLUMN IF NOT EXISTS tag_temp varchar(12)"))
+                    cursor.execute(text(f"ALTER TABLE {table.name}_insert ADD COLUMN IF NOT EXISTS sibling_birth_year_temp int"))
+                    cursor.execute(text(f"SELECT drop_null_constraints('{table.name}_insert')"))
 
                     col_str = ",".join([f"\"{col}\"" for col in table.data[0].keys()])
                     cursor.copy_expert(f"COPY {table.name}_insert ({col_str}) FROM STDIN WITH (FORMAT CSV, NULL '\\N')",
@@ -74,7 +75,7 @@ def batch_insert_records(table_data: list[InsertTableData], username):
                                            ) {'' if table.constraint_action is None else table.constraint_action}
                              """
 
-                    cursor.execute(insert_str)
+                    cursor.execute(text(insert_str))
                     results[table.name] = cursor.rowcount
             cursor.close()
         return {"success": results}

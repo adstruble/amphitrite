@@ -4,11 +4,12 @@ import sys
 from time import sleep
 
 from gunicorn.arbiter import Arbiter
+from sqlalchemy import text
 
 from create_sql.utils import apply_sql_migration
 from create_sql import utils as create_sql_utils
 from db_utils.common_selects import get_version
-from db_utils.db_connection import get_engine_user_postgres
+from db_utils.db_connection import get_engine_user_postgres, get_connection, AMPHIADMIN_DB_PARAMS
 from amphi_logging.logger import get_logger
 from exceptions.exceptions import DBConnectionError
 
@@ -38,24 +39,21 @@ def on_starting(server: Arbiter) -> None:
     while attempt < total_attempts:
         try:
 
-            db_exists = engine.execute("SELECT datname FROM pg_catalog. pg_database WHERE datname = 'amphitrite'")\
+            with engine.connect() as conn:
+                db_exists = conn.execute(text("SELECT datname FROM pg_catalog. pg_database WHERE datname = 'amphitrite'"))\
                             .fetchone() is not None
             if not db_exists:
-                try:
-                    conn = engine.connect()
-                    conn.execute("CREATE USER amphiadmin "
-                                 "WITH ENCRYPTED PASSWORD 'amphiadmin' CREATEROLE CONNECTION LIMIT 10")
-                    conn.execute('commit')
-                    conn.execute("CREATE DATABASE amphitrite WITH OWNER amphiadmin")
+                with engine.connect() as conn:
+                    conn.execute(text("CREATE USER amphiadmin "
+                                 "WITH ENCRYPTED PASSWORD 'amphiadmin' CREATEROLE CONNECTION LIMIT 10"))
+                    conn.execute(text('commit'))
+                    conn.execute(text("CREATE DATABASE amphitrite WITH OWNER amphiadmin"))
                     conn.close()
-                except Exception as e:
-                    if conn is not None:  # noqa
-                        conn.close()      # noqa
-                    raise e
                 version = {'major': 0, 'minor': 0, 'patch': 0}
                 break
             else:
-                version = get_version(conn)
+                with get_connection(AMPHIADMIN_DB_PARAMS, 'amphiadmin', setup_tx=False) as conn:
+                    version = get_version(conn)
 
         except Exception as e:
             logger.warning(f"Unable to connect to postgres due to {e}, waiting {SLEEP_TIME}s before retrying.")
