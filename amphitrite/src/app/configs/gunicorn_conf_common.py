@@ -54,6 +54,8 @@ def on_starting(server: Arbiter) -> None:
             else:
                 with get_connection(AMPHIADMIN_DB_PARAMS, 'amphiadmin', setup_tx=False) as conn:
                     version = get_version(conn)
+                    logger.info(f"Database exists at version: {version}")
+                    break
 
         except Exception as e:
             logger.warning(f"Unable to connect to postgres due to {e}, waiting {SLEEP_TIME}s before retrying.")

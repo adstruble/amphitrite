@@ -15,7 +15,7 @@ def validate_order_by(order_bys: list, valid_values, default=None):
     order_by_clause = "ORDER BY "
     order_by_cols = ""
     for order_by in order_bys:
-        logging.info(f"order by: {order_by}END")
+        LOGGER.info(f"order by: {order_by}END")
         col, direction = order_by.split(",")
         if col not in valid_values or not (direction == 'ASC' or direction == 'DESC'):
             return f"{order_by_clause} {default}"

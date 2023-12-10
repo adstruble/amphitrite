@@ -26,7 +26,7 @@ def get_fishes_from_db(username: str, query_params: dict, order_by_clause: str):
     :return: a tuple of size containing, fish and count of fish without limit
     """
     LOGGER.info(f"Query params: {query_params}")
-    fish = execute_statements(('SELECT fish.id , group_id, sex, tag, box '
+    fish = execute_statements(('SELECT fish.id as id, group_id as group_id, sex as sex, tag as tag, box as box'
                                '  FROM fish '
                                '  JOIN family ON fish.family = family.id'
                                '  JOIN refuge_tag on fish.id = refuge_tag.fish'

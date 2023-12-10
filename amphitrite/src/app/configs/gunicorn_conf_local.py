@@ -10,8 +10,8 @@ bind = Config.bind
 ########################################
 # Custom Configurations for Instance
 ########################################
-workers = 2
-threads = 2
+workers = 1
+threads = 1
 reload = True
 
 ########################################

@@ -21,6 +21,7 @@ class ExecuteSqlResult:
         self.tx_id: str = ""
         self.row_results = []
         self.row_cnts = []
+        self.cols = []
 
     def get_row(self, row_idx: int):
         try:
@@ -45,7 +46,12 @@ class ExecuteSqlResult:
         return total_rows
 
     def get_as_list_of_dicts(self) -> list:
-        return list(map(dict, self.row_results))
+        def to_dict_result (vals):
+            dict_result = {}
+            for col_idx, c in enumerate(self.cols):
+                dict_result[c] = vals[col_idx]
+            return dict_result
+        return list(map(to_dict_result, self.row_results))
 
 
 def execute_statements(stmt_param_tuples, username: str,
@@ -75,6 +81,7 @@ def execute_statements(stmt_param_tuples, username: str,
 
             if result_type == ResultType.RowResults:
                 results.row_results.extend(result.fetchall())
+                results.cols = result.keys()
             elif result_type == ResultType.RowCount:
                 results.row_cnts.append(result.rowcount)
 
