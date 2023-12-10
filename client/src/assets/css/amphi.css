@@ -35,7 +35,13 @@ td.table-bottom{
     border-radius: 0 0 .2143rem .2143rem;
     background-color: #2b3858;
 }
-
+th {
+    background-color: inherit;
+}
+i.order-by{
+    font-size:9px;
+    padding-right: 5px;
+}
 ul.pagination {
     padding-top:20px;
     margin-bottom: 0;

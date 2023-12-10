@@ -10,10 +10,10 @@ export default function ManageFish() {
     const [reloadTable, setReloadTable] = useState(0);
 
     const FISH_HEADER = [
-        {name: "Family ID", col_key: "group_id", order_by: "group_id", visible: true, order_direction: "DESC"},
-        {name: "Sex", col_key: "sex", order_by: "sex", visible: true, order_direction: "ASC"},
-        {name: "Refuge Tag", col_key: "tag", order_by: "tag", visible: true, order_direction: "ASC"},
-        {name: "Box", col_key: "box", order_by: "box", visible: true, order_direction: "ASC"}
+        {name: "Family ID", key: "group_id", order_by: "group_id", visible: true, order_direction: "ASC", order: 1},
+        {name: "Sex", key: "sex", order_by: "sex", visible: true, order_direction: "", order: 2},
+        {name: "Refuge Tag", key: "tag", order_by: "tag", visible: true, order_direction: "", order: 2},
+        {name: "Box", key: "box", order_by: "box", visible: true, order_direction: "", order: 2}
     ];
 
     const handleFishUploadedCallback = () => {
@@ -32,7 +32,7 @@ export default function ManageFish() {
                 <Row style={{ marginTop:-50 }}>
                     <AmphiTable getTableDataUrl="manage_fish/get_fishes"
                                 reloadData={reloadTable}
-                                headerData={FISH_HEADER}
+                                headerDataStart={FISH_HEADER}
                     />
                 </Row>
             </Container>

@@ -10,11 +10,11 @@ import PropTypes from "prop-types";
 import {Pagination, PaginationItem, PaginationLink} from "reactstrap";
 import AmphiHeaderCell from "./AmphiHeaderCell";
 
-export default function AmphiTable({getTableDataUrl, reloadData, headerData}){
+export default function AmphiTable({getTableDataUrl, reloadData, headerDataStart}){
     const {token, setToken, getUsername} = useToken();
     const [tableSize, setTableSize] = useState(0);
     const [currElementCnt, setCurrElementCnt] = useState(0);
-    //const [headerData, setHeaderData] = useState(headerDataStart)
+    const [headerData, setHeaderData] = useState(headerDataStart)
     const [currPage, setCurrPage] = useState(0)
     const LIMIT = 20;
 
@@ -42,22 +42,25 @@ export default function AmphiTable({getTableDataUrl, reloadData, headerData}){
     }
 
     function updateOrderBy(clickedHeader){
-        return;
-        /*let newHeaders = []
+        const newHeaders =
         headerData.map((header) => {
-            if (header.col_key === clickedHeader.col_key){
-                if(header.direction === "ASC"){
-                    header.direction = "DESC";
+            if (header.key === clickedHeader.key){
+                if(header.order_direction === "ASC"){
+                    header.order_direction = "DESC";
                 }else{
-                    header.direction = "ASC";
+                    header.order_direction = "ASC";
                 }
-                newHeaders.unshift(header)
+                header.order = 1;
+                return header;
             }else{
-                newHeaders.push(header)
+                if(header.order <= clickedHeader.order){
+                    header.order = header.order + 1;
+                }
+                return header;
             }
         });
         setHeaderData(newHeaders);
-        doGetTableData(currPage * LIMIT).then();*/
+        doGetTableData(currPage * LIMIT).then();
     }
 
     const setTableData = (tableData, params) => {
@@ -73,12 +76,12 @@ export default function AmphiTable({getTableDataUrl, reloadData, headerData}){
 
     const determineOrderBy = () => {
         const sortedHeaders = (headerData.sort((a, b) => {
-            return a.order > b.order
+            return a.order < b.order ? -1 : a.order === b.order ? 0 : 1;
         }));
         let newOrderBy = [];
         newOrderBy = sortedHeaders.reduce((newOrderBy, header) => {
-            if (header.order > 0) {
-                newOrderBy = newOrderBy.concat(newOrderBy, header.order_by + "," + header.order_direction);
+            if (header.order > 0 && header.order_direction) {
+                newOrderBy = newOrderBy.concat(header.order_by + "," + header.order_direction);
             }
             return newOrderBy;
         }, newOrderBy);
@@ -87,7 +90,7 @@ export default function AmphiTable({getTableDataUrl, reloadData, headerData}){
     }
 
     const doGetTableData = React.useCallback(async (offset) => {
-        const newOrderBy = determineOrderBy();
+        const newOrderBy = determineOrderBy()
         fetchData(getTableDataUrl, getUsername(),  {
             offset: offset,
             limit: LIMIT,
@@ -186,24 +189,18 @@ export default function AmphiTable({getTableDataUrl, reloadData, headerData}){
                             <>
                                 <Header>
                                     <HeaderRow style={{display:"none"}}>
-                                        <HeaderCell></HeaderCell>
-                                        <HeaderCell></HeaderCell>
-                                        <HeaderCell></HeaderCell>
-                                        <HeaderCell></HeaderCell>
+                                        {headerData.map(() => {return <HeaderCell/>})}
                                     </HeaderRow>
                                 </Header>
 
                                 <Body>
-                                    {tableList.map((fish) => (
-                                        <Row className='table-row' key={fish.id} item={fish}>
-                                            <Cell>{fish.group_id}</Cell>
-                                            <Cell>{fish.sex}</Cell>
-                                            <Cell>{fish.tag}</Cell>
-                                            <Cell>{fish.box}</Cell>
+                                    {tableList.map((item) => (
+                                        <Row className='table-row' key={item.id} item={item}>
+                                            {headerData.map((header) => {return <Cell>{item[header.key]}</Cell>})}
                                         </Row>
                                     ))}
                                     <Row key='bottom' item={null}>
-                                        <Cell className='table-bottom' gridColumnStart={1} gridColumnEnd={5}>&nbsp;</Cell>
+                                        <Cell key='bottom-cell' className='table-bottom' gridColumnStart={1} gridColumnEnd={5}>&nbsp;</Cell>
                                     </Row>
                                 </Body>
                             </>
@@ -217,5 +214,5 @@ export default function AmphiTable({getTableDataUrl, reloadData, headerData}){
 AmphiTable.propTypes = {
     getTableDataUrl: PropTypes.string.isRequired,
     reloadData: PropTypes.any,
-    headerData:PropTypes.any.isRequired
+    headerDataStart:PropTypes.array.isRequired
 }
