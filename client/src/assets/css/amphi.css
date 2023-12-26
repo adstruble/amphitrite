@@ -2,10 +2,22 @@ body{
     overflow-y:hidden;
 }
 .amphi-table-container {
-    display: flex;
     flex-direction: column;
+    display: flex;
     height: 100vh;
     width: 100%;
+}
+.amphi-table-header {
+    display: flex;
+    width: 100%;
+}
+.amphi-table-header .input-group {
+    margin-top: 10px;
+    margin-bottom: 10px;
+    margin-right: 75px;
+}
+.amphi-table-header .input-group-text{
+    height: calc(2.25rem + 2px);
 }
 .table-row.tr-header {
     background-color: #2b3858!important;
@@ -51,4 +63,7 @@ ul.pagination > li {
     display: flex;
     flex-direction: row;
     align-items: center;
+}
+ul.pagination .item-count{
+    text-wrap: nowrap;
 }

@@ -29,7 +29,7 @@ export default function ManageFish() {
                                 formModalTitle="Upload Bulk Fish Data (master sheet)"
                                 uploadButtonText="Upload Fish"
                     />
-                <Row style={{ marginTop:-50 }}>
+                <Row>
                     <AmphiTable getTableDataUrl="manage_fish/get_fishes"
                                 reloadData={reloadTable}
                                 headerDataStart={FISH_HEADER}

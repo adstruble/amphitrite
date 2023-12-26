@@ -7,15 +7,18 @@ import {useTheme} from "@table-library/react-table-library/theme";
 import {getTheme} from "@table-library/react-table-library/baseline";
 import {usePagination} from "@table-library/react-table-library/pagination";
 import PropTypes from "prop-types";
-import {Pagination, PaginationItem, PaginationLink} from "reactstrap";
+import {Input, InputGroup, InputGroupText, Pagination, PaginationItem, PaginationLink} from "reactstrap";
 import AmphiHeaderCell from "./AmphiHeaderCell";
+import classnames from "classnames";
 
 export default function AmphiTable({getTableDataUrl, reloadData, headerDataStart}){
     const {token, setToken, getUsername} = useToken();
     const [tableSize, setTableSize] = useState(0);
     const [currElementCnt, setCurrElementCnt] = useState(0);
-    const [headerData, setHeaderData] = useState(headerDataStart)
-    const [currPage, setCurrPage] = useState(0)
+    const [headerData, setHeaderData] = useState(headerDataStart);
+    const [currPage, setCurrPage] = useState(0);
+    const [filterFocus, setFilterFocus] = useState(false);
+    const [filter, setFilter] = useState("");
     const LIMIT = 20;
 
     const [tableNodes, setTableNodes] = useState({
@@ -38,7 +41,7 @@ export default function AmphiTable({getTableDataUrl, reloadData, headerDataStart
 
     function onPaginationChange(action, state) {
         setCurrPage(state.page)
-        doGetTableData(state.page * LIMIT).then();
+        doGetTableData().then();
     }
 
     function updateOrderBy(clickedHeader){
@@ -60,7 +63,7 @@ export default function AmphiTable({getTableDataUrl, reloadData, headerDataStart
             }
         });
         setHeaderData(newHeaders);
-        doGetTableData(currPage * LIMIT).then();
+        doGetTableData().then();
     }
 
     const setTableData = (tableData, params) => {
@@ -75,7 +78,10 @@ export default function AmphiTable({getTableDataUrl, reloadData, headerDataStart
     };
 
     const determineOrderBy = () => {
-        const sortedHeaders = (headerData.sort((a, b) => {
+        // Clone the headerData so we don't change the order of the columns in the rendered table,
+        // Shouldn't need to do a deep copy because we're not changing data on the headers themselves
+        const headerDataClone = headerData.slice(0);
+        const sortedHeaders = (headerDataClone.sort((a, b) => {
             return a.order < b.order ? -1 : a.order === b.order ? 0 : 1;
         }));
         let newOrderBy = [];
@@ -89,21 +95,28 @@ export default function AmphiTable({getTableDataUrl, reloadData, headerDataStart
         return newOrderBy
     }
 
-    const doGetTableData = React.useCallback(async (offset) => {
+    const doGetTableData = React.useCallback(async () => {
         const newOrderBy = determineOrderBy()
         fetchData(getTableDataUrl, getUsername(),  {
-            offset: offset,
+            offset: currPage * LIMIT,
             limit: LIMIT,
             order_by: newOrderBy,
-            return_size: true
+            return_size: true,
+            filter: filter
         }, setTableData);
-    }, [fetchData]);
+    }, [fetchData, filter, currPage]);
 
 
     React.useEffect(() => {
-        doGetTableData(0).then();
+        doGetTableData().then();
     }, [doGetTableData, reloadData]);
 
+    const  maybeFilterTable = (e) => {
+        if (e.key !== 'Enter'){
+            return;
+        }
+        doGetTableData().then();
+    }
 
     const THEME = {
         Row: `
@@ -117,25 +130,47 @@ export default function AmphiTable({getTableDataUrl, reloadData, headerDataStart
 
     return (
         <div className='amphi-table-container'>
-            <Pagination>
-                <PaginationItem >
-                    <span>{currElementCnt ? pagination.state.page * LIMIT + 1 : 0 }-{currElementCnt} of {tableSize}</span>
-                </PaginationItem>
-                <PaginationItem disabled={pagination.state.page === 0}>
-                    <PaginationLink onClick={() => pagination.fns.onSetPage(pagination.state.page - 1)}>
-                                    <span aria-hidden={true}>
-                                        <i aria-hidden={true} className="tim-icons icon-minimal-left"/>
-                                    </span>
-                    </PaginationLink>
-                </PaginationItem>
-                <PaginationItem disabled={tableSize <= (pagination.state.page + 1) * LIMIT}>
-                    <PaginationLink onClick={() => pagination.fns.onSetPage(pagination.state.page + 1)}>
-                                    <span aria-hidden={true}>
-                                        <i aria-hidden={true} className="tim-icons icon-minimal-right"/>
-                                    </span>
-                    </PaginationLink>
-                </PaginationItem>
-            </Pagination>
+            <div className='amphi-table-header'>
+                <InputGroup
+                    className={classnames({
+                        "input-group-focus": filterFocus
+                    })}
+                >
+                    <div className="input-group-prepend">
+                        <InputGroupText>
+                            <i className="tim-icons icon-zoom-split" />
+                        </InputGroupText>
+                    </div>
+                    <Input
+                        placeholder="Filter"
+                        type="text"
+                        onFocus={() => setFilterFocus(true)}
+                        onBlur={() => setFilterFocus(false)}
+                        onChange={e => setFilter(e.target.value)}
+                        onKeyUp={e => {maybeFilterTable(e)}
+                        }
+                    />
+                </InputGroup>
+                <Pagination>
+                    <PaginationItem >
+                        <span className='item-count'>{currElementCnt ? pagination.state.page * LIMIT + 1 : 0 }-{currElementCnt} of {tableSize}</span>
+                    </PaginationItem>
+                    <PaginationItem disabled={pagination.state.page === 0}>
+                        <PaginationLink onClick={() => pagination.fns.onSetPage(pagination.state.page - 1)}>
+                                        <span aria-hidden={true}>
+                                            <i aria-hidden={true} className="tim-icons icon-minimal-left"/>
+                                        </span>
+                        </PaginationLink>
+                    </PaginationItem>
+                    <PaginationItem disabled={tableSize <= (pagination.state.page + 1) * LIMIT}>
+                        <PaginationLink onClick={() => pagination.fns.onSetPage(pagination.state.page + 1)}>
+                                        <span aria-hidden={true}>
+                                            <i aria-hidden={true} className="tim-icons icon-minimal-right"/>
+                                        </span>
+                        </PaginationLink>
+                    </PaginationItem>
+                </Pagination>
+            </div>
             <div
                 style={{
                     height: "100vh",
@@ -143,8 +178,7 @@ export default function AmphiTable({getTableDataUrl, reloadData, headerDataStart
                     flex: "1",
                     display: "flex",
                     flexDirection: "column",
-                    position: "relative",
-                    marginTop: ".5rem"
+                    position: "relative"
                 }}
             >
                 <div
