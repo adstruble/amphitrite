@@ -82,28 +82,39 @@ CREATE TABLE amphi_user (
     enabled bool NOT NULL,
     PRIMARY KEY (id)
 ) INHERITS (element);
+ALTER TABLE amphi_user ADD CONSTRAINT unique_user UNIQUE(username);
 
 INSERT INTO amphi_user (username, password, enabled, id, created_at, last_modified)
      VALUES ('amphiadmin', 'amphiadmin', True, '3905193d-1556-4800-bc9b-27a538a9fd55'::uuid, now(), now());
 ALTER TABLE element ADD COLUMN last_modified_by uuid NOT NULL REFERENCES amphi_user(id) DEFERRABLE
     DEFAULT '3905193d-1556-4800-bc9b-27a538a9fd55';
 
-CREATE TABLE family (
-    sibling_birth_year int NOT NULL,
-    group_id int NOT NULL, -- TODO Should this be text? Do we even need it?'
-    di float DEFAULT -1, -- This can be calculated, but probably want to store it
-    do_not_cross bool NOT NULL DEFAULT FALSE, -- This is to be indicated manually by crosser,
-    PRIMARY KEY (id)
+CREATE TABLE fish (
+                      sex sex NOT NULL,
+                      box int,
+                      alive bool NOT NULL DEFAULT TRUE,
+                      PRIMARY KEY (id)
 ) INHERITS (element);
 
-CREATE TABLE fish (
-    sex sex NOT NULL,
-    box int,
-    -- spawn_year int, -- TODO Isn't this same as sibling_birth_year? Is it the year THIS FISH was a parent, or a sibling?, removing for now
-    alive bool NOT NULL DEFAULT TRUE,
-    family uuid REFERENCES family (id) DEFERRABLE, -- have to allow this to be null as family might only be in morts
+CREATE TABLE family (
+    group_id int NOT NULL, -- TODO Should this be text? Do we even need it? Yes, because we want the family to be unique
+    -- and we might only know the birth year and not the exact cross_data when first importing data, this would disallow
+    -- repeat crosses of the same male and female by the unique constraint (which we may or may not want)
+    di float DEFAULT -1, -- This can be calculated, but probably want to store it
+    f_ca float DEFAULT -1, -- This can be calculated, almost assuredly want to store it (value = 0 for wildtype)
+    do_not_cross bool NOT NULL DEFAULT FALSE, -- This is to be indicated manually by crosser,
+    parent_1    uuid REFERENCES fish (id) DEFERRABLE,
+    parent_2    uuid REFERENCES fish (id) DEFERRABLE,
+    cross_date  timestamp NOT NULL,
+    cross_year numeric GENERATED ALWAYS AS (extract(year from cross_date)) STORED,
     PRIMARY KEY (id)
 ) INHERITS (element);
+ALTER TABLE family ADD CONSTRAINT unique_parents UNIQUE(parent_1, parent_2, cross_date, group_id);
+ALTER TABLE family ADD CONSTRAINT unique_family_no_parents UNIQUE(cross_year, group_id);
+ALTER TABLE family ADD CONSTRAINT different_parents CHECK (not(parent_1 = parent_2));
+
+-- Add family column to fish now that that table exists
+ALTER TABLE fish ADD column family uuid REFERENCES family (id) DEFERRABLE; -- have to allow this to be null as family might only be in morts
 CREATE INDEX fish_family_idx on fish(family);
 
 CREATE TABLE gene (
@@ -119,7 +130,7 @@ CREATE INDEX gene_fish_idx on gene(fish);
 CREATE TABLE refuge_tag (
     tag varchar(12) NOT NULL, -- Making length of 12. Normally it is 6, but there are 'special fish' that
     -- may have different format that we want to allow. (So far (231109) these are all dead)
-    -- Also note that this tag fiels is non-unique across years, we could add a year column and add a unique constraint
+    -- Also note that this tag field is non-unique across years, we could add a year column and add a unique constraint
     -- across the 2 columns
     date_tagged timestamp,
     date_untagged timestamp,
@@ -127,14 +138,6 @@ CREATE TABLE refuge_tag (
     PRIMARY KEY (id)
     ) INHERITS (element);
 CREATE INDEX tagged_fish_idx on refuge_tag (fish);
-
-CREATE TABLE crossed_with (
-    female      uuid NOT NULL REFERENCES fish (id) DEFERRABLE,
-    male        uuid NOT NULL REFERENCES fish (id) DEFERRABLE,
-    cross_date  timestamp NOT NULL,
-    parents_of  uuid REFERENCES family(id) DEFERRABLE,
-    PRIMARY KEY (id)
-    ) INHERITS (element);
 
 CREATE TABLE notes (
     text text,

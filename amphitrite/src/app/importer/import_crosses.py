@@ -1,8 +1,11 @@
 import csv
 import os
+import uuid
+from datetime import date
 from enum import Enum
 
 from amphi_logging.logger import get_logger
+from db_utils.insert import InsertTableData, batch_insert_cross_data
 from utils.server_state import complete_job, JobState
 
 LOGGER = get_logger('importer')
@@ -17,6 +20,74 @@ class RecCrossesDataCols(Enum):
     Female_Sibling_Group = 5
     MFG = 6
     Comment = 7
+
+
+def import_crosses(t_file_dir, username, job_id):
+    try:
+        header = ""
+        with open(os.path.join(t_file_dir.name, f'bulk_upload_{job_id}'), mode='r', encoding='UTF-8') as rec_crosses:
+            try:
+                csv_lines = csv.reader(rec_crosses)
+                header = next(csv_lines, None)
+                # Check that we actually have recommended crosses by looking for correct column headers
+                correct_fields = 0
+                for col_idx, col_name in enumerate(header):
+                    if col_name == 'Date':
+                        RecCrossesDataCols.Date.value = col_idx
+                        correct_fields += 1
+                    elif col_name == 'Male':
+                        RecCrossesDataCols.Male.value = col_idx
+                        correct_fields += 1
+                    elif col_name == 'Female':
+                        RecCrossesDataCols.Female.value = col_idx
+                        correct_fields += 1
+                    elif col_name.startswith('MFG'):
+                        RecCrossesDataCols.MFG.value = col_idx
+                        correct_fields += 1
+                if correct_fields != 4:
+                    raise Exception("Not a valid recommended crosses sheet. "
+                                    "Must contain: Date, Male, Female and MFG columns")
+            except Exception as any_e: # noqa
+                LOGGER.exception(f"Data for recommended crosses sheet upload is not in valid CSV format. "
+                                 f"Header of submitted file: {header}", any_e)
+                return {"error": "Data for recommended crosses sheet upload is not in valid CSV format."}
+
+            crosses = []
+            for line_num, line in enumerate(csv.reader(rec_crosses)):
+                date_str = ""
+                try:
+                    date_str = line[RecCrossesDataCols.Date.value]
+                    cross_date = _handle_date_str(date_str)
+                    crosses.append({'id': str(uuid.uuid4()),
+                                    'female_tag_temp': line[RecCrossesDataCols.Female.value],
+                                    'male_tag_temp': line[RecCrossesDataCols.Male.value],
+                                    'cross_date': cross_date,
+                                    'child_family_temp': line[RecCrossesDataCols.MFG.value]})
+
+                except Exception as e: # noqa
+                    LOGGER.exception(f'Error processing date: "{date_str}" '
+                                     f'while importing crosses. Skipping cross line: {line_num}', e)
+            insert_result = batch_insert_cross_data(InsertTableData('xy_cross', crosses), username)
+
+        if 'error' in insert_result:
+            complete_job(job_id, JobState.Failed, insert_result)
+        else:
+            complete_job(job_id, JobState.Complete, insert_result)
+    except Exception as any_e:
+        LOGGER.exception(f"Failed {job_id} importing cross data.", any_e)
+        complete_job(job_id, JobState.Failed, {"error": str(any_e)})
+
+
+def _handle_date_str(date_str):
+    try:
+        date_split = date_str.split('/')
+        cross_year = int(date_split[2])
+        cross_month = int(date_split[0])
+        cross_day = int(date_split[1])
+        cross_date = date(cross_year, cross_month, cross_day)
+        return cross_date
+    except Exception as e:
+        raise e
 
 
 def count_sibling_groups(t_file_dir, job_id):
@@ -82,7 +153,7 @@ def determine_parents_for_backup_tanks(t_file_dir, job_id):
 
         print(tank_keys)
         add_sibling_group(tanks, tank_keys, tanks_included=tanks_included,
-                            sibling_groups_included=sibling_groups_included)
+                          sibling_groups_included=sibling_groups_included)
         LOGGER.info(tanks_included)
 
     except Exception as any:

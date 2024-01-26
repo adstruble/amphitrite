@@ -31,21 +31,23 @@ def get_fishes_from_db(username: str, query_params: dict, order_by_clause: str):
         like_filter = "LIKE '%' || :filter || '%'"
         filter_str = f" WHERE box::text {like_filter} " \
                      f"OR group_id::text {like_filter} " \
+                     f"OR (group_id = -1 AND 'UNKNOWN' {like_filter}) " \
                      f"OR tag {like_filter} " \
-                     f"OR sex::text {like_filter}"
+                     f"OR sex::text {like_filter} " \
+                     f"OR date(cross_date)::text {like_filter}"
 
     LOGGER.info(f"Query params: {query_params}")
-    fish = execute_statements(('SELECT fish.id as id, group_id as group_id, sex as sex, tag as tag, box as box'
-                               '  FROM fish '
-                               '  JOIN family ON fish.family = family.id'
-                               '  JOIN refuge_tag on fish.id = refuge_tag.fish'
-                              f'{filter_str}'
-                               f' {order_by_clause} OFFSET :offset LIMIT :limit',
+    fish = execute_statements((f"""SELECT fish.id as id, group_id, date(cross_date) as cross_date, sex, tag, box
+                                   FROM fish 
+                                   LEFT JOIN family ON fish.family = family.id
+                                   JOIN refuge_tag on fish.id = refuge_tag.fish
+                                    {filter_str}
+                                    {order_by_clause} OFFSET :offset LIMIT :limit""",
                                query_params), username).get_as_list_of_dicts()
 
     fish_cnt = execute_statements(('SELECT count(fish.id) '
                                    '  FROM fish '
-                                   '  JOIN family ON fish.family = family.id'
+                                   '  LEFT JOIN family ON fish.family = family.id'
                                    f' JOIN refuge_tag on fish.id = refuge_tag.fish {filter_str}', query_params),
                                   username).get_single_result()
 

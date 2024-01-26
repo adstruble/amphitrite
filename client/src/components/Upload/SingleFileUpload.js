@@ -57,12 +57,11 @@ export default function FileUploadSingle({fileUploadUrl,
                     if(!"state" in data){
                         console.error("Unexpected response while waiting for job: " + jobId + " to complete.");
                     }
-                    if(data['state'] === "Complete"){
+                    if(data['state'] === "NotFound") {
+                        submitReturnCallback({"error": "Waiting upload job:" + jobId + " not found."});
+                    }
+                    else if(data['state'] === "Complete" || data['state'] === "Failed"){
                         submitReturnCallback(data['result'])
-                    }else if(data['state'] === "NotFound"){
-                        submitReturnCallback({"error": "Waiting upload job:" + jobId +" not found."});
-                    }else if(data['state'] === "Failed"){
-                        submitReturnCallback({"error": data['result']})
                     }else {
                         // TODO STOP Waiting for job if we've navigated from page
                         waitForJob(jobId);

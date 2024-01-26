@@ -10,7 +10,7 @@ class Test(TestCase):
         class MockTempDir:
             name = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'resources/import')
 
-        results = import_master_data(MockTempDir(), 'amphiadmin', '220929', 'masterdata_220929.csv')
+        results = import_master_data(MockTempDir(), 'amphiadmin', '20220929', 'masterdata_20220929.csv')
         self.assertEqual(1, len(results))
         self.assertTrue('success' in results.keys())
 

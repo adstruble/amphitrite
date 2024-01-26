@@ -43,9 +43,11 @@ def clean_jobs_internal():
     global server_jobs
     global server_jobs_pinged
     global job_cleaner_timer
+    logger.info("Cleaning Jobs")
     to_remove = []
     for job_id in server_jobs:
         if job_id not in server_jobs_pinged:
+            logger.info(f"Removing job: {job_id}")
             to_remove.append(job_id)
     for remove_id in to_remove:
         server_jobs.pop(remove_id)
@@ -64,9 +66,13 @@ def add_server_job(job_id):
 
 def add_server_job_internal(job_id):
     global server_jobs
+    global server_jobs_pinged
+
+    # Add the jobs to pinged first so it doesn't get cleaned
+    server_jobs_pinged[job_id] = True
     server_jobs[job_id] = ServerJob(job_id)
     server_jobs[job_id].state = JobState.InProgress
-    logger.debug("Added job internal:" + job_id + " " + str(server_jobs))
+    logger.info("Added job internal:" + job_id + " " + str(server_jobs))
 
 
 def check_job(job_id) -> (JobState, [str, dict]):
@@ -82,10 +88,13 @@ def check_job_internal(job_id):
     :return: state and result of job
     """
     global server_jobs
-    logger.debug("checking job internal:" + job_id + " " + str(server_jobs))
+    global server_jobs_pinged
+    logger.info("checking job internal:" + job_id + " " + str(server_jobs))
     job = server_jobs.get(job_id)
     if job is None:
         job = ServerJob(JobState.NotFound)
+    else:
+        server_jobs_pinged[job_id] = True
     if job.get_state() == JobState.Complete:
         server_jobs.pop(job_id)
     return job
@@ -101,9 +110,9 @@ def complete_job_internal(job_id, job_state, result):
         job = server_jobs[job_id]
         job.state = job_state
         job.result = result
-        logger.debug(f"Completed job: {job_id} with state: {job.state}")
+        logger.info(f"Completed job: {job_id} with state: {job.state}")
     except KeyError:
-        logger.warning(f"Completed job with state f{job_state} that is not in server jobs. (job_id = f{job_id}")
+        logger.warning(f"Completed job with state {job_state} that is not in server jobs. (job_id = {job_id}")
 
 
 class SharedStateManager(BaseManager):

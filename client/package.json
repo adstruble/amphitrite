@@ -50,6 +50,7 @@
     ]
   },
   "devDependencies": {
+    "eslint-plugin-react": "^7.33.2",
     "reactstrap": "^9.1.5"
   }
 }

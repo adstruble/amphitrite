@@ -1,6 +1,9 @@
 body{
     overflow-y:hidden;
 }
+.navbar-nav{
+    align-items: center;
+}
 .amphi-table-container {
     flex-direction: column;
     display: flex;
@@ -19,30 +22,49 @@ body{
 .amphi-table-header .input-group-text{
     height: calc(2.25rem + 2px);
 }
+.amphi-table-contents {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    inset: 45px 0 0 0;
+    margin-bottom: 120px;
+}
 .table-row.tr-header {
     background-color: #2b3858!important;
 }
-
 .table-row.tr-header th:first-child{
     border-radius:.2143rem 0 0 0 ;
 }
-
 .table-row.tr-header th:last-child{
     border-radius: 0 .2143rem 0 0 ;
 }
-
 .table-row{
     background-color: rgba(0, 0, 0, 0) !important; /* Need important to override react-table css class on same element */
     text-align: start;
 }
-
+.table-row.expanded .td{
+    border-bottom:none!important;
+}
+.expanded-row-contents {
+    display: flex;
+    grid-column: 1 / -1;
+    border-bottom: 1px solid #dde2eb;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+.expanded-row-contents td {
+    border-top:none;
+    flex: 1;
+}
+.expanded-row-contents .cross-btn {
+    float:right;
+}
 td.table-bottom{
     background-color: transparent;
     padding-left:0!important;
     padding-right: 0!important;
     padding-bottom: 0!important;
 }
-
 .table-bottom>div{
     border-radius: 0 0 .2143rem .2143rem;
     background-color: #2b3858;
