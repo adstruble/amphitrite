@@ -91,6 +91,7 @@ export default function AmphiTable({getTableDataUrl, reloadData, headerDataStart
             }
         });
         setHeaderData(newHeaders);
+        setCurrPage(0)
         doGetTableData().then();
     }
 

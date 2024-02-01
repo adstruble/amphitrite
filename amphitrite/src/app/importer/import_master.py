@@ -1,13 +1,12 @@
 import csv
 import os
 import uuid
-from datetime import date
 from enum import Enum
 
 from amphi_logging.logger import get_logger
 from db_utils.insert import InsertTableData, batch_insert_master_data
 from exceptions.exceptions import BadFishDataDuplicateTag, BadFishDataTagFormatWrong
-from importer.import_utils import _parse_year_from_filename
+from importer.import_utils import parse_year_from_filename, maybe_correct_for_2_year_olds
 from utils.server_state import complete_job, JobState
 
 LOGGER = get_logger('importer')
@@ -24,7 +23,7 @@ class MasterDataCols(Enum):
 
 
 def import_master_data(t_file_dir, username, job_id, filename):
-    year = _parse_year_from_filename(filename)
+    year = parse_year_from_filename(filename)
 
     refuge_tags = {}
     fishes = []
@@ -55,7 +54,7 @@ def import_master_data(t_file_dir, username, job_id, filename):
                     continue
 
                 csv_fam_id = line[MasterDataCols.Family_Id.value]
-                sibling_birth_year, refuge_tag, group_id = _maybe_correct_for_2_year_olds(year - 1, refuge_tag, csv_fam_id)
+                sibling_birth_year, refuge_tag, group_id = maybe_correct_for_2_year_olds(year - 1, refuge_tag, csv_fam_id)
 
                 if len(refuge_tag) > 6:
                     if len(refuge_tag) > 12:
@@ -112,8 +111,6 @@ def import_master_data(t_file_dir, username, job_id, filename):
             gene_table_data = InsertTableData('gene', genes)
             gene_table_data.set_insert_condition("ON CONFLICT (name, fish) DO UPDATE SET (allele_1, allele_2) = "
                                                  "(EXCLUDED.allele_1, EXCLUDED.allele_2)")
-            # We update the timestamp of the birth year temp so that an attempt to insert the genes will always
-            # happen and instead the gene will be updated if there is a conflict on insertion
             gene_table_data.add_temp_table_update("""UPDATE gene_insert as gi SET (fish) = (
                                                      SELECT fi.id)
                                                        FROM fish fi
@@ -164,30 +161,6 @@ def import_master_data(t_file_dir, username, job_id, filename):
     except Exception as any_e:
         LOGGER.exception(f"Failed {job_id} importing master data.", any_e)
         complete_job(job_id, JobState.Failed, {"error": str(any_e)})
-
-
-def _maybe_correct_for_2_year_olds(sibling_birth_year_int, refuge_tag, csv_fam_id):
-    """
-
-    :param sibling_birth_year_int: The year this fish was born (and its sibling) as an int
-    :param refuge_tag:
-    :param csv_fam_id:
-    :return:
-    """
-    sibling_birth_year = date(sibling_birth_year_int, 1, 1)
-    if refuge_tag[0] == '2':
-        LOGGER.warning(f"Correcting for 2 year old:{refuge_tag} {sibling_birth_year_int} {csv_fam_id}")
-        sibling_birth_year = date(sibling_birth_year_int - 1, 1, 1)  # This is a 2-year-old
-        refuge_tag = refuge_tag[1:]
-        # MasterDataCols.Family_Id is sometimes prepended with 2_ when it's a previous years fish
-        csv_fam_id = csv_fam_id[2:] if csv_fam_id.startswith('2_') else csv_fam_id
-
-    try:
-        csv_fam_id = int(csv_fam_id)
-    except ValueError:
-        csv_fam_id = -1
-
-    return sibling_birth_year, refuge_tag, csv_fam_id
 
 
 def get_birthyear_from_master_filename(filename: str):

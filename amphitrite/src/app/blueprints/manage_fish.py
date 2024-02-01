@@ -30,6 +30,7 @@ def get_fishes():
         return username_or_err
 
     query_params = request.get_json()
-    order_by_clause = validate_order_by(query_params['order_by'], ['box', 'sex', 'group_id', 'tag'], 'group_id ASC')
+    order_by_clause = validate_order_by(query_params['order_by'],
+                                        ['box', 'sex', 'group_id', 'tag', 'cross_date'], 'group_id ASC')
     db_fishes, db_fishes_size = get_fishes_from_db(username_or_err, query_params, order_by_clause)
     return {"success": {'data': db_fishes, 'size': db_fishes_size}}

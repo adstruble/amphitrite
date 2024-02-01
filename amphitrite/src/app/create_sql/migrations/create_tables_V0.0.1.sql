@@ -90,10 +90,10 @@ ALTER TABLE element ADD COLUMN last_modified_by uuid NOT NULL REFERENCES amphi_u
     DEFAULT '3905193d-1556-4800-bc9b-27a538a9fd55';
 
 CREATE TABLE fish (
-                      sex sex NOT NULL,
-                      box int,
-                      alive bool NOT NULL DEFAULT TRUE,
-                      PRIMARY KEY (id)
+      sex sex NOT NULL,
+      box int,
+      alive bool NOT NULL DEFAULT TRUE,
+      PRIMARY KEY (id)
 ) INHERITS (element);
 
 CREATE TABLE family (
@@ -114,7 +114,7 @@ ALTER TABLE family ADD CONSTRAINT unique_family_no_parents UNIQUE(cross_year, gr
 ALTER TABLE family ADD CONSTRAINT different_parents CHECK (not(parent_1 = parent_2));
 
 -- Add family column to fish now that that table exists
-ALTER TABLE fish ADD column family uuid REFERENCES family (id) DEFERRABLE; -- have to allow this to be null as family might only be in morts
+ALTER TABLE fish ADD column family uuid NOT NULL REFERENCES family (id) DEFERRABLE;
 CREATE INDEX fish_family_idx on fish(family);
 
 CREATE TABLE gene (

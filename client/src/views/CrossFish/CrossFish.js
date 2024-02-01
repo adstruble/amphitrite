@@ -17,7 +17,7 @@ export default function CrossFish() {
                 <FishDataUpload
                     dataUploadUrl="cross_fish/upload_crosses"
                     uploadCallback={handleUploadCrossesClick}
-                    formModalTitle="Upload Crosses (recommended crosses)"
+                    formModalTitle="Upload Recommended Crosses"
                     uploadButtonText="Upload Crosses"
                 />
             </Container>

@@ -17,17 +17,17 @@ def validate_order_by(order_bys: list, valid_values, default=None):
     :param default:
     :return: param is value is valid, otherwise default if it is given, otherwise None
     """
-    order_by_clause = "ORDER BY "
     order_by_cols = ""
     for order_by in order_bys:
         LOGGER.info(f"order by: {order_by}END")
         col, direction = order_by.split(",")
         if col not in valid_values or not (direction == 'ASC' or direction == 'DESC'):
-            return f"{order_by_clause} {default}"
+            continue
         order_by_cols = f"{order_by_cols}{col} {direction}, "
     if not order_by_cols:
-        return f"{order_by_clause} {default}"
-    return f"{order_by_clause} {order_by_cols[:-2]}"
+        LOGGER.info(f"Using default order by: {default}")
+        return f"ORDER BY {default}"
+    return f"ORDER BY {order_by_cols[:-2]}"
 
 
 def maybe_get_username(headers, request_error):

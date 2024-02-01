@@ -1,25 +1,24 @@
 import csv
 import os
+import re
 import uuid
 from datetime import date
-from enum import Enum
 
 from amphi_logging.logger import get_logger
 from db_utils.insert import InsertTableData, batch_insert_cross_data
+from exceptions.exceptions import UploadCrossesError
+from importer.import_utils import maybe_correct_for_2_year_olds
 from utils.server_state import complete_job, JobState
 
 LOGGER = get_logger('importer')
 
 
-class RecCrossesDataCols(Enum):
+class RecCrossesDataCols(object):
     Date = 0
     Male = 1
-    Male_Sibling_Group = 2
     Female = 3
-    Child_Sibling_Group = 4
-    Female_Sibling_Group = 5
-    MFG = 6
-    Comment = 7
+    SFG = 6
+    MFG = -1
 
 
 def import_crosses(t_file_dir, username, job_id):
@@ -30,51 +29,63 @@ def import_crosses(t_file_dir, username, job_id):
                 csv_lines = csv.reader(rec_crosses)
                 header = next(csv_lines, None)
                 # Check that we actually have recommended crosses by looking for correct column headers
-                correct_fields = 0
+                correct_fields = []
+                sfg_re = re.compile('^BY.*FSG.*$')
                 for col_idx, col_name in enumerate(header):
                     if col_name == 'Date':
-                        RecCrossesDataCols.Date.value = col_idx
-                        correct_fields += 1
+                        RecCrossesDataCols.Date = col_idx
+                        correct_fields.append('Date')
                     elif col_name == 'Male':
-                        RecCrossesDataCols.Male.value = col_idx
-                        correct_fields += 1
+                        RecCrossesDataCols.Male = col_idx
+                        correct_fields.append('Male')
                     elif col_name == 'Female':
-                        RecCrossesDataCols.Female.value = col_idx
-                        correct_fields += 1
-                    elif col_name.startswith('MFG'):
-                        RecCrossesDataCols.MFG.value = col_idx
-                        correct_fields += 1
-                if correct_fields != 4:
-                    raise Exception("Not a valid recommended crosses sheet. "
-                                    "Must contain: Date, Male, Female and MFG columns")
+                        RecCrossesDataCols.Female = col_idx
+                        correct_fields.append('Female')
+                    elif sfg_re.match(col_name):
+                        RecCrossesDataCols.SFG = col_idx
+                        correct_fields.append('SFG')
+                if len(correct_fields) != 4:
+                    raise UploadCrossesError.bad_csv_format(correct_fields)
+            except UploadCrossesError as upload_e:
+                raise upload_e
             except Exception as any_e: # noqa
-                LOGGER.exception(f"Data for recommended crosses sheet upload is not in valid CSV format. "
-                                 f"Header of submitted file: {header}", any_e)
-                return {"error": "Data for recommended crosses sheet upload is not in valid CSV format."}
+                raise UploadCrossesError({any_e}) from any_e
 
-            crosses = []
+            families = []
             for line_num, line in enumerate(csv.reader(rec_crosses)):
                 date_str = ""
                 try:
-                    date_str = line[RecCrossesDataCols.Date.value]
+                    date_str = line[RecCrossesDataCols.Date]
                     cross_date = _handle_date_str(date_str)
-                    crosses.append({'id': str(uuid.uuid4()),
-                                    'female_tag_temp': line[RecCrossesDataCols.Female.value],
-                                    'male_tag_temp': line[RecCrossesDataCols.Male.value],
-                                    'cross_date': cross_date,
-                                    'child_family_temp': line[RecCrossesDataCols.MFG.value]})
+                    parent_1_birth_year, parent_1_tag, _ = maybe_correct_for_2_year_olds(
+                        cross_date.year - 1, line[RecCrossesDataCols.Female])
+                    parent_2_birth_year, parent_2_tag, _ = maybe_correct_for_2_year_olds(
+                        cross_date.year - 1, line[RecCrossesDataCols.Male])
+                    temp_parent_2_id = uuid.uuid4()
+                    temp_parent_1_id = uuid.uuid4()
+                    families.append({'id': str(uuid.uuid4()),
+                                     'parent_1_tag_temp': parent_1_tag,
+                                     'parent_2_tag_temp': parent_2_tag,
+                                     'parent_1_birth_year_temp': parent_1_birth_year.year,
+                                     'parent_2_birth_year_temp': parent_2_birth_year.year,
+                                     'parent_1_temp': temp_parent_1_id,  # Should exist in db, but will insert if not
+                                     'parent_2_temp': temp_parent_2_id,  # Should exist in db, but will insert if not
+                                     'parent_1': temp_parent_1_id,
+                                     'parent_2': temp_parent_2_id,
+                                     'cross_date': cross_date,
+                                     'group_id': line[RecCrossesDataCols.SFG]})
 
                 except Exception as e: # noqa
                     LOGGER.exception(f'Error processing date: "{date_str}" '
                                      f'while importing crosses. Skipping cross line: {line_num}', e)
-            insert_result = batch_insert_cross_data(InsertTableData('xy_cross', crosses), username)
+            insert_result = batch_insert_cross_data(InsertTableData('family', families), username)
 
         if 'error' in insert_result:
             complete_job(job_id, JobState.Failed, insert_result)
         else:
             complete_job(job_id, JobState.Complete, insert_result)
     except Exception as any_e:
-        LOGGER.exception(f"Failed {job_id} importing cross data.", any_e)
+        LOGGER.exception(f"Failed import cross job: {job_id}", any_e)
         complete_job(job_id, JobState.Failed, {"error": str(any_e)})
 
 
@@ -134,7 +145,7 @@ def determine_parents_for_backup_tanks(t_file_dir, job_id):
                 if not (header[RecCrossesDataCols.Date.value] == 'Date' and
                         header[RecCrossesDataCols.Male.value] == 'Male' and
                         header[RecCrossesDataCols.Female.value] == 'Female' and
-                        header[RecCrossesDataCols.MFG.value].startswith('MFG BY') ):
+                        header[RecCrossesDataCols.MFG.value].startswith('MFG BY')):
                     raise Exception("Not a valid recommended crosses sheet")
 
             except: # noqa
