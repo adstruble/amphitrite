@@ -50,3 +50,9 @@ class UploadCrossesError(AmphitriteException):
     def __init__(self, message):
         self.message = f"Error uploading recommended crosses sheet: {message}"
         super().__init__(self.message)
+
+
+class WildTypeCrossedMultipleTimes(AmphitriteException):
+    def __init__(self, parent):
+        self.message = f"WT Fish {parent} being crossed multiple times must be handled in f calculation. Go write code"
+        super().__init__(self.message)

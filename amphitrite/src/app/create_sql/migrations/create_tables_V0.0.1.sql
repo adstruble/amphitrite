@@ -93,6 +93,7 @@ CREATE TABLE fish (
       sex sex NOT NULL,
       box int,
       alive bool NOT NULL DEFAULT TRUE,
+      wt bool NOT NULL DEFAULT FALSE,
       PRIMARY KEY (id)
 ) INHERITS (element);
 
@@ -100,7 +101,7 @@ CREATE TABLE family (
     group_id int NOT NULL, -- TODO Should this be text? Do we even need it? Yes, because we want the family to be unique
     -- and we might only know the birth year and not the exact cross_data when first importing data, this would disallow
     -- repeat crosses of the same male and female by the unique constraint (which we may or may not want)
-    di float DEFAULT -1, -- This can be calculated, but probably want to store it
+    di float DEFAULT -1, -- This can be calculated, but probably want to store it. (I believe value = 0 for wildtype)
     f_ca float DEFAULT -1, -- This can be calculated, almost assuredly want to store it (value = 0 for wildtype)
     do_not_cross bool NOT NULL DEFAULT FALSE, -- This is to be indicated manually by crosser,
     parent_1    uuid REFERENCES fish (id) DEFERRABLE,
@@ -116,6 +117,12 @@ ALTER TABLE family ADD CONSTRAINT different_parents CHECK (not(parent_1 = parent
 -- Add family column to fish now that that table exists
 ALTER TABLE fish ADD column family uuid NOT NULL REFERENCES family (id) DEFERRABLE;
 CREATE INDEX fish_family_idx on fish(family);
+
+CREATE TABLE family_pedigree (
+    parent uuid REFERENCES family(id) DEFERRABLE,
+    child uuid REFERENCES family(id) DEFERRABLE
+)INHERITS (element);
+ALTER TABLE family_pedigree ADD CONSTRAINT unique_pedigree UNIQUE (parent, child);
 
 CREATE TABLE gene (
     name varchar(100) NOT NULL,
