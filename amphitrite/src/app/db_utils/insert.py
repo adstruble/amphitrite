@@ -18,12 +18,16 @@ class InsertTableData:
         self.data = data
         self.insert_condition = None
         self.temp_table_updates = []
+        self.columns = data[0].keys()
 
     def set_insert_condition(self, constraint_action):
         self.insert_condition = constraint_action
 
     def add_temp_table_update(self, temp_table_update):
         self.temp_table_updates.append(temp_table_update)
+
+    def get_col_string(self):
+        ",".join([f"\"{col}\"" for col in list(self.data[0].keys())[:-2]])
 
 
 def batch_insert_master_data(table_data: list[InsertTableData], username):
@@ -45,14 +49,10 @@ def batch_insert_master_data(table_data: list[InsertTableData], username):
                         f"ALTER TABLE {table.name}_insert ADD COLUMN IF NOT EXISTS tag_temp varchar(12)",
                         f"ALTER TABLE {table.name}_insert ADD COLUMN IF NOT EXISTS sibling_birth_year_temp timestamp"]
                     custom_alters.extend(table.temp_table_updates)
-                    col_str = prepare_copy_table_for_bulk_insert(table, cursor, custom_alters)
+                    prepare_copy_table_for_bulk_insert(table, cursor, custom_alters)
+                    final_table_col_str = ",".join([f"\"{col}\"" for col in list(table.data[0].keys())[:-2]])
+                    copy_to_final_table(table, cursor, final_table_col_str)
 
-                    insert_str = f"""INSERT INTO {table.name} ({col_str})
-                                          SELECT {col_str} from {table.name}_insert
-                                            { '' if table.insert_condition is None else table.insert_condition}
-                             """
-
-                    cursor.execute(insert_str)
                     results[table.name] = cursor.rowcount
             cursor.close()
         return {"success": results}
@@ -60,14 +60,25 @@ def batch_insert_master_data(table_data: list[InsertTableData], username):
     except IntegrityError as ie:
         if hasattr(ie, 'orig'):
             if ie.orig is errors.ForeignKeyViolation:
-                LOGGER.exception(f"ForeignKeyViolation: {ie.orig.args} {ie.orig.diag}", ie.orig)
+                LOGGER.exception(f"ForeignKeyViolation: {ie.orig.args} {ie.orig.diag}")
                 return {"error": f"ForeignKeyViolation: {ie.orig.args} {ie.orig.diag}"}
             else:
-                LOGGER.exception(f"Exception during batch insert of {table_for_error} records", ie)
+                LOGGER.exception(f"Exception during batch insert of {table_for_error} records")
                 return {"error": str(ie.orig)}
         else:
-            LOGGER.exception(f"Exception during batch insert of {table_for_error} master data", ie)
+            LOGGER.exception(f"Exception during batch insert of {table_for_error} master data")
             return {"error": str(ie)}
+
+
+def copy_to_final_table(table: InsertTableData, cursor, col_str=None):
+    if not col_str:
+        col_str = ",".join([f"\"{col}\"" for col in list(table.data[0].keys())])
+    insert_str = f"""INSERT INTO {table.name} ({col_str})
+                                          SELECT {col_str} from {table.name}_insert
+                                            { '' if table.insert_condition is None else table.insert_condition}
+                             """
+
+    cursor.execute(insert_str)
 
 
 def batch_insert_cross_data(table: InsertTableData, username):
@@ -142,11 +153,11 @@ def batch_insert_cross_data(table: InsertTableData, username):
                 return {'success': results}
                 
     except Exception as e: # noqa
-        LOGGER.exception("Exception during batch insert of crosses", e)
+        LOGGER.exception("Exception during batch insert of crosses")
         return {"error": str(e)}
 
 
-def prepare_copy_table_for_bulk_insert(table: InsertTableData, cursor, custom_alters: list ):
+def prepare_copy_table_for_bulk_insert(table: InsertTableData, cursor, custom_alters: list):
     """
     (1) Sets up the copy table for bulk insert to actual table
     :param table The table to be inserted
@@ -157,6 +168,9 @@ def prepare_copy_table_for_bulk_insert(table: InsertTableData, cursor, custom_al
     buffer = StringIO()
     csv_writer = DictWriter(buffer, table.data[0].keys())
     csv_writer.writerows(table.data)
+    with open(f'/tmp/out{table.name}.csv', 'w') as out_file:
+        csv_writer = DictWriter(out_file, table.data[0].keys())
+        csv_writer.writerows(table.data)
     # df.to_csv(buffer, index=False, header=False, sep=",", quoting=csv.QUOTE_MINIMAL, na_rep="\\N")
     buffer.seek(0)
 
@@ -167,11 +181,11 @@ def prepare_copy_table_for_bulk_insert(table: InsertTableData, cursor, custom_al
         cursor.execute(alter_statement)
     cursor.execute(f"SELECT drop_null_constraints('{table.name}_insert')")
 
-    col_str = ",".join([f"\"{col}\"" for col in table.data[0].keys()])
+    col_str = ",".join([f"\"{col}\"" for col in table.columns])
 
     cursor.copy_expert(f"COPY {table.name}_insert ({col_str}) FROM STDIN WITH (FORMAT CSV, NULL '\\N')", buffer)
 
     for update in table.temp_table_updates:
         cursor.execute(update)
 
-    return ",".join([f"\"{col}\"" for col in list(table.data[0].keys())[:-2]])
+    return

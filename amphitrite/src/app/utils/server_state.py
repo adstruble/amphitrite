@@ -43,7 +43,6 @@ def clean_jobs_internal():
     global server_jobs
     global server_jobs_pinged
     global job_cleaner_timer
-    logger.info("Cleaning Jobs")
     to_remove = []
     for job_id in server_jobs:
         if job_id not in server_jobs_pinged:

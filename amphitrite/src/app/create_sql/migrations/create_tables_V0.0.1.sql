@@ -94,6 +94,7 @@ CREATE TABLE fish (
       box int,
       alive bool NOT NULL DEFAULT TRUE,
       wt bool NOT NULL DEFAULT FALSE,
+      gen_id int not null,
       PRIMARY KEY (id)
 ) INHERITS (element);
 
@@ -101,28 +102,30 @@ CREATE TABLE family (
     group_id int NOT NULL, -- TODO Should this be text? Do we even need it? Yes, because we want the family to be unique
     -- and we might only know the birth year and not the exact cross_data when first importing data, this would disallow
     -- repeat crosses of the same male and female by the unique constraint (which we may or may not want)
-    di float DEFAULT -1, -- This can be calculated, but probably want to store it. (I believe value = 0 for wildtype)
-    f_ca float DEFAULT -1, -- This can be calculated, almost assuredly want to store it (value = 0 for wildtype)
+    di float DEFAULT -1, -- This can be calculated, but probably want to store it. (value = 1 for wildtype)
+    f float DEFAULT -1, -- This can be calculated, almost assuredly want to store it (value = 0 for wildtype)
     do_not_cross bool NOT NULL DEFAULT FALSE, -- This is to be indicated manually by crosser,
     parent_1    uuid REFERENCES fish (id) DEFERRABLE,
     parent_2    uuid REFERENCES fish (id) DEFERRABLE,
-    cross_date  timestamp NOT NULL,
-    cross_year numeric GENERATED ALWAYS AS (extract(year from cross_date)) STORED,
+    cross_date  timestamp NOT NULL, -- exact date the parents were crossed
+    cross_year numeric GENERATED ALWAYS AS (extract(year from cross_date)) STORED, -- The year the parent's were crossed
     PRIMARY KEY (id)
 ) INHERITS (element);
 ALTER TABLE family ADD CONSTRAINT unique_parents UNIQUE(parent_1, parent_2, cross_date, group_id);
-ALTER TABLE family ADD CONSTRAINT unique_family_no_parents UNIQUE(cross_year, group_id);
+-- group ids aren't unique per year. Example 2010: 300252/300251 -> GroupID 25 for children 401271 401492 400962
+-- and 2010 200252/200251 -> Group ID 25 for child 402601
+--ALTER TABLE family ADD CONSTRAINT unique_family_no_parents UNIQUE(cross_year, group_id);
 ALTER TABLE family ADD CONSTRAINT different_parents CHECK (not(parent_1 = parent_2));
 
 -- Add family column to fish now that that table exists
 ALTER TABLE fish ADD column family uuid NOT NULL REFERENCES family (id) DEFERRABLE;
 CREATE INDEX fish_family_idx on fish(family);
 
-CREATE TABLE family_pedigree (
-    parent uuid REFERENCES family(id) DEFERRABLE,
-    child uuid REFERENCES family(id) DEFERRABLE
+CREATE TABLE pedigree (
+    parent uuid REFERENCES fish(id) DEFERRABLE,
+    child uuid REFERENCES fish(id) DEFERRABLE
 )INHERITS (element);
-ALTER TABLE family_pedigree ADD CONSTRAINT unique_pedigree UNIQUE (parent, child);
+ALTER TABLE pedigree ADD CONSTRAINT unique_pedigree UNIQUE (parent, child);
 
 CREATE TABLE gene (
     name varchar(100) NOT NULL,

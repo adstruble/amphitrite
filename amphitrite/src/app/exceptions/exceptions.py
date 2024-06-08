@@ -56,3 +56,9 @@ class WildTypeCrossedMultipleTimes(AmphitriteException):
     def __init__(self, parent):
         self.message = f"WT Fish {parent} being crossed multiple times must be handled in f calculation. Go write code"
         super().__init__(self.message)
+
+
+class WildTypeCrossedWithRefugeInWild(AmphitriteException):
+    def __init__(self, parent, parent2):
+        self.message = f"WT Fish and refuge fish crossed in wild should be impossible? Parents: {parent} {parent2}"
+        super().__init__(self.message)

@@ -2,6 +2,7 @@ Flask==3.0.0
 gunicorn==21.2.0
 flask-sqlalchemy==3.1.1
 flask-migrate==4.0.5
+networkx==3.3
 psycopg2==2.9.9
 pyjwt==2.8.0
 # This is required for dev environment not sure about deployed app python-dotenv:0.21.0

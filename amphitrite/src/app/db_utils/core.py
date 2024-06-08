@@ -76,7 +76,7 @@ def execute_statements(stmt_param_tuples, username: str,
                 LOGGER.info(f"Executing: {stmt} with params: {params}")
                 result = conn.execute(sqlalchemy.text(stmt), params)
             except Exception as e:
-                LOGGER.exception(f"Exception while executing statement: {stmt} with params {params}", e)
+                LOGGER.exception(f"Exception while executing statement: {stmt} with params {params}")
                 raise e
 
             if result_type == ResultType.RowResults:

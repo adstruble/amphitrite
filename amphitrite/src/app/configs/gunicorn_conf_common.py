@@ -12,6 +12,7 @@ from db_utils.common_selects import get_version
 from db_utils.db_connection import get_engine_user_postgres, get_connection, AMPHIADMIN_DB_PARAMS
 from amphi_logging.logger import get_logger
 from exceptions.exceptions import DBConnectionError
+from importer.import_pedigree import import_pedigree
 
 # Configurations
 bind = ['0.0.0.0:5001']
@@ -77,5 +78,7 @@ def on_starting(server: Arbiter) -> None:
             version = migration_version
 
         except Exception as e:
-            logger.exception("Exception applying SQL migration. Aborting SQL Migration.", e)
+            logger.exception("Exception applying SQL migration. Aborting SQL Migration.")
             return
+
+    import_pedigree()

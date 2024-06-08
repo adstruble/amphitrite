@@ -85,7 +85,7 @@ def import_crosses(t_file_dir, username, job_id):
         else:
             complete_job(job_id, JobState.Complete, insert_result)
     except Exception as any_e:
-        LOGGER.exception(f"Failed import cross job: {job_id}", any_e)
+        LOGGER.exception(f"Failed import cross job: {job_id}")
         complete_job(job_id, JobState.Failed, {"error": str(any_e)})
 
 
@@ -127,7 +127,7 @@ def count_sibling_groups(t_file_dir, job_id):
                 sibling_groups.add(line[RecCrossesDataCols.Female_Sibling_Group.value])
             LOGGER.info(f"{len(sibling_groups)} unique sibling groups")
     except Exception as e:
-        LOGGER.exception("Oops! ", e)
+        LOGGER.exception("Oops! ")
 
 
 def determine_parents_for_backup_tanks(t_file_dir, job_id):

@@ -37,18 +37,23 @@ def get_fishes_from_db(username: str, query_params: dict, order_by_clause: str):
                      f"OR date(cross_date)::text {like_filter}"
 
     LOGGER.info(f"Query params: {query_params}")
-    fish = execute_statements((f"""SELECT fish.id as id, group_id, date(cross_date) as cross_date, sex, tag, box
-                                   FROM fish 
-                                   LEFT JOIN family ON fish.family = family.id
-                                   JOIN refuge_tag on fish.id = refuge_tag.fish
-                                    {filter_str}
-                                    {order_by_clause} OFFSET :offset LIMIT :limit""",
-                               query_params), username).get_as_list_of_dicts()
+    fish = execute_statements((
+        f"""SELECT fish.id as id, 
+                   group_id,
+                   date(cross_date) as cross_date,
+                   COALESCE(tag, 'UNKNOWN'),
+                   box
+                FROM fish 
+                LEFT JOIN family ON fish.family = family.id
+                LEFT JOIN refuge_tag on fish.id = refuge_tag.fish
+                {filter_str}
+                {order_by_clause} OFFSET :offset LIMIT :limit""",
+        query_params), username).get_as_list_of_dicts()
 
     fish_cnt = execute_statements(('SELECT count(fish.id) '
                                    '  FROM fish '
                                    '  LEFT JOIN family ON fish.family = family.id'
-                                   f' JOIN refuge_tag on fish.id = refuge_tag.fish {filter_str}', query_params),
+                                   f' LEFT JOIN refuge_tag on fish.id = refuge_tag.fish {filter_str}', query_params),
                                   username).get_single_result()
 
     return fish, fish_cnt

@@ -61,7 +61,7 @@ def import_master_data(t_file_dir, username, job_id, filename):
                         raise BadFishDataTagFormatWrong(refuge_tag)
                     else:
                         LOGGER.warning(f"Nonstandard tag was found: '{refuge_tag}'. Hopefully this fish is dead.")
-                        # TODO Mark as do not cross and a note
+                        # TODO Mark as do not cross and add a note
 
                 fish_id = str(uuid.uuid4())
                 family_id = str(uuid.uuid4())
@@ -159,7 +159,7 @@ def import_master_data(t_file_dir, username, job_id, filename):
         else:
             complete_job(job_id, JobState.Complete, insert_result)
     except Exception as any_e:
-        LOGGER.exception(f"Failed {job_id} importing master data.", any_e)
+        LOGGER.exception(f"Failed {job_id} importing master data.")
         complete_job(job_id, JobState.Failed, {"error": str(any_e)})
 
 

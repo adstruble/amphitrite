@@ -20,7 +20,7 @@ def encode_auth_token(username, secret_key):
             secret_key
         )
     except Exception as e:
-        logging.exception("Exception encoding session token", e)
+        logging.exception("Exception encoding session token")
         return e
 
 

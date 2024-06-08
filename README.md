@@ -19,7 +19,7 @@ To login point browser to: http://localhost:80/ or http://127.0.0.1:80/
 Start Postgres only (same configuration as production)
 docker-compose -f docker-compose-postgres.yaml up -d 
 
-### Server from amphitrite/amphitrite/src
+### Server from amphitrite/amphitrite/src/app
 sh boot.sh dev
 
 To hit server endpoints: http://127.0.0.1:5001/
