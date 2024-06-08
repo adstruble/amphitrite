@@ -23,6 +23,11 @@ class PedigreeDataCols(Enum):
     PARENT_2 = 2
 
 
+class FDataCols(Enum):
+    CROSS_YEAR = 0
+    GROUP_ID = 1
+    F_VAL = 2
+
 LOGGER = get_logger('importer')
 
 
@@ -50,8 +55,11 @@ class PedigreeImportState:
 
     last_years_parents = []
 
+    # Mapping of {cross_year:{group_id:f_value}}
+    f_values = {}
 
-def import_pedigree(pedigree_file_path=None):
+
+def import_pedigree(pedigree_file_path=None, f_calc_year=None):
     if pedigree_exists():
         LOGGER.info("Pedigree previously imported, skipping pedigree import.")
         return
@@ -64,7 +72,13 @@ def import_pedigree(pedigree_file_path=None):
 
     ped_state = PedigreeImportState()
 
-    parse_pedigree_file(ped_state, pedigree_file_path)
+    if not f_calc_year:
+        f_values_path = os.path.join(os.path.abspath(os.path.dirname(__file__)),
+                                     "resources",
+                                     'f_values.csv')
+        parse_f_file(f_values_path, ped_state)
+
+    parse_pedigree_file(ped_state, pedigree_file_path, f_calc_year)
 
     ingest_pedigree_data(ped_state)
 
@@ -109,9 +123,8 @@ def ingest_pedigree_data(ped_state):
         raise e
 
 
-def parse_pedigree_file(ped_state, pedigree_file_path):
+def parse_pedigree_file(ped_state, pedigree_file_path, f_calc_year):
     try:
-        f_calc_year = 2009
         with (open(pedigree_file_path, mode='r', encoding='UTF-8') as pedigree_data):
             for line_num, line in enumerate(csv.reader(pedigree_data)):
                 if line_num % 1000 == 0:
@@ -232,11 +245,13 @@ def parse_pedigree_file(ped_state, pedigree_file_path):
                                                        }
                 cross_year_group_id_to_fam.setdefault(group_id, []).append(child_family_id)
 
-                if cross_year.year > f_calc_year:
+                if f_calc_year and cross_year.year > f_calc_year:
                     # We've moved on to a new cross year, kick of calculations of the last generation
                     calculate_fs_last_generation(ped_state, f_calc_year)
                     f_calc_year = cross_year.year
                     ped_state.last_years_parents = []
+                elif ped_state.f_values:
+                    ped_state.families[child_family_id]['f'] = ped_state.f_values[cross_year.year][group_id]
 
                 if parent_1 not in ped_state.bred_fish:
                     # WT Cross so we know the f and di values, so we're done. Continue
@@ -250,7 +265,9 @@ def parse_pedigree_file(ped_state, pedigree_file_path):
                     ped_state.last_years_parents.append((parent_1, parent_2))
 
         # Calculate the final generation fs
-        calculate_fs_last_generation(ped_state, cross_year.year)
+        if f_calc_year:
+            calculate_fs_last_generation(ped_state, cross_year.year)
+
         # Remove the unbred WT fish and their families
         for wt_fish_group_id in ped_state.wt_fish_unbred.keys():
             wt_fish = ped_state.wt_fish.pop(wt_fish_group_id)
@@ -344,3 +361,18 @@ def _read_pedigree_values(line):
             return None, None, None
 
     return group_id_unparsed, parent_1, parent_2
+
+
+def parse_f_file(f_file_path, ped_state):
+    try:
+        with (open(f_file_path, mode='r', encoding='UTF-8') as f_data):
+            for line in csv.reader(f_data):
+                # Check for header
+                if line[FDataCols.CROSS_YEAR.value].lower() == 'cross_year':
+                    continue
+                cross_year = int(line[FDataCols.CROSS_YEAR.value])
+                group_id = int(line[FDataCols.GROUP_ID.value])
+                f_val = float(line[FDataCols.F_VAL.value])
+                ped_state.f_values.setdefault(cross_year, {})[group_id] = f_val
+    except Exception as e:  # noqa
+        LOGGER.exception(f"Exception parsing f_values file: {e}")
