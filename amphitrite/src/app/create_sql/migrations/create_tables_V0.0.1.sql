@@ -89,7 +89,7 @@ INSERT INTO amphi_user (username, password, enabled, id, created_at, last_modifi
 ALTER TABLE element ADD COLUMN last_modified_by uuid NOT NULL REFERENCES amphi_user(id) DEFERRABLE
     DEFAULT '3905193d-1556-4800-bc9b-27a538a9fd55';
 
-CREATE TABLE fish (
+CREATE TABLE animal (
       sex sex NOT NULL,
       box int,
       alive bool NOT NULL DEFAULT TRUE,
@@ -99,17 +99,17 @@ CREATE TABLE fish (
 ) INHERITS (element);
 
 CREATE TABLE family (
-    group_id int NOT NULL, -- TODO Should this be text? Do we even need it? Yes, because we want the family to be unique
+                        group_id int NOT NULL, -- TODO Should this be text? Do we even need it? Yes, because we want the family to be unique
     -- and we might only know the birth year and not the exact cross_data when first importing data, this would disallow
     -- repeat crosses of the same male and female by the unique constraint (which we may or may not want)
-    di float DEFAULT -1, -- This can be calculated, but probably want to store it. (value = 1 for wildtype)
-    f float DEFAULT -1, -- This can be calculated, almost assuredly want to store it (value = 0 for wildtype)
-    do_not_cross bool NOT NULL DEFAULT FALSE, -- This is to be indicated manually by crosser,
-    parent_1    uuid REFERENCES fish (id) DEFERRABLE,
-    parent_2    uuid REFERENCES fish (id) DEFERRABLE,
-    cross_date  timestamp NOT NULL, -- exact date the parents were crossed
-    cross_year numeric GENERATED ALWAYS AS (extract(year from cross_date)) STORED, -- The year the parent's were crossed
-    PRIMARY KEY (id)
+                        di float DEFAULT -1, -- This can be calculated, but probably want to store it. (value = 1 for wildtype)
+                        f float DEFAULT -1, -- This can be calculated, almost assuredly want to store it (value = 0 for wildtype)
+                        do_not_cross bool NOT NULL DEFAULT FALSE, -- This is to be indicated manually by crosser,
+                        parent_1    uuid REFERENCES animal (id) DEFERRABLE,
+                        parent_2    uuid REFERENCES animal (id) DEFERRABLE,
+                        cross_date  timestamp NOT NULL, -- exact date the parents were crossed
+                        cross_year numeric GENERATED ALWAYS AS (extract(year from cross_date)) STORED, -- The year the parent's were crossed
+                        PRIMARY KEY (id)
 ) INHERITS (element);
 ALTER TABLE family ADD CONSTRAINT unique_parents UNIQUE(parent_1, parent_2, cross_date, group_id);
 -- group ids aren't unique per year. Example 2010: 300252/300251 -> GroupID 25 for children 401271 401492 400962
@@ -117,52 +117,52 @@ ALTER TABLE family ADD CONSTRAINT unique_parents UNIQUE(parent_1, parent_2, cros
 --ALTER TABLE family ADD CONSTRAINT unique_family_no_parents UNIQUE(cross_year, group_id);
 ALTER TABLE family ADD CONSTRAINT different_parents CHECK (not(parent_1 = parent_2));
 
--- Add family column to fish now that that table exists
-ALTER TABLE fish ADD column family uuid NOT NULL REFERENCES family (id) DEFERRABLE;
-CREATE INDEX fish_family_idx on fish(family);
+-- Add family column to animal now that that table exists
+ALTER TABLE animal ADD column family uuid NOT NULL REFERENCES family (id) DEFERRABLE;
+CREATE INDEX animal_family_idx on animal(family);
 
 CREATE TABLE pedigree (
-    parent uuid REFERENCES fish(id) DEFERRABLE,
-    child uuid REFERENCES fish(id) DEFERRABLE
+                          parent uuid REFERENCES animal(id) DEFERRABLE,
+                          child uuid REFERENCES animal(id) DEFERRABLE
 )INHERITS (element);
 ALTER TABLE pedigree ADD CONSTRAINT unique_pedigree UNIQUE (parent, child);
 
 CREATE TABLE gene (
-    name varchar(100) NOT NULL,
-    allele_1 char NOT NULL,
-    allele_2 char NOT NULL,
-    fish uuid REFERENCES fish(id) DEFERRABLE NOT NULL,
-    PRIMARY KEY (id),
-    UNIQUE (name, fish)
+                      name varchar(100) NOT NULL,
+                      allele_1 char NOT NULL,
+                      allele_2 char NOT NULL,
+                      animal uuid REFERENCES animal(id) DEFERRABLE NOT NULL,
+                      PRIMARY KEY (id),
+                      UNIQUE (name, animal)
 )INHERITS (element);
-CREATE INDEX gene_fish_idx on gene(fish);
+CREATE INDEX animal_fish_idx on gene(animal);
 
 CREATE TABLE refuge_tag (
-    tag varchar(12) NOT NULL, -- Making length of 12. Normally it is 6, but there are 'special fish' that
+                            tag varchar(12) NOT NULL, -- Making length of 12. Normally it is 6, but there are 'special fish' that
     -- may have different format that we want to allow. (So far (231109) these are all dead)
     -- Also note that this tag field is non-unique across years, we could add a year column and add a unique constraint
     -- across the 2 columns
-    date_tagged timestamp,
-    date_untagged timestamp,
-    fish uuid NOT NULL REFERENCES fish(id) DEFERRABLE,
-    PRIMARY KEY (id)
-    ) INHERITS (element);
-CREATE INDEX tagged_fish_idx on refuge_tag (fish);
+                            date_tagged timestamp,
+                            date_untagged timestamp,
+                            animal uuid NOT NULL REFERENCES animal(id) DEFERRABLE,
+                            PRIMARY KEY (id)
+) INHERITS (element);
+CREATE INDEX tagged_animal_idx on refuge_tag (animal);
 
 CREATE TABLE notes (
-    text text,
-    PRIMARY KEY (id)
+                       text text,
+                       PRIMARY KEY (id)
 ) INHERITS (element);
 
 CREATE TABLE notes_element (
-    note uuid REFERENCES notes(id) DEFERRABLE,
-    element uuid REFERENCES element(id) DEFERRABLE
+                               note uuid REFERENCES notes(id) DEFERRABLE,
+                               element uuid REFERENCES element(id) DEFERRABLE
 );
 
 CREATE TABLE version (
-    major int NOT NULL,
-    minor int NOT NULL,
-    patch int NOT NULL
+                         major int NOT NULL,
+                         minor int NOT NULL,
+                         patch int NOT NULL
 );
 
 INSERT INTO version (major, minor, patch) VALUES (0, 0, 1);

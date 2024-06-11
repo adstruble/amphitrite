@@ -20,7 +20,7 @@ def parse_year_from_filename(filename):
 def maybe_correct_for_2_year_olds(sibling_birth_year_int, refuge_tag, csv_fam_id='NONGIVEN'):
     """
 
-    :param sibling_birth_year_int: The year this fish was born (and its sibling) as an int
+    :param sibling_birth_year_int: The year this animal was born (and its sibling) as an int
     :param refuge_tag:
     :param csv_fam_id:
     :return:
@@ -31,8 +31,8 @@ def maybe_correct_for_2_year_olds(sibling_birth_year_int, refuge_tag, csv_fam_id
         sibling_birth_year = date(sibling_birth_year_int - 1, 1, 1)  # This is a 2-year-old
         refuge_tag = refuge_tag[1:]
         if refuge_tag[0] == '_':
-            refuge_tag = refuge_tag[1:]  # Sometimes 2year refuge tag with 2_ sometimes just 2
-        # MasterDataCols.Family_Id is sometimes prepended with 2_ when it's a previous years fish
+            refuge_tag = refuge_tag[1:]  # Sometimes 2 year refuge tags start with 2_ sometimes just 2
+        # MasterDataCols.Family_Id is sometimes prepended with 2_ when it's a previous years animal
         csv_fam_id = csv_fam_id[2:] if csv_fam_id.startswith('2_') else csv_fam_id
 
     try:

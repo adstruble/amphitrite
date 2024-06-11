@@ -38,22 +38,24 @@ def get_fishes_from_db(username: str, query_params: dict, order_by_clause: str):
 
     LOGGER.info(f"Query params: {query_params}")
     fish = execute_statements((
-        f"""SELECT fish.id as id, 
+        f"""SELECT animal.id as id, 
                    group_id,
                    date(cross_date) as cross_date,
                    COALESCE(tag, 'UNKNOWN'),
+                   f,
+                   di,
                    box
-                FROM fish 
-                LEFT JOIN family ON fish.family = family.id
-                LEFT JOIN refuge_tag on fish.id = refuge_tag.fish
+                FROM animal 
+                LEFT JOIN family ON animal.family = family.id
+                LEFT JOIN refuge_tag on animal.id = refuge_tag.animal
                 {filter_str}
                 {order_by_clause} OFFSET :offset LIMIT :limit""",
         query_params), username).get_as_list_of_dicts()
 
-    fish_cnt = execute_statements(('SELECT count(fish.id) '
-                                   '  FROM fish '
-                                   '  LEFT JOIN family ON fish.family = family.id'
-                                   f' LEFT JOIN refuge_tag on fish.id = refuge_tag.fish {filter_str}', query_params),
+    fish_cnt = execute_statements(('SELECT count(animal.id) '
+                                   '  FROM animal '
+                                   '  LEFT JOIN family ON animal.family = family.id'
+                                   f' LEFT JOIN refuge_tag on animal.id = refuge_tag.animal {filter_str}', query_params), # noqa
                                   username).get_single_result()
 
     return fish, fish_cnt

@@ -26,7 +26,7 @@ def import_master_data(t_file_dir, username, job_id, filename):
     year = parse_year_from_filename(filename)
 
     refuge_tags = {}
-    fishes = []
+    animals = []
     families = {}
     genes = []
     notes = {}  # TODO
@@ -63,11 +63,12 @@ def import_master_data(t_file_dir, username, job_id, filename):
                         LOGGER.warning(f"Nonstandard tag was found: '{refuge_tag}'. Hopefully this fish is dead.")
                         # TODO Mark as do not cross and add a note
 
-                fish_id = str(uuid.uuid4())
+                animal_id = str(uuid.uuid4())
                 family_id = str(uuid.uuid4())
                 if group_id == -1:
                     LOGGER.warning(f"Invalid family group_id: '{line[MasterDataCols.Family_Id.value]}' for: {refuge_tag}. "
-                                   f"Fish record will be created with default family.")
+                                   f"Fish record will be skipped.")
+                    continue
                 if str(group_id) + str(sibling_birth_year.year) not in families:
                     families[str(group_id) + str(sibling_birth_year.year)] = {
                         "cross_date": sibling_birth_year,
@@ -79,22 +80,22 @@ def import_master_data(t_file_dir, username, job_id, filename):
                     family_id = families[str(group_id) + str(sibling_birth_year.year)]["id"]
 
                 try:
-                    fish_box = int(line[MasterDataCols.Box.value])
+                    box = int(line[MasterDataCols.Box.value])
                 except Exception: # noqa:
-                    fish_box = "\\N"
+                    box = "\\N"
 
-                fish = {"sex": line[MasterDataCols.Sex.value].upper(),
-                        "box": fish_box,
-                        "family": family_id,
-                        "id": fish_id,
-                        "tag_temp": refuge_tag,
-                        "sibling_birth_year_temp": sibling_birth_year}
-                if not(fish['sex'] == 'M' or fish['sex'] == 'F'):
-                    fish['sex'] = 'UNKNOWN'
-                fishes.append(fish)
+                animal = {"sex": line[MasterDataCols.Sex.value].upper(),
+                          "box": box,
+                          "family": family_id,
+                          "id": animal_id,
+                          "tag_temp": refuge_tag,
+                          "sibling_birth_year_temp": sibling_birth_year}
+                if not(animal['sex'] == 'M' or animal['sex'] == 'F'):
+                    animal['sex'] = 'UNKNOWN'
+                animals.append(animal)
 
                 refuge_tags[line[MasterDataCols.Id.value]] = {"tag": refuge_tag,
-                                                              "fish": fish_id,
+                                                              "animal": animal_id,
                                                               "id": str(uuid.uuid4()),
                                                               "tag_temp": refuge_tag,
                                                               "sibling_birth_year_temp": sibling_birth_year}
@@ -103,18 +104,18 @@ def import_master_data(t_file_dir, username, job_id, filename):
                     genes.append({"name": f"Htr-GVL-00{allele_idx + 1}",
                                   "allele_1": line[col],
                                   "allele_2": line[col+1],
-                                  "fish": fish_id,
+                                  "animal": animal_id,
                                   "id": str(uuid.uuid4()),
                                   "tag_temp": refuge_tag,
                                   "sibling_birth_year_temp": sibling_birth_year})
 
             gene_table_data = InsertTableData('gene', genes)
-            gene_table_data.set_insert_condition("ON CONFLICT (name, fish) DO UPDATE SET (allele_1, allele_2) = "
+            gene_table_data.set_insert_condition("ON CONFLICT (name, animal) DO UPDATE SET (allele_1, allele_2) = "
                                                  "(EXCLUDED.allele_1, EXCLUDED.allele_2)")
-            gene_table_data.add_temp_table_update("""UPDATE gene_insert as gi SET (fish) = (
+            gene_table_data.add_temp_table_update("""UPDATE gene_insert as gi SET (animal) = (
                                                      SELECT fi.id)
-                                                       FROM fish fi
-                                                       JOIN refuge_tag rt ON fi.id = rt.fish
+                                                       FROM animal fi
+                                                       JOIN refuge_tag rt ON fi.id = rt.animal
                                                   LEFT JOIN family fam ON fam.id = fi.family
                                                       WHERE gi.tag_temp = rt.tag
                                                         AND (fam.cross_date = gi.sibling_birth_year_temp
@@ -125,31 +126,31 @@ def import_master_data(t_file_dir, username, job_id, filename):
             family_table_date.add_temp_table_update('ALTER TABLE family_insert drop column cross_year')
             family_table_date.add_temp_table_update('ALTER TABLE family_insert ADD COLUMN cross_year numeric '
                                                     'GENERATED ALWAYS AS (extract(year from cross_date)) STORED')
-            fish_table_data = InsertTableData('fish', fishes)
-            fish_table_data.add_temp_table_update("""UPDATE fish_insert f_i SET (family) = (
+            animal_table_data = InsertTableData('animal', animals)
+            animal_table_data.add_temp_table_update("""UPDATE animal_insert f_i SET (family) = (
                                                      SELECT COALESCE(fa.id, fa_i.id) FROM family_insert as fa_i
                                                      LEFT JOIN family as fa on fa.cross_year = fa_i.cross_year
                                                      AND fa_i.group_id = fa.group_id
                                                      WHERE f_i.family = fa_i.id)""")
-            fish_table_data.set_insert_condition("""WHERE NOT EXISTS (
+            animal_table_data.set_insert_condition("""WHERE NOT EXISTS (
                                                     SELECT 1
                                                     FROM refuge_tag as rt
-                                                    JOIN fish ON rt.fish = fish.id
-                                                    JOIN family ON family.id = fish.family
-                                                        WHERE fish_insert.tag_temp = rt.tag
-                                                        AND fish_insert.sibling_birth_year_temp = family.cross_date)
+                                                    JOIN animal ON rt.animal = animal.id
+                                                    JOIN family ON family.id = animal.family
+                                                        WHERE animal_insert.tag_temp = rt.tag
+                                                        AND animal_insert.sibling_birth_year_temp = family.cross_date)
             """)
             refuge_tag_data = InsertTableData('refuge_tag', list(refuge_tags.values()))
             refuge_tag_data.set_insert_condition("""WHERE NOT EXISTS (
                                                     SELECT 1
                                                     FROM refuge_tag as rt
-                                                    JOIN fish ON rt.fish = fish.id
-                                                    JOIN family ON family.id = fish.family
+                                                    JOIN animal ON rt.animal = animal.id
+                                                    JOIN family ON family.id = animal.family
                                                       WHERE refuge_tag_insert.tag_temp = rt.tag
                                                       AND refuge_tag_insert.sibling_birth_year_temp = family.cross_date)
             """)
             table_data = [family_table_date,
-                          fish_table_data,
+                          animal_table_data,
                           refuge_tag_data,
                           gene_table_data]
 

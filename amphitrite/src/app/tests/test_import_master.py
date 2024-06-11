@@ -12,13 +12,13 @@ def test_import_masterdata():
     assert 1 == len(results)
     assert 'success' in results.keys()
 
-    assert 3583 == execute_statements("SELECT COUNT(*) FROM fish", 'amphiadmin').get_single_result()
+    assert 3583 == execute_statements("SELECT COUNT(*) FROM animal", 'amphiadmin').get_single_result()
 
     assert 268725 == execute_statements(
-        "SELECT count(DISTINCT id) FROM gene WHERE fish = ANY (SELECT id FROM fish)",
+        "SELECT count(DISTINCT id) FROM gene WHERE animal = ANY (SELECT id FROM animal)",
         'amphiadmin').get_single_result()
     gene_count = execute_statements(
-        "SELECT DISTINCT(count(*)) FROM gene JOIN fish ON gene.fish = fish.id GROUP BY fish;",
+        "SELECT DISTINCT(count(*)) FROM gene JOIN animal ON gene.animal = animal.id GROUP BY animal.id;",
         'amphiadmin').row_results
     assert len(gene_count) == 1
     assert 75 == gene_count[0][0]

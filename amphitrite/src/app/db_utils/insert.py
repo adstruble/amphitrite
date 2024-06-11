@@ -98,43 +98,43 @@ def batch_insert_cross_data(table: InsertTableData, username):
                     '(extract(year from cross_date)) STORED']
                 prepare_copy_table_for_bulk_insert(table, cursor, custom_alters)
 
-                set_fish_id_update_template = """
-                UPDATE family_insert SET {parent} = fish.id
-                        FROM fish
-                        JOIN refuge_tag rt ON fish = fish.id
-                        JOIN family as fam ON fish.family = fam.id
+                set_animal_id_update_template = """
+                UPDATE family_insert SET {parent} = animal.id
+                        FROM animal
+                        JOIN refuge_tag rt ON animal = animal.id
+                        JOIN family as fam ON animal.family = fam.id
                         WHERE {parent}_tag_temp = rt.tag
                         AND fam.cross_year = {parent}_birth_year_temp"""
-                cursor.execute(set_fish_id_update_template.format(parent='parent_1'))
-                cursor.execute(set_fish_id_update_template.format(parent='parent_2'))
+                cursor.execute(set_animal_id_update_template.format(parent='parent_1'))
+                cursor.execute(set_animal_id_update_template.format(parent='parent_2'))
 
-                insert_missing_fish_family_template = """
+                insert_missing_animal_family_template = """
                 INSERT INTO family (id, group_id, cross_date)
                     SELECT gen_random_uuid(), -1, (({parent}_birth_year_temp::text) || '-01-01')::timestamp
                     FROM family_insert
                     WHERE {parent} = {parent}_temp LIMIT 1
                     ON CONFLICT ON CONSTRAINT unique_family_no_parents DO NOTHING"""
-                cursor.execute(insert_missing_fish_family_template.format(parent='parent_1'))
-                cursor.execute(insert_missing_fish_family_template.format(parent='parent_2'))
+                cursor.execute(insert_missing_animal_family_template.format(parent='parent_1'))
+                cursor.execute(insert_missing_animal_family_template.format(parent='parent_2'))
 
-                insert_missing_fish_template = """
-                INSERT INTO fish (id, sex, family) SELECT fi.{parent}, '{sex}', family.id
+                insert_missing_animal_template = """
+                INSERT INTO animal (id, sex, family) SELECT fi.{parent}, '{sex}', family.id
                     FROM family_insert as fi
                     JOIN family ON family.cross_year = fi.{parent}_birth_year_temp
                     WHERE fi.{parent} = fi.{parent}_temp
                     AND family.group_id = -1"""
-                # By convention fish 1 is male and fish 2 is female
-                cursor.execute(insert_missing_fish_template.format(parent='parent_1', sex='F'))
-                results['fish'] = cursor.rowcount
-                cursor.execute(insert_missing_fish_template.format(parent='parent_2', sex='M'))
-                results['fish'] = results['fish'] + cursor.rowcount
+                # By convention parent 1 is male and parent 2 is female
+                cursor.execute(insert_missing_animal_template.format(parent='parent_1', sex='F'))
+                results['animal'] = cursor.rowcount
+                cursor.execute(insert_missing_animal_template.format(parent='parent_2', sex='M'))
+                results['animal'] = results['animal'] + cursor.rowcount
 
-                insert_missing_fish_tag_template = """INSERT INTO refuge_tag (id, tag, fish)
+                insert_missing_animal_tag_template = """INSERT INTO refuge_tag (id, tag, animal)
                                                     SELECT gen_random_uuid(), {parent}_tag_temp, {parent}
                                             FROM family_insert where {parent} = {parent}_temp"""
-                cursor.execute(insert_missing_fish_tag_template.format(parent='parent_1'))
+                cursor.execute(insert_missing_animal_tag_template.format(parent='parent_1'))
                 results['refuge_tag'] = cursor.rowcount
-                cursor.execute(insert_missing_fish_tag_template.format(parent='parent_2'))
+                cursor.execute(insert_missing_animal_tag_template.format(parent='parent_2'))
                 results['refuge_tag'] = results['refuge_tag'] + cursor.rowcount
 
                 insert_update_sibling_families = """INSERT INTO family (id, cross_date, group_id, parent_1, parent_2)
