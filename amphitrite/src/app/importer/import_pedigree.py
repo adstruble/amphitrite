@@ -28,6 +28,7 @@ class FDataCols(Enum):
     GROUP_ID = 1
     F_VAL = 2
 
+
 LOGGER = get_logger('importer')
 
 
@@ -160,10 +161,10 @@ def parse_pedigree_file(ped_state, pedigree_file_path, f_calc_year):
                 generation_int = int(group_id_unparsed[0:2])
                 if generation_int % 10 == 0:
                     # first 9 generations start with "<generation num>0"
-                    cross_year = date(int(generation_int / 10) + 2007, 1, 1)
+                    cross_year = date(int(generation_int / 10) + 2006, 1, 1)
                 else:
                     # Generations after gen 9 start with 1 and skip the "<generation num>0" numbers
-                    cross_year = date(generation_int + 2006, 1, 1)
+                    cross_year = date(generation_int + 2005, 1, 1)
 
                 if len(parent_1) < 6:
                     if not len(parent_2) < 6:
@@ -252,7 +253,6 @@ def parse_pedigree_file(ped_state, pedigree_file_path, f_calc_year):
                     ped_state.last_years_parents = []
                 elif ped_state.f_values:
                     ped_state.families[child_family_id]['f'] = ped_state.f_values[cross_year.year][group_id]
-
                 if parent_1 not in ped_state.bred_animal:
                     # WT Cross so we know the f and di values, so we're done. Continue
                     ped_state.families[child_family_id]['f'] = 0
@@ -272,6 +272,15 @@ def parse_pedigree_file(ped_state, pedigree_file_path, f_calc_year):
         for wt_animal_group_id in ped_state.wt_animal_unbred.keys():
             wt_animal = ped_state.wt_animal.pop(wt_animal_group_id)
             ped_state.families.pop(wt_animal['family'])
+
+        # Remove the bred fish from THIS year because they don't actually exist and are only place holders to
+        # determine the f values for their families if they do exist
+        bred_animal_gen_ids = list(ped_state.bred_animal.keys())
+        for gen_id in bred_animal_gen_ids:
+            if 180000 < int(gen_id) < 190000:
+                fish = ped_state.bred_animal.pop(gen_id)
+                ped_state.pedigrees.pop(fish['id'])
+
     except Exception as any_e:
         LOGGER.exception("Failed parsing pedigree data.")
         raise any_e
@@ -335,7 +344,7 @@ def calculate_f(pedigree_graph, bred_animal, families, parent_1, parent_2):
 
 def _get_group_id_from_parent(parent_gen_id, cross_year):
     group_id = int(parent_gen_id[2:5])
-    if cross_year == 2008:
+    if cross_year == 2007:
         group_id = int(parent_gen_id[3:5])
     return group_id
 
