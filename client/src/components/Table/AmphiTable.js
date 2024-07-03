@@ -259,9 +259,9 @@ export default function AmphiTable({getTableDataUrl, reloadData, headerDataStart
                                             <Row className={classnames({'expanded': ids.includes(item.id) }, 'table-row')}
                                                  key={item.id} item={item} onClick={handleExpand}>
                                                 {headerData.map((header) => {
-                                                    let header_txt = () => {return(header['format_fn'](item[header.key]))};
+                                                    let txt = () => {return(header['format_fn'](item[header.key]))};
                                                     return (
-                                                    <Cell>{header_txt()}</Cell>);})
+                                                    <Cell>{txt()}</Cell>);})
                                                 }
                                             </Row>
                                             {ids.includes(item.id) && (getExpandedRow(item.id))}

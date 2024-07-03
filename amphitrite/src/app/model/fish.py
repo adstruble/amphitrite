@@ -25,28 +25,29 @@ def get_fishes_from_db(username: str, query_params: dict, order_by_clause: str):
     :param order_by_clause: SQL clause for ordering
     :return: a tuple of size containing, fish and count of fish without limit
     """
-    filter_str = ""
+    filter_str = " WHERE NOT wt"
     filter_val = query_params.get('filter')
     if filter_val:
-        like_filter = "LIKE '%' || :filter || '%'"
-        filter_str = f" WHERE box::text {like_filter} " \
+        like_filter = "LIKE :filter || '%'"
+        filter_str = f" {filter_str} AND (box::text {like_filter} " \
                      f"OR group_id::text {like_filter} " \
-                     f"OR (group_id = -1 AND 'UNKNOWN' {like_filter}) " \
+                     f"OR (group_id < 0 AND 'UNKNOWN' {like_filter}) " \
                      f"OR tag {like_filter} " \
                      f"OR sex::text {like_filter} " \
-                     f"OR date(cross_date)::text {like_filter}"
+                     f"OR date(cross_date)::text {like_filter})"
 
     LOGGER.info(f"Query params: {query_params}")
     fish = execute_statements((
         f"""SELECT animal.id as id, 
-                   group_id,
+                   CASE WHEN group_id < 0 THEN 'FROM WILD' ELSE group_id::text END,
                    date(cross_date) as cross_date,
-                   COALESCE(tag, 'UNKNOWN'),
+                   COALESCE(tag, 'UNKNOWN') as tag,
+                   sex,
                    f,
                    di,
                    box
                 FROM animal 
-                LEFT JOIN family ON animal.family = family.id
+                JOIN family ON animal.family = family.id
                 LEFT JOIN refuge_tag on animal.id = refuge_tag.animal
                 {filter_str}
                 {order_by_clause} OFFSET :offset LIMIT :limit""",
@@ -59,3 +60,29 @@ def get_fishes_from_db(username: str, query_params: dict, order_by_clause: str):
                                   username).get_single_result()
 
     return fish, fish_cnt
+
+
+def get_fish_available_for_crossing(sex,  username):
+    return execute_statements((
+        f"""SELECT animal.id as id, family.f, sex
+                FROM animal 
+                JOIN family ON animal.family = family.id
+                LEFT JOIN family prev_cross ON prev_cross.parent_1 = animal.id or prev_cross.parent_2 = animal.id 
+                WHERE sex = :sex and prev_cross.id is NULL""", {'sex', sex}),
+        username).get_as_list_of_dicts()
+
+
+def get_fish_f_values(fish_ids: list, username):
+    """
+
+    :param fish_ids: list of fish ids to get f values for
+    :return: the f values for the given fish
+    """
+
+    ids_str = ', '.join([f"'{f}'" for f in fish_ids])
+
+    return execute_statements(
+        f"""SELECT animal.id as id, f
+                FROM animal 
+                JOIN family ON animal.family = family.id
+                WHERE animal.id in ({ids_str})""", username).get_as_list_of_dicts()

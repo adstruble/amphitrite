@@ -47,10 +47,11 @@ def batch_insert_master_data(table_data: list[InsertTableData], username):
                     table_for_error = table
                     custom_alters = [
                         f"ALTER TABLE {table.name}_insert ADD COLUMN IF NOT EXISTS tag_temp varchar(12)",
-                        f"ALTER TABLE {table.name}_insert ADD COLUMN IF NOT EXISTS sibling_birth_year_temp timestamp"]
+                        f"ALTER TABLE {table.name}_insert ADD COLUMN IF NOT EXISTS sibling_birth_year_temp timestamp",
+                        f"ALTER TABLE {table.name}_insert ADD COLUMN IF NOT EXISTS group_id_temp int NOT NULL"]
                     custom_alters.extend(table.temp_table_updates)
                     prepare_copy_table_for_bulk_insert(table, cursor, custom_alters)
-                    final_table_col_str = ",".join([f"\"{col}\"" for col in list(table.data[0].keys())[:-2]])
+                    final_table_col_str = ",".join([f"\"{col}\"" for col in list(table.data[0].keys())[:-3]])
                     copy_to_final_table(table, cursor, final_table_col_str)
 
                     results[table.name] = cursor.rowcount
@@ -155,6 +156,13 @@ def batch_insert_cross_data(table: InsertTableData, username):
     except Exception as e: # noqa
         LOGGER.exception("Exception during batch insert of crosses")
         return {"error": str(e)}
+
+
+def insert_table_data(table_name, data, cursor):
+    table = InsertTableData(table_name, data)
+    prepare_copy_table_for_bulk_insert(table, cursor, [])
+    copy_to_final_table(table, cursor)
+    return cursor.rowcount
 
 
 def prepare_copy_table_for_bulk_insert(table: InsertTableData, cursor, custom_alters: list):

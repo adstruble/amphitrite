@@ -12,6 +12,6 @@ def test_import_pedigree1():
 
     import_pedigree(pedigree_file_path=
                     os.path.join(os.path.abspath(os.path.dirname(__file__)), "resources",
-                                 'import', 'test_pedigree1.csv'), f_calc_year=2009)
+                                 'import', 'test_pedigree1.csv'))
 
 # TODO Add test that uses a common ancestor with f!= 0

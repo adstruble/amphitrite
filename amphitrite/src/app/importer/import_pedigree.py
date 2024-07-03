@@ -1,20 +1,17 @@
-import concurrent
 import csv
-import multiprocessing
 import os.path
 import uuid
-from concurrent.futures import ThreadPoolExecutor
-from concurrent.futures.process import ProcessPoolExecutor
 from datetime import date
 from enum import Enum
 
 from amphi_logging.logger import get_logger
+from cross_selection.f_calculation import FMatrix
 from db_utils.core import execute_statements
 from db_utils.db_connection import get_connection, DEFAULT_DB_PARAMS
-from db_utils.insert import prepare_copy_table_for_bulk_insert, InsertTableData, copy_to_final_table
+from db_utils.insert import prepare_copy_table_for_bulk_insert, InsertTableData, copy_to_final_table, insert_table_data
 from exceptions.exceptions import WildTypeCrossedWithRefugeInWild
 
-import networkx as nx
+from utils.data_conversions import get_group_id_from_parent
 
 
 class PedigreeDataCols(Enum):
@@ -52,18 +49,18 @@ class PedigreeImportState:
     # Mapping of {year:{group_id:fam_uuid}}
     group_id_to_fam_uuid_by_date = {}
 
-    pedigree_graph = nx.DiGraph()
-
     last_years_parents = []
 
     # Mapping of {cross_year:{group_id:f_value}}
     f_values = {}
 
+    f_matrix = FMatrix()
 
-def import_pedigree(pedigree_file_path=None, f_calc_year=None):
+
+def import_pedigree(pedigree_file_path=None):
     if pedigree_exists():
         LOGGER.info("Pedigree previously imported, skipping pedigree import.")
-        return
+        #return
 
     LOGGER.info("Beginning pedigree import.")
     if not pedigree_file_path:
@@ -73,13 +70,7 @@ def import_pedigree(pedigree_file_path=None, f_calc_year=None):
 
     ped_state = PedigreeImportState()
 
-    if not f_calc_year:
-        f_values_path = os.path.join(os.path.abspath(os.path.dirname(__file__)),
-                                     "resources",
-                                     'f_values.csv')
-        parse_f_file(f_values_path, ped_state)
-
-    parse_pedigree_file(ped_state, pedigree_file_path, f_calc_year)
+    parse_pedigree_file(ped_state, pedigree_file_path)
 
     ingest_pedigree_data(ped_state)
 
@@ -95,39 +86,40 @@ def ingest_pedigree_data(ped_state):
         with get_connection(DEFAULT_DB_PARAMS, 'amphiadmin') as conn:
             with conn.connection.cursor() as cursor:
                 # Insert all the child family groups
-                table = InsertTableData('family', list(ped_state.families.values()))
-                prepare_copy_table_for_bulk_insert(table, cursor, [])
-                copy_to_final_table(table, cursor)
-                results[table.name] = cursor.rowcount
+                results['family'] = insert_table_data('family', list(ped_state.families.values()), cursor)
 
                 # Insert the animal to animal table
-                table = InsertTableData('animal', list(ped_state.wt_animal.values()) +
-                                        list(ped_state.bred_animal.values()))
-                prepare_copy_table_for_bulk_insert(table, cursor, [])
-                copy_to_final_table(table, cursor)
-                results[table.name] = cursor.rowcount
-
+                results['animal'] = insert_table_data('animal',
+                                                      list(ped_state.wt_animal.values()) +
+                                                      list(ped_state.bred_animal.values()), cursor)
                 # Make a list of all pedigrees
                 all_pedigrees = []
                 for pedigrees in ped_state.pedigrees.values():
                     all_pedigrees.extend(pedigrees)
-                table = InsertTableData('pedigree', all_pedigrees)
-                for fam in ped_state.families.values():
-                    if 'cross_date' not in fam:
-                        print(fam)
-                prepare_copy_table_for_bulk_insert(table, cursor, [])
-                copy_to_final_table(table, cursor)
-                results[table.name] = cursor.rowcount
+                results['pedigree'] = insert_table_data('pedigree', all_pedigrees, cursor)
+
+                # FMatrix values (don't include results in import results as this data is only used internally)
+                #start_row = 0
+                #batch_size = 500
+                #while start_row < len(ped_state.f_matrix.rows):
+                #    row_dicts, val_dicts = ped_state.f_matrix.get_matrix_dicts(start_row, start_row + batch_size)
+                #    insert_table_data('f_row_val', val_dicts, cursor)
+                #    insert_table_data('f_matrix_row', row_dicts, cursor)
+                #    start_row = start_row + batch_size
+
         LOGGER.info(f"Pedigree import results: {results}")
     except Exception as e:
         LOGGER.exception("Exception during pedigree import.")
         raise e
 
 
-def parse_pedigree_file(ped_state, pedigree_file_path, f_calc_year):
+def parse_pedigree_file(ped_state, pedigree_file_path):
     try:
         with (open(pedigree_file_path, mode='r', encoding='UTF-8') as pedigree_data):
             for line_num, line in enumerate(csv.reader(pedigree_data)):
+                if line_num > 9981:
+                    LOGGER.info(f"Line: {line_num}: {line}")
+                    break
                 if line_num % 1000 == 0:
                     LOGGER.info(f"Line: {line_num}: {line}")
                     print(f"LINE: {line_num}: {line}")
@@ -138,13 +130,13 @@ def parse_pedigree_file(ped_state, pedigree_file_path, f_calc_year):
                 if len(group_id_unparsed) < 6:
                     # WT Fish, add it and the child family group it belongs to
                     group_id = (-int(group_id_unparsed)) - 10000
-                    child_family_id = str(uuid.uuid4())  # f"{group_id}"
+                    child_family_id = str(uuid.uuid4())
                     ped_state.wt_animal[group_id] = {'wt': True,
-                                                   'sex': 'UNKNOWN',
-                                                   'alive': True,
-                                                   'id': str(uuid.uuid4()),  # group_id_unparsed,
-                                                   'family': child_family_id,
-                                                   'gen_id': group_id_unparsed}
+                                                     'sex': 'UNKNOWN',
+                                                     'alive': False,
+                                                     'id': str(uuid.uuid4()),
+                                                     'family': child_family_id,
+                                                     'gen_id': group_id_unparsed}
                     ped_state.wt_animal_unbred[group_id] = False
                     ped_state.gen_id_unparsed_to_uuid[group_id_unparsed] = child_family_id
                     # Parents are unknown for this WT animal
@@ -199,18 +191,18 @@ def parse_pedigree_file(ped_state, pedigree_file_path, f_calc_year):
                     cross_date_gid_to_fam[group_id_parent_2] = [parent_2_fam_uuid]
                 else:
                     # Normal case, parents are bred animals
-                    group_id = _get_group_id_from_parent(parent_1, cross_year.year)
+                    group_id = get_group_id_from_parent(parent_1, cross_year.year)
                     parent_1_uuid = ped_state.bred_animal[parent_1]['id']
                     parent_2_uuid = ped_state.bred_animal[parent_2]['id']
 
                 animal_id = str(uuid.uuid4())  # group_id_unparsed
                 child_family_id = str(uuid.uuid4())  # f"{cross_year}_{group_id}"
                 ped_state.bred_animal[group_id_unparsed] = {'wt': False,
-                                                          'sex': 'UNKNOWN',
-                                                          'alive': False,
-                                                          'id': animal_id,
-                                                          'family': child_family_id,
-                                                          'gen_id': group_id_unparsed}
+                                                            'sex': 'UNKNOWN',
+                                                            'alive': False,
+                                                            'id': animal_id,
+                                                            'family': child_family_id,
+                                                            'gen_id': group_id_unparsed}
 
                 cross_year_group_id_to_fam = ped_state.group_id_to_fam_uuid_by_date.setdefault(cross_year, {})
 
@@ -220,7 +212,6 @@ def parse_pedigree_file(ped_state, pedigree_file_path, f_calc_year):
                         {'id': str(uuid.uuid4()),
                          'parent': parent_uuid,
                          'child': animal_id})
-                    ped_state.pedigree_graph.add_edge(parent_genid, group_id_unparsed)
 
                 if group_id in cross_year_group_id_to_fam:
                     # It's possible the group is the same if parents are 2 year olds.
@@ -246,16 +237,10 @@ def parse_pedigree_file(ped_state, pedigree_file_path, f_calc_year):
                                                        }
                 cross_year_group_id_to_fam.setdefault(group_id, []).append(child_family_id)
 
-                if f_calc_year and cross_year.year > f_calc_year:
-                    # We've moved on to a new cross year, kick of calculations of the last generation
-                    calculate_fs_last_generation(ped_state, f_calc_year)
-                    f_calc_year = cross_year.year
-                    ped_state.last_years_parents = []
-                elif ped_state.f_values:
-                    ped_state.families[child_family_id]['f'] = ped_state.f_values[cross_year.year][group_id]
+                f = ped_state.f_matrix.add_row(child_family_id, parent_1_fam_uuid, parent_2_fam_uuid)
+                ped_state.families[child_family_id]['f'] = f
                 if parent_1 not in ped_state.bred_animal:
-                    # WT Cross so we know the f and di values, so we're done. Continue
-                    ped_state.families[child_family_id]['f'] = 0
+                    # WT Cross di is 0
                     ped_state.families[child_family_id]['di'] = 0
                 else:
                     # Calculate di
@@ -264,11 +249,7 @@ def parse_pedigree_file(ped_state, pedigree_file_path, f_calc_year):
                     ped_state.families[child_family_id]['di'] = (p2_di + p1_di)/2 + 1
                     ped_state.last_years_parents.append((parent_1, parent_2))
 
-        # Calculate the final generation fs
-        if f_calc_year:
-            calculate_fs_last_generation(ped_state, cross_year.year)
-
-        # Remove the unbred WT animals and their families
+        # Remove the un-bred WT animals and their families
         for wt_animal_group_id in ped_state.wt_animal_unbred.keys():
             wt_animal = ped_state.wt_animal.pop(wt_animal_group_id)
             ped_state.families.pop(wt_animal['family'])
@@ -277,76 +258,13 @@ def parse_pedigree_file(ped_state, pedigree_file_path, f_calc_year):
         # determine the f values for their families if they do exist
         bred_animal_gen_ids = list(ped_state.bred_animal.keys())
         for gen_id in bred_animal_gen_ids:
-            if 180000 < int(gen_id) < 190000:
+            if 170000 < int(gen_id) < 190000:
                 fish = ped_state.bred_animal.pop(gen_id)
                 ped_state.pedigrees.pop(fish['id'])
 
     except Exception as any_e:
         LOGGER.exception("Failed parsing pedigree data.")
         raise any_e
-
-
-def calculate_fs_last_generation(ped_state, f_calc_year):
-    with ProcessPoolExecutor(max_workers=multiprocessing.cpu_count() - 2) as executor:
-        future_fs = {executor.submit(calculate_f,
-                                     ped_state.pedigree_graph, ped_state.bred_animal, ped_state.families,
-                                     parents[0],
-                                     parents[1]):
-                     parents for parents in ped_state.last_years_parents}
-        for future in concurrent.futures.as_completed(future_fs):
-            parents = future_fs[future]
-            try:
-                calculated_f = future.result()
-            except Exception as exc:
-                LOGGER.exception('%r generated an exception: %s' % (parents, exc))
-                LOGGER.exception('%r generated an exception: %s' % (parents, exc))
-                raise exc
-
-            child_group_id = _get_group_id_from_parent(parents[0], f_calc_year)
-            child_fam_ids = ped_state.group_id_to_fam_uuid_by_date[date(f_calc_year, 1, 1)][child_group_id]
-            f_calc_parent_1_uuid = ped_state.bred_animal[parents[0]]['id']
-            f_calc_parent_2_uuid = ped_state.bred_animal[parents[1]]['id']
-
-            for fam_id in child_fam_ids:
-                # We can have multiple fams with same group ids because of 2 year olds, make sure parents
-                # are a match
-                if ((f_calc_parent_1_uuid == ped_state.families[fam_id]['parent_1'] and
-                     f_calc_parent_2_uuid == ped_state.families[fam_id]['parent_2']) or
-                        (f_calc_parent_1_uuid == ped_state.families[fam_id]['parent_2'] and
-                         f_calc_parent_2_uuid == ped_state.families[fam_id]['parent_1'])):
-                    ped_state.families[fam_id]['f'] = calculated_f
-
-
-def calculate_f(pedigree_graph, bred_animal, families, parent_1, parent_2):
-    ancestors = nx.ancestors(pedigree_graph, parent_1)
-    f_total = 0
-    for ancestor in ancestors:
-        if not nx.has_path(pedigree_graph, ancestor, parent_2):
-            # networkx suggests using has_path first before all_simple_paths for large graphs for performance
-            continue
-
-        f_ca = 0
-        if bred_animal.get(ancestor):
-            f_ca = families[bred_animal[ancestor]['family']]['f']
-
-        p2_paths = nx.all_simple_paths(pedigree_graph, ancestor, parent_2)
-        p1_paths = list(nx.all_simple_paths(pedigree_graph, ancestor, parent_1))
-        for p2_path in p2_paths:
-
-            for p1_path in p1_paths:
-                if p2_path[1] == p1_path[1]:
-                    # Skip the Path if both paths go through common descendent
-                    continue
-
-                f_total += (1/2**(len(p2_path) * 2 - 1) * (1 + f_ca))
-    return f_total
-
-
-def _get_group_id_from_parent(parent_gen_id, cross_year):
-    group_id = int(parent_gen_id[2:5])
-    if cross_year == 2007:
-        group_id = int(parent_gen_id[3:5])
-    return group_id
 
 
 def _read_pedigree_values(line):
@@ -372,6 +290,7 @@ def _read_pedigree_values(line):
     return group_id_unparsed, parent_1, parent_2
 
 
+# Not currently in use, but may switch back to this method so keeping for now
 def parse_f_file(f_file_path, ped_state):
     try:
         with (open(f_file_path, mode='r', encoding='UTF-8') as f_data):

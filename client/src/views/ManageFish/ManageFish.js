@@ -25,22 +25,45 @@ export default function ManageFish() {
 
     }
 
-    const formatGroupId = (group_id) => {
-        if (group_id === -1) {
-            return "UNKNOWN";
-        }else{
-            return group_id
-        }
-    }
     const formatStr = (str) => {
         return str
     }
 
+    const formatDoubleTo3 = (dbl) =>{
+        return formatDoubleToN(dbl, 3)
+    }
+
+    const formatDoubleToN = (dbl, n) =>{
+        if (dbl == 0){
+            return dbl;
+        }
+        let multipliers = 0;
+        let negative = false;
+        if (dbl < 0){
+            negative = true;
+            dbl = -1 * dbl;
+        }
+        while (dbl < 10**(n-1)){
+            dbl  = dbl * 10;
+            multipliers = multipliers + 1;
+        }
+        dbl = Math.round(dbl);
+        dbl = dbl / 10**multipliers;
+        if (negative){
+            dbl = dbl * -1;
+        }
+        return dbl;
+    }
+
     const FISH_HEADER = [
         {name: "Family ID", key: "group_id", order_by: "group_id", visible: true, order_direction: "ASC", order: 1,
-            format_fn: formatGroupId},
+            format_fn: formatStr},
         {name: "Parent Cross Date", key: "cross_date", order_by: "cross_date", visible: true, order_direction: "", order: 2,
             format_fn: formatDate},
+        {name: "F", key: "f", order_by: "f", visible: true, order_direction: "", order: 2,
+            format_fn: formatDoubleTo3},
+        {name: "DI", key: "di", order_by: "di", visible: true, order_direction: "", order: 2,
+            format_fn: formatDoubleTo3},
         {name: "Sex", key: "sex", order_by: "sex", visible: true, order_direction: "", order: 2,
             format_fn: formatStr},
         {name: "Refuge Tag", key: "tag", order_by: "tag", visible: true, order_direction: "", order: 2,
