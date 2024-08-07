@@ -8,7 +8,7 @@ from amphi_logging.logger import get_logger
 from cross_selection.f_calculation import FMatrix
 from db_utils.core import execute_statements
 from db_utils.db_connection import get_connection, DEFAULT_DB_PARAMS
-from db_utils.insert import prepare_copy_table_for_bulk_insert, InsertTableData, copy_to_final_table, insert_table_data
+from db_utils.insert import insert_table_data
 from exceptions.exceptions import WildTypeCrossedWithRefugeInWild
 
 from utils.data_conversions import get_group_id_from_parent
@@ -60,7 +60,7 @@ class PedigreeImportState:
 def import_pedigree(pedigree_file_path=None):
     if pedigree_exists():
         LOGGER.info("Pedigree previously imported, skipping pedigree import.")
-        #return
+        return
 
     LOGGER.info("Beginning pedigree import.")
     if not pedigree_file_path:

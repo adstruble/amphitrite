@@ -21,7 +21,7 @@ const router = createBrowserRouter([
         errorElement: <ErrorPage/>,
         children: [
             {
-                path: "crossfish",
+                path: "/crossfish",
                 element: <CrossFish/>,
             },
             {

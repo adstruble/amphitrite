@@ -2,6 +2,7 @@ FROM python:3.11.1
 
 RUN useradd amphitrite
 WORKDIR /home/amphitrite
+RUN mkdir /home/amphitrite/exports
 
 COPY requirements.txt .
 RUN pip install -r requirements.txt

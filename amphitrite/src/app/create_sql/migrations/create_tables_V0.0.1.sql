@@ -141,11 +141,21 @@ CREATE INDEX animal_family_idx on animal (family);
 
 CREATE TABLE pedigree
 (
-    parent uuid REFERENCES animal (id) DEFERRABLE,
+    parent uuid REFERENCES animal (id) DEFERRABLE NOT NULL,
     child  uuid REFERENCES animal (id) DEFERRABLE
 ) INHERITS (element);
 ALTER TABLE pedigree
     ADD CONSTRAINT unique_pedigree UNIQUE (parent, child);
+CREATE INDEX pedigree_parent_idx on pedigree(parent);
+
+CREATE TABLE requested_cross
+(
+    parent_m_fam uuid REFERENCES family (id) DEFERRABLE NOT NULL,
+    parent_f uuid REFERENCES animal (id) DEFERRABLE,
+    parent_m uuid REFERENCES animal (id) DEFERRABLE,
+    cross_date timestamp,
+    f float not null
+) INHERITS (element);
 
 CREATE TABLE gene
 (

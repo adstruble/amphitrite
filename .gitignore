@@ -139,3 +139,6 @@ dmypy.json
 **/.yarn/unplugged/
 **/.yarn/cache/
 .pnp.js
+
+# Directories used by runnig application
+/amphitrite/src/app/exports/

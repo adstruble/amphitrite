@@ -10,24 +10,32 @@ import {
 } from '@table-library/react-table-library/table';
 import React, {useState} from "react";
 
-import fetchData from "../../server/post";
+import fetchData from "../../server/fetchData";
 import useToken from "../App/useToken";
 import {useTheme} from "@table-library/react-table-library/theme";
 import {getTheme} from "@table-library/react-table-library/baseline";
-import {usePagination} from "@table-library/react-table-library/pagination";
 import PropTypes from "prop-types";
-import {Input, InputGroup, InputGroupText, Pagination, PaginationItem, PaginationLink} from "reactstrap";
+import {Input, InputGroup, InputGroupText} from "reactstrap";
 import AmphiHeaderCell from "./AmphiHeaderCell";
 import classnames from "classnames";
+import AmphiPagination from "./AmphiPagination";
 
-export default function AmphiTable({getTableDataUrl, reloadData, headerDataStart, getExpandedRow}){
+const getExpandedDefault = () => {
+    return (<tr className='expanded-row-contents'><td style={{display:"none"}}/></tr>);
+}
+
+export default function AmphiTable({getTableDataUrl,
+                                       reloadData,
+                                       headerDataStart,
+                                       getExpandedRow=getExpandedDefault,
+                                       includePagination=true}){
     const {token, setToken, getUsername} = useToken();
-    const [tableSize, setTableSize] = useState(0);
-    const [currElementCnt, setCurrElementCnt] = useState(0);
     const [headerData, setHeaderData] = useState(headerDataStart);
-    const [currPage, setCurrPage] = useState(0);
     const [filterFocus, setFilterFocus] = useState(false);
     const [filter, setFilter] = useState("");
+    const [tableSize, setTableSize] = useState(0);
+    const [currElementCnt, setCurrElementCnt] = useState(0);
+    const [currPage, setCurrPage] = useState(0)
     const LIMIT = 20;
 
     const [tableNodes, setTableNodes] = useState({
@@ -53,25 +61,6 @@ export default function AmphiTable({getTableDataUrl, reloadData, headerDataStart
         console.log(action, state);
     }
 
-    const pagination = usePagination(
-        tableNodes,
-        {
-            state: {
-                page: currPage,
-                size: LIMIT,
-            },
-            onChange: onPaginationChange,
-        },
-        {
-            isServer: true,
-        }
-    );
-
-    function onPaginationChange(action, state) {
-        setCurrPage(state.page)
-        doGetTableData().then();
-    }
-
     function updateOrderBy(clickedHeader){
         const newHeaders =
         headerData.map((header) => {
@@ -95,17 +84,6 @@ export default function AmphiTable({getTableDataUrl, reloadData, headerDataStart
         doGetTableData().then();
     }
 
-    const setTableData = (tableData, params) => {
-        setTableNodes({nodes: tableData['data']});
-        console.error("table size: " + tableData['size'])
-        setTableSize(tableData['size']);
-        if (tableData['size'] <= (params.offset + LIMIT)){
-            setCurrElementCnt(tableData['size'])
-        }else{
-            setCurrElementCnt(params.offset + LIMIT)
-        }
-    };
-
     const determineOrderBy = () => {
         // Clone the headerData so we don't change the order of the columns in the rendered table,
         // Shouldn't need to do a deep copy because we're not changing data on the headers themselves
@@ -125,6 +103,7 @@ export default function AmphiTable({getTableDataUrl, reloadData, headerDataStart
     }
 
     const doGetTableData = React.useCallback(async () => {
+        console.log("Getting table data")
         const newOrderBy = determineOrderBy()
         console.log(currPage)
         fetchData(getTableDataUrl, getUsername(),  {
@@ -135,6 +114,17 @@ export default function AmphiTable({getTableDataUrl, reloadData, headerDataStart
             filter: filter
         }, setTableData);
     }, [fetchData, filter, currPage]);
+
+    const setTableData = (tableData, params) => {
+        setTableNodes({nodes: tableData['data']});
+        console.error("table size: " + tableData['size'])
+        setTableSize(tableData['size']);
+        if (tableData['size'] <= (params.offset + LIMIT)){
+            setCurrElementCnt(tableData['size'])
+        }else{
+            setCurrElementCnt(params.offset + LIMIT)
+        }
+    };
 
 
     React.useEffect(() => {
@@ -154,19 +144,28 @@ export default function AmphiTable({getTableDataUrl, reloadData, headerDataStart
         &.table_row {
             background-color: (0,0,0,0);
         }
-      `,
+      `, Table: `--data-table-library_grid-template-columns: `
+             + headerData.map((header) => {
+                 if (header.width) {
+                     return "minmax(0px, " + header.width + ")";
+                 }else {
+                     return "minmax(0px, 1fr)";
+                 }
+                 }).join("") + ` !important`,
     };
 
     const theme = useTheme([THEME, getTheme()]);
 
-    const formatDefault = (content) => {
-        return content;
-    };
+    function onPaginationChange(action, state) {
+        setCurrPage(state.page)
+        doGetTableData().then();
+    }
+
 
     return (
         <div className='amphi-table-container'>
             <div className='amphi-table-header'>
-                <InputGroup
+               ` <InputGroup
                     className={classnames({
                         "input-group-focus": filterFocus
                     })}
@@ -186,25 +185,8 @@ export default function AmphiTable({getTableDataUrl, reloadData, headerDataStart
                         }
                     />
                 </InputGroup>
-                <Pagination>
-                    <PaginationItem >
-                        <span className='item-count'>{currElementCnt ? pagination.state.page * LIMIT + 1 : 0 }-{currElementCnt} of {tableSize}</span>
-                    </PaginationItem>
-                    <PaginationItem disabled={pagination.state.page === 0}>
-                        <PaginationLink onClick={() => pagination.fns.onSetPage(pagination.state.page - 1)}>
-                                        <span aria-hidden={true}>
-                                            <i aria-hidden={true} className="tim-icons icon-minimal-left"/>
-                                        </span>
-                        </PaginationLink>
-                    </PaginationItem>
-                    <PaginationItem disabled={tableSize <= (pagination.state.page + 1) * LIMIT}>
-                        <PaginationLink onClick={() => pagination.fns.onSetPage(pagination.state.page + 1)}>
-                                        <span aria-hidden={true}>
-                                            <i aria-hidden={true} className="tim-icons icon-minimal-right"/>
-                                        </span>
-                        </PaginationLink>
-                    </PaginationItem>
-                </Pagination>
+                {includePagination && <AmphiPagination LIMIT={LIMIT} tableNodes={tableNodes} onPaginationChange={onPaginationChange}
+                tableSize={tableSize} currPage={currPage} currElementCnt={currElementCnt}/>}
             </div>
             <div
                 style={{
@@ -244,7 +226,7 @@ export default function AmphiTable({getTableDataUrl, reloadData, headerDataStart
                     </Table>
                 </div>
                 <div className='amphi-table-contents'>
-                    <Table data={tableNodes} theme={theme} pagination={pagination}>
+                        <Table data={tableNodes} theme={theme}>
                         {(tableList) => (
                             <>
                                 <Header>
@@ -259,9 +241,9 @@ export default function AmphiTable({getTableDataUrl, reloadData, headerDataStart
                                             <Row className={classnames({'expanded': ids.includes(item.id) }, 'table-row')}
                                                  key={item.id} item={item} onClick={handleExpand}>
                                                 {headerData.map((header) => {
-                                                    let txt = () => {return(header['format_fn'](item[header.key]))};
+                                                    let txt = () => {return(header['format_fn'](item[header.key], item, header.format_args))};
                                                     return (
-                                                    <Cell>{txt()}</Cell>);})
+                                                    <Cell key={item.id + header.key}>{txt()}</Cell>);})
                                                 }
                                             </Row>
                                             {ids.includes(item.id) && (getExpandedRow(item.id))}
@@ -280,9 +262,11 @@ export default function AmphiTable({getTableDataUrl, reloadData, headerDataStart
     );
 
 }
+
 AmphiTable.propTypes = {
     getTableDataUrl: PropTypes.string.isRequired,
     reloadData: PropTypes.any,
     headerDataStart:PropTypes.array.isRequired,
-    getExpandedRow: PropTypes.func
+    getExpandedRow: PropTypes.func,
+    includePagination: PropTypes.bool
 }

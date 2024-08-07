@@ -69,6 +69,10 @@ td.table-bottom{
     border-radius: 0 0 .2143rem .2143rem;
     background-color: #2b3858;
 }
+.cross-fish .table > thead > tr > th {
+    padding-bottom: 3px;
+    padding-top: 5px;
+}
 th {
     background-color: inherit;
 }

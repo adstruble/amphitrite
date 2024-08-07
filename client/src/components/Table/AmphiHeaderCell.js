@@ -1,8 +1,8 @@
 import PropTypes from "prop-types";
 
 export default function AmphiHeaderCell({header, updateOrderBy}) {
-    const showOrderedDesc = header.order_direction ? header.order_direction === "DESC" : header.order_by !== null;
-    const showOrderedAsc = header.order_direction ? header.order_direction === "ASC" : header.order_by !== null;
+    const showOrderedDesc = header. order_direction ? header.order_direction === "DESC" : header.order_by != null;
+    const showOrderedAsc = header.order_direction ? header.order_direction === "ASC" : header.order_by != null;
 
     const updateOrderByHeader = () => {
         updateOrderBy(header);

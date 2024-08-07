@@ -2,12 +2,13 @@ import concurrent
 import multiprocessing
 import uuid
 from concurrent.futures import ProcessPoolExecutor
-from datetime import date
+from datetime import date, datetime
 
 import networkx as nx
 
 from amphi_logging.logger import get_logger
-from model.fish_family import get_family_pedigree, get_possible_crosses
+from model.fish_family import get_family_pedigree
+from model.crosses import get_possible_crosses
 from utils.data_conversions import get_group_id_from_parent
 from model.fish import get_fish_available_for_crossing
 
@@ -102,6 +103,18 @@ class FMatrixRow:
 class FMatrix:
     def __init__(self):
         self.rows = []
+        self.year_indices = {}
+
+    def new_cross_year(self, year):
+        self.year_indices[year] = len(self.rows)
+        # We can remove data older than 2 years because it's no longer needed to calculate fs of later generations
+        rows_removed = 0
+        if year - 2 in self.year_indices:
+            rows_removed = self.year_indices.pop(year - 1)
+            self.rows = self.rows[rows_removed:]
+
+        for year in self.year_indices.keys():
+            self.year_indices[year] = self.year_indices[year] - rows_removed
 
     def add_row(self, animal, parent_1, parent_2):
         parents_val = None
@@ -159,9 +172,11 @@ class FMatrix:
 
 def build_matrix_from_existing(username):
     f_matrix = FMatrix()
-    family_pedigree = get_family_pedigree(username)
-    for cross in family_pedigree:
-        f_matrix.add_row(cross['child_fam_id'], cross['p1_fam_id'], cross['p2_fam_id'])
+    for cross_year in range(2006, datetime.now().year):
+        family_pedigree = get_family_pedigree(username, cross_year)
+        for cross in family_pedigree:
+            f_matrix.add_row(cross['child_fam_id'], cross['p1_fam_id'], cross['p2_fam_id'])
+        f_matrix.new_cross_year(cross_year)
     return f_matrix
 
 
@@ -173,9 +188,10 @@ def rank_available_crosses_by_f(username):
     """
 
     f_matrix = build_matrix_from_existing(username)
-    possible_crosses = get_possible_crosses(username)
+    LOGGER.info("F Matrix build complete")
+    possible_crosses, possible_crosses_cnt = get_possible_crosses(username)
     for cross_idx, cross in enumerate(possible_crosses):
         cross['f'] = f_matrix.calculate_f_for_potential_cross(cross['p1_fam_id'], cross['p2_fam_id'])
 
     possible_crosses.sort(key=lambda c:  c['f'])
-    return possible_crosses
+    return possible_crosses, possible_crosses_cnt

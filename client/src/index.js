@@ -12,6 +12,8 @@ import reportWebVitals from './reportWebVitals';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
+    /*When using React.StrictMode in the application, react will render twice in development mode.
+      This is to make sure that there are no side effects. however in Production environment, it only renders once.*/
     <React.StrictMode>
         <App/>
     </React.StrictMode>
