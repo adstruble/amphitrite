@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {Alert, Button, Input, Modal} from "reactstrap";
+    import {Alert, Button, Input, Modal} from "reactstrap";
 import PropTypes from "prop-types";
 import useToken from "../App/useToken";
 
@@ -138,12 +138,12 @@ export default function FileUploadSingle({fileUploadUrl,
                 </div>
             </div>
             <div className="modal-footer">
-                    <Button color="default" className="btn" type="button"
-                            onClick={cancelCallback}>Cancel</Button>
+                <Button color="default" className="btn" type="button"
+                        onClick={cancelCallback}>Cancel</Button>
 
-                    <Button color="success" type="button" onClick={handleUploadClick}
-                            disabled={submitDisabled}>Submit</Button>
-                </div>
+                <Button color="success" type="button" onClick={handleUploadClick}
+                        disabled={submitDisabled}>Submit</Button>
+            </div>
         </Modal>
 
     )

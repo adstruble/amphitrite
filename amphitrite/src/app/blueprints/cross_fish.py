@@ -7,7 +7,8 @@ from amphi_logging.logger import get_logger
 from blueprints.utils import maybe_get_username, validate_and_create_upload_job
 from cross_selection.f_calculation import rank_available_crosses_by_f
 from importer.import_crosses import import_crosses
-from model.crosses import add_requested_cross, remove_requested_cross, get_requested_crosses_csv
+from cross_selection.crosses import add_requested_cross, remove_requested_cross, get_requested_crosses_csv, \
+    add_completed_cross
 
 cross_fish = Blueprint('cross_fish', __name__)
 
@@ -39,7 +40,7 @@ def get_best_available_crosses():
 @cross_fish.route('/cross_fish/add_selected_cross', methods=(['POST']))
 def add_selected_cross():
     LOGGER.info("Adding selected cross")
-    username_or_err = maybe_get_username(request.headers, "adding selected crosses")
+    username_or_err = maybe_get_username(request.headers, "adding selected cross")
     if isinstance (username_or_err, dict): # noqa
         return username_or_err
 
@@ -76,3 +77,32 @@ def export_selected_crosses():
         get_requested_crosses_csv(username_or_err, temp_crosses_csv)
         temp_crosses_csv.flush()
         return send_file(temp_crosses_csv.name, as_attachment=True)
+
+
+@cross_fish.route('/cross_fish/set_cross_completed', methods=(['POST']))
+def set_cross_completed():
+    LOGGER.info("Adding completed cross")
+    username_or_err = maybe_get_username(request.headers, "adding completed cross")
+    if isinstance (username_or_err, dict): # noqa
+        return username_or_err
+
+    request_params = request.get_json()
+
+    success = add_completed_cross(username_or_err, request_params['f_tag'], request_params['m_tag'],
+                                  request_params['f'])
+    return {"success": success, "data": []}
+
+
+@cross_fish.route('/cross_fish/set_available_females', methods=(['POST']))
+def set_available_females():
+    LOGGER.info("Available Females")
+
+    username_or_err = maybe_get_username(request.headers, "adding completed cross")
+    if isinstance (username_or_err, dict): # noqa
+        return username_or_err
+
+    request_params = request.get_json()
+
+    LOGGER.info(f"Setting available females: {request_params['f_tags']}")
+
+    return {"success": True, "data": []}

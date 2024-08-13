@@ -8,9 +8,8 @@ import networkx as nx
 
 from amphi_logging.logger import get_logger
 from model.fish_family import get_family_pedigree
-from model.crosses import get_possible_crosses
+from cross_selection.crosses import get_possible_crosses
 from utils.data_conversions import get_group_id_from_parent
-from model.fish import get_fish_available_for_crossing
 
 LOGGER = get_logger('cross-selection')
 

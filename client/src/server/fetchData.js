@@ -15,7 +15,7 @@ export default function fetchData(fetchUrl, username, params, setData, fetchCall
             if ('success' in data) {
                 console.log(data['success'])
                 setData(data['success'], params);
-                if (fetchCallback != null) {
+                if (fetchCallback && fetchCallback != null) {
                     fetchCallback(data);
                 }
             }
@@ -23,7 +23,7 @@ export default function fetchData(fetchUrl, username, params, setData, fetchCall
     )
     .catch((err) => {
             console.error(err);
-            if (fetchException != null) {
+            if (fetchException && fetchException != null) {
                 fetchException(err);
             }
         }

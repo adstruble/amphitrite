@@ -25,10 +25,11 @@ export const formatArrayToStr = (array) => {
 
 export const formatCheckbox = (checked, item, format_args) => {
     let rowCheckedCallback = format_args[0]
+    let selected = format_args[1](item)
     //return <Checkbox checked={false} onChange={(e) => rowCheckedCallback(e, item.id)}/>
     return (<FormGroup check>
                 <Label check>
-                    <Input defaultChecked={item['selected']} type="checkbox" onChange={(e) => rowCheckedCallback(e, item)}/>
+                    <Input defaultChecked={selected} type="checkbox" onChange={(e) => rowCheckedCallback(e, item)}/>
                     <span className="form-check-sign" />
                 </Label>
             </FormGroup>);

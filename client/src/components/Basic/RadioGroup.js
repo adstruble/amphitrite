@@ -1,0 +1,29 @@
+import {FormGroup, Input, Label} from "reactstrap";
+import React from "react";
+import PropTypes from "prop-types";
+
+export default function RadioGroup({items, radioSelectedCallback}) {
+    return(
+        items.map((item_name) => {
+                return(<FormGroup check className="form-check-radio">
+                    <Label check>
+                        <Input
+                            defaultValue={item_name}
+                            id="{maleFish}_radio"
+                            name="fishRadios"
+                            type="radio"
+                            onClick={() =>radioSelectedCallback(item_name)}
+                        />
+                        <span className="form-check-sign" />
+                        {item_name}
+                    </Label>
+                </FormGroup>);
+            })
+
+
+    )
+}
+RadioGroup.propTypes = {
+    items: PropTypes.arrayOf(PropTypes.string).isRequired,
+    radioSelectedCallback: PropTypes.func
+}
