@@ -1,7 +1,8 @@
 import PropTypes from "prop-types";
 
 
-export default function fetchData(fetchUrl, username, params, setData, fetchCallback=null, fetchException=null) {
+export default function fetchData(fetchUrl, username, params, setData, fetchCallback=null, fetchException=null,
+                                  setAlertLevel=null, setAlertText=null) {
     fetch("/amphitrite/" + fetchUrl, {
         method: "POST",
         headers: {
@@ -13,9 +14,12 @@ export default function fetchData(fetchUrl, username, params, setData, fetchCall
     .then((res) => res.json())
     .then((data) => {
             if ('success' in data) {
-                console.log(data['success'])
+                if (!data['success'] && data['level']){
+                    setAlertLevel(data['level']);
+                    setAlertText(data['message']);
+                }
                 setData(data['success'], params);
-                if (fetchCallback && fetchCallback != null) {
+                if (fetchCallback) {
                     fetchCallback(data);
                 }
             }
@@ -23,7 +27,7 @@ export default function fetchData(fetchUrl, username, params, setData, fetchCall
     )
     .catch((err) => {
             console.error(err);
-            if (fetchException && fetchException != null) {
+            if (fetchException) {
                 fetchException(err);
             }
         }

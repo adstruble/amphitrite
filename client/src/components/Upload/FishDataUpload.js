@@ -1,5 +1,5 @@
 import FileUploadSingle from "./SingleFileUpload";
-import {Alert, Button, Row} from "reactstrap";
+import {Alert, Button, Row, UncontrolledAlert} from "reactstrap";
 import React, {useState} from "react";
 import PropTypes from "prop-types";
 
@@ -44,9 +44,9 @@ export default function FishDataUpload({dataUploadUrl, uploadCallback, uploadBut
     return (
         <>
             <Row>
-                <Alert isOpen={alertText.length > 0} color={alertLevel} onClose={() => setAlertText("")} dismissible>
+                <UncontrolledAlert className="alert-with-icon" isOpen={alertText.length > 0} color={alertLevel}>
                     {alertLevel === "danger" && <strong>Error: </strong>} {alertText}
-                </Alert>
+                </UncontrolledAlert>
             </Row>
             <Row>
                 <FileUploadSingle formModalProp={formModal} fileUploadUrl={dataUploadUrl}

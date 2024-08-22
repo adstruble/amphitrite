@@ -24,7 +24,7 @@ const getExpandedDefault = () => {
     return (<tr className='expanded-row-contents'><td style={{display:"none"}}/></tr>);
 }
 
-export default function AmphiTable({getTableDataUrl,
+export default function AmphiTable({tableDataUrl,
                                        reloadData,
                                        headerDataStart,
                                        getExpandedRow=getExpandedDefault,
@@ -58,7 +58,7 @@ export default function AmphiTable({getTableDataUrl,
     });
 
     function onExpandChange(action, state) {
-        console.log(action, state);
+        //console.log(action, state);
     }
 
     function updateOrderBy(clickedHeader){
@@ -103,10 +103,8 @@ export default function AmphiTable({getTableDataUrl,
     }
 
     const doGetTableData = React.useCallback(async () => {
-        console.log("Getting table data")
         const newOrderBy = determineOrderBy()
-        console.log(currPage)
-        fetchData(getTableDataUrl, getUsername(),  {
+        fetchData(tableDataUrl, getUsername(),  {
             offset: currPage * LIMIT,
             limit: LIMIT,
             order_by: newOrderBy,
@@ -117,7 +115,6 @@ export default function AmphiTable({getTableDataUrl,
 
     const setTableData = (tableData, params) => {
         setTableNodes({nodes: tableData['data']});
-        console.error("table size: " + tableData['size'])
         setTableSize(tableData['size']);
         if (tableData['size'] <= (params.offset + LIMIT)){
             setCurrElementCnt(tableData['size'])
@@ -181,8 +178,8 @@ export default function AmphiTable({getTableDataUrl,
                         onFocus={() => setFilterFocus(true)}
                         onBlur={() => setFilterFocus(false)}
                         onChange={e => setFilter(e.target.value)}
-                        onKeyUp={e => {maybeFilterTable(e)}
-                        }
+                        onKeyUp={e => {maybeFilterTable(e)}}
+                        id={tableDataUrl + "_amphiTable"}
                     />
                 </InputGroup>
                 {includePagination && <AmphiPagination LIMIT={LIMIT} tableNodes={tableNodes} onPaginationChange={onPaginationChange}
@@ -236,7 +233,8 @@ export default function AmphiTable({getTableDataUrl,
                                 </Header>
 
                                 <Body>
-                                    {tableList.map((item) => (
+                                    {tableList.map((item, index) => (
+
                                         <React.Fragment key={item.id}>
                                             <Row className={classnames({'expanded': ids.includes(item.id) }, 'table-row')}
                                                  key={item.id} item={item} onClick={handleExpand}>
@@ -264,7 +262,7 @@ export default function AmphiTable({getTableDataUrl,
 }
 
 AmphiTable.propTypes = {
-    getTableDataUrl: PropTypes.string.isRequired,
+    tableDataUrl: PropTypes.string.isRequired,
     reloadData: PropTypes.any,
     headerDataStart:PropTypes.array.isRequired,
     getExpandedRow: PropTypes.func,

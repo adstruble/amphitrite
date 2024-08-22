@@ -178,19 +178,3 @@ def build_matrix_from_existing(username):
         f_matrix.new_cross_year(cross_year)
     return f_matrix
 
-
-def rank_available_crosses_by_f(username):
-    """
-    Calculates the f values for all the crosses of the available fish
-    :username user that is executing cross selection
-    :return: f values and fam_ids for all the possible crosses of available fish
-    """
-
-    f_matrix = build_matrix_from_existing(username)
-    LOGGER.info("F Matrix build complete")
-    possible_crosses, possible_crosses_cnt = get_possible_crosses(username)
-    for cross_idx, cross in enumerate(possible_crosses):
-        cross['f'] = f_matrix.calculate_f_for_potential_cross(cross['p1_fam_id'], cross['p2_fam_id'])
-
-    possible_crosses.sort(key=lambda c:  c['f'])
-    return possible_crosses, possible_crosses_cnt

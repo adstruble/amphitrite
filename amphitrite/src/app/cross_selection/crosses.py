@@ -7,11 +7,31 @@ from db_utils.core import execute_statements, ResultType
 LOGGER = get_logger('cross-fish')
 
 
+def get_new_possible_crosses_for_females(username, f_tags):
+    new_possible_crosses_sql = """SELECT * FROM (
+        SELECT  xf.id female_fam,
+                yf.id male,
+                x.id female
+        FROM refuge_tag rtx
+                JOIN animal as x on x.id = rtx.animal
+                JOIN animal as y ON TRUE
+                JOIN family as xf ON x.family = xf.id
+                JOIN family as yf ON y.family = yf.id
+                JOIN refuge_tag rty ON rty.animal = y.id
+           LEFT JOIN possible_cross pc ON pc.female = rtx.animal
+           LEFT JOIN family next_gen_fam ON next_gen_fam.parent_1 = x.id and next_gen_fam.parent_2 = y.id
+           LEFT JOIN refuge_tag y_crossed_tag ON y_crossed_tag.animal = next_gen_fam.parent_2 AND next_gen_fam.id IS NOT NULL
+               WHERE x.sex = 'F' AND y.sex = 'M' AND pc.id is NULL AND rtx.tag = ANY (:f_tags)
+            GROUP BY rtx.tag, xf.group_id, x.id, yf.id, xf.id)q"""
+    return execute_statements([(new_possible_crosses_sql, {'f_tags': list(f_tags)})],
+                              username).get_as_list_of_dicts()
+
+
 def get_possible_crosses(username):
     possible_crosses_sql = """SELECT * FROM (
-        SELECT  concat(x.id,'__', yf.id) as id,
+        SELECT  concat(x.id,'__', pc.male) as id,
             xf.id p1_fam_id,
-            yf.id p2_fam_id,
+            pc.male p2_fam_id,
             xf.group_id x_gid,
             yf.group_id y_gid,
             rtx.tag f_tag,
@@ -19,28 +39,32 @@ def get_possible_crosses(username):
             (SELECT count(*) from pedigree where parent = ANY(select id FROM animal WHERE family = xf.id)) x_crosses,
             (SELECT count(*) from pedigree where parent = ANY(array_agg(y.id))) y_crosses,
             requested_cross.id is not null as selected,
-            array_agg(y_crossed_tag.tag) as completed
-                            FROM animal as x
-                            JOIN animal as y ON TRUE
+            array_agg(y_crossed_tag.tag) as completed,
+            pc.f
+                            FROM possible_cross as pc
+                            JOIN animal as x ON pc.female = x.id
+                            JOIN animal as y ON y.family = pc.male
                             JOIN family as xf ON x.family = xf.id
-                            JOIN family as yf ON y.family = yf.id
+                            JOIN family as yf on yf.id = pc.male
                             JOIN refuge_tag rtx ON rtx.animal = x.id
                             JOIN refuge_tag rty on rty.animal = y.id
-                       LEFT JOIN requested_cross ON x.id = requested_cross.parent_f AND yf.id = requested_cross.parent_m_fam
+                       LEFT JOIN requested_cross ON x.id = requested_cross.parent_f AND pc.male = requested_cross.parent_m_fam
                        LEFT JOIN family next_gen_fam ON next_gen_fam.parent_1 = x.id and next_gen_fam.parent_2 = y.id
                        LEFT JOIN refuge_tag y_crossed_tag ON y_crossed_tag.animal = next_gen_fam.parent_2 AND next_gen_fam.id IS NOT NULL
                            WHERE x.sex = 'F' AND y.sex = 'M'
-                        GROUP BY rtx.tag, xf.group_id, x.id, yf.id, xf.id, requested_cross.id)q 
-                           WHERE q.x_crosses <= 2 and q.y_crosses <= 2 LIMIT 50"""
+                        GROUP BY rtx.tag, xf.group_id, yf.group_id, x.id, pc.male, xf.id, requested_cross.id, pc.f)q 
+                           WHERE q.x_crosses <= 2 and q.y_crosses <= 2 ORDER BY f"""
     possible_crosses = execute_statements(possible_crosses_sql, username).get_as_list_of_dicts()
 
-    possible_crosses_cnt_sql = """SELECT  count(*) from (select p1.family
-                    FROM animal as p1
-                    JOIN animal as p2 ON TRUE
-                    WHERE p1.sex = 'F' AND p2.sex = 'M' GROUP BY p1.family, p2.family)q"""
+    possible_crosses_cnt_sql = """SELECT  count(*) FROM possible_cross"""
     possible_crosses_cnt = execute_statements(possible_crosses_cnt_sql, username).get_single_result()
 
     return possible_crosses, possible_crosses_cnt
+
+
+def get_count_possible_females(username):
+    possible_females_cnt_sql = """SELECT count(distinct female) from possible_cross"""
+    return execute_statements(possible_females_cnt_sql, username).get_single_result()
 
 
 def add_requested_cross(username, fish_f_id, fam_m_id, f):
@@ -118,3 +142,20 @@ def add_completed_cross(username, f_tag, m_tag, f):
         return False
 
     return True
+
+
+def remove_family_by_tags(username, f_tag, m_tag):
+    family_delete_sql = f"""
+    DELETE FROM family
+    USING refuge_tag rt_x
+        JOIN refuge_tag rt_y ON rt_y.tag = :m_tag
+    WHERE rt_x.tag = :f_tag
+      AND family.parent_1 = rt_x.animal AND family.parent_2 = rt_y.animal
+      AND cross_year = {datetime.date.today().year}"""
+
+    deleted_record_cnt = execute_statements((family_delete_sql, {'f_tag': f_tag, 'm_tag':  m_tag}),
+                                            username, ResultType.RowCount).row_cnts[0]
+    if deleted_record_cnt != 1:
+        LOGGER.error(f"Expected to delete 1 family record. Deleted {deleted_record_cnt}")
+
+    return deleted_record_cnt

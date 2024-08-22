@@ -3,7 +3,6 @@ import {FormGroup, Input, Label} from "reactstrap";
 export const formatDate = (date) => {
     date = new Date(date);
     if (date.getUTCMonth() === 0 && date.getUTCDate() === 1){
-        console.error("Getting full year: " + date.getFullYear().toString())
         // Assume the month and day aren't actually known so only report year
         return date.getUTCFullYear().toString();
     }
@@ -26,10 +25,12 @@ export const formatArrayToStr = (array) => {
 export const formatCheckbox = (checked, item, format_args) => {
     let rowCheckedCallback = format_args[0]
     let selected = format_args[1](item)
-    //return <Checkbox checked={false} onChange={(e) => rowCheckedCallback(e, item.id)}/>
     return (<FormGroup check>
                 <Label check>
-                    <Input defaultChecked={selected} type="checkbox" onChange={(e) => rowCheckedCallback(e, item)}/>
+                    <Input defaultChecked={selected} type="checkbox"
+                           onChange={(e) => rowCheckedCallback(e, item)}
+                            id={item['id'] + rowCheckedCallback.name}
+                    />
                     <span className="form-check-sign" />
                 </Label>
             </FormGroup>);

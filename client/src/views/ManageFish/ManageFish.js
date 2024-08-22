@@ -44,7 +44,7 @@ export default function ManageFish() {
                                 uploadButtonText="Upload Fish"
                     />
                 <Row>
-                    <AmphiTable getTableDataUrl="manage_fish/get_fishes"
+                    <AmphiTable tableDataUrl="manage_fish/get_fishes"
                                 reloadData={reloadTable}
                                 headerDataStart={FISH_HEADER}
                                 getExpandedRow={getExpandedRow}

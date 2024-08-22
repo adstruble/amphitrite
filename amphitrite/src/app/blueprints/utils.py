@@ -57,3 +57,17 @@ def validate_and_create_upload_job(request):
     add_server_job(job_id)
 
     return job_id, username_or_err, t_file_dir
+
+
+def clean_str_array(items: list):
+    return set([item.strip() for item in items])
+
+
+def validate_params(param_dict:dict, expected_params: dict):
+    for expected_param in expected_params.keys():
+        if expected_param not in param_dict:
+            return f"Expected param: {expected_param} of expected type {expected_params[expected_param]} was missing."
+        if not isinstance(param_dict[expected_param], expected_params[expected_param]):
+            return f"Expected param: {expected_param} was of incorrect type, was expecting {expected_params[expected_param]}" # noqa
+
+    return None

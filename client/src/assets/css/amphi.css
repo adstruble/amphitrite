@@ -93,3 +93,7 @@ ul.pagination > li {
 ul.pagination .item-count{
     text-wrap: nowrap;
 }
+
+.alert div {
+    margin-right:12px;
+}

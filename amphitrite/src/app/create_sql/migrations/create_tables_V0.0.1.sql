@@ -1,6 +1,6 @@
 CREATE USER amphiuser WITH ENCRYPTED PASSWORD 'amphiuser' CONNECTION LIMIT 20;
 GRANT amphiuser to amphiadmin;
-ALTER DEFAULT PRIVILEGES FOR USER amphiadmin IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO amphiuser;
+ALTER DEFAULT PRIVILEGES FOR USER amphiadmin IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE, TRUNCATE ON TABLES TO amphiuser;
 CREATE USER amphireadonly WITH ENCRYPTED PASSWORD 'amphireadonly' CONNECTION LIMIT 20;
 GRANT amphireadonly to amphiadmin;
 ALTER DEFAULT PRIVILEGES FOR USER amphiadmin IN SCHEMA public GRANT SELECT ON TABLES TO amphireadonly;
@@ -156,6 +156,15 @@ CREATE TABLE requested_cross
     cross_date timestamp,
     f float not null
 ) INHERITS (element);
+
+CREATE TABLE possible_cross
+(
+    female  uuid REFERENCES animal (id) NOT NULL,
+      male  uuid REFERENCES family (id) NOT NULL,
+         f  float NOT NULL
+) INHERITS (element);
+ALTER TABLE possible_cross ADD
+    CONSTRAINT unique_parental_cross UNIQUE (female, male);
 
 CREATE TABLE gene
 (
