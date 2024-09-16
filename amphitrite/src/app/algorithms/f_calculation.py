@@ -7,8 +7,7 @@ from datetime import date, datetime
 import networkx as nx
 
 from amphi_logging.logger import get_logger
-from model.fish_family import get_family_pedigree
-from cross_selection.crosses import get_possible_crosses
+from model.family import get_family_pedigree
 from utils.data_conversions import get_group_id_from_parent
 
 LOGGER = get_logger('cross-selection')

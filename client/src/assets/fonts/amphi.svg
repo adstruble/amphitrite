@@ -1,0 +1,15 @@
+<?xml version="1.0" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd" >
+<svg xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <font id="amphi" horiz-adv-x="256">
+    <font-face font-family="amphi"
+      units-per-em="256" ascent="256"
+      descent="0" />
+    <missing-glyph horiz-adv-x="0" />
+    <glyph glyph-name="filter"
+      unicode="&#xEA02;"
+      horiz-adv-x="256" d="M11 232.246L11 208.491L53.5 166L96 123.509L96 63.751L96 3.994L128 20L160 36.006L160 79.757L160 123.509L202.5 166L245 208.491L245 232.246L245 256L128 256L11 256L11 232.246M224 226.246L224 217.491L181.5 175L139 132.509L139 90.982L139 49.456L128.488 44.228C122.706 41.353 117.756 39 117.488 39C117.22 39 117 60.039 117 85.754L117 132.509L74.5 175L32 217.491L32 226.246L32 235L128 235L224 235L224 226.246" />
+  </font>
+</defs>
+</svg>

@@ -1,17 +1,15 @@
 import tempfile
 import threading
-import uuid
 
 from flask import Blueprint, request, send_file
 
 from amphi_logging.logger import get_logger
 from blueprints.utils import maybe_get_username, validate_and_create_upload_job, clean_str_array, validate_params
-from cross_selection.f_calculation import build_matrix_from_existing
 from importer.import_crosses import import_crosses
-from cross_selection.crosses import add_requested_cross, remove_requested_cross, get_requested_crosses_csv, \
-    add_completed_cross, remove_family_by_tags, get_possible_crosses, \
-    get_new_possible_crosses_for_females, get_count_possible_females
-from model.fish import insert_possible_crosses, select_available_female_tags
+from model.crosses import add_requested_cross, remove_requested_cross, get_requested_crosses_csv, \
+    add_completed_cross, get_possible_crosses, get_count_possible_females, \
+    select_available_female_tags, determine_and_insert_possible_crosses
+from model.family import remove_family_by_tags
 
 cross_fish = Blueprint('cross_fish', __name__)
 
@@ -128,34 +126,26 @@ def set_available_females():
     request_params = request.get_json()
 
     LOGGER.info(f"Setting available females: {request_params['f_tags']}")
+    cleaned_f_tags = clean_str_array(request_params['f_tags'])
 
     try:
-        possible_crosses = get_new_possible_crosses_for_females(username_or_err,
-                                                                clean_str_array(request_params['f_tags']))
-
-        if len(possible_crosses):
-            f_matrix = build_matrix_from_existing(username_or_err)
-            for cross_idx, cross in enumerate(possible_crosses):
-                cross['f'] = f_matrix.calculate_f_for_potential_cross(cross['female_fam'], cross['male'])
-                cross['id'] = str(uuid.uuid4())
-                cross.pop('female_fam')
-            insert_cnt = insert_possible_crosses(username_or_err, possible_crosses, request_params['f_tags'])
-        else:
-            insert_cnt = 0
+        insert_cnt = determine_and_insert_possible_crosses(username_or_err, cleaned_f_tags)
     except Exception as e:
         return {"success": False, "error": str(e)}
 
+    return_val = {'success': True}
     if insert_cnt < len(request_params['f_tags']):
         possible_females_cnt = get_count_possible_females(username_or_err)
         if len(request_params['f_tags']) > possible_females_cnt:
             f_tags_len = len(request_params['f_tags'])
-            return {"success": False, "warning":
-                    f"{'' if possible_females_cnt == 0 else 'Only '}{possible_females_cnt} female fish are available "
-                    f"for crossing. You supplied a list of {f_tags_len} female tag{'' if f_tags_len == 1 else 's'}. "
-                    f"Confirm all the fish for the entered tags were added to the database and the tags have been "
-                    f"specified as a comma separated list."}
+            return_val['warning'] = \
+                f"{'' if possible_females_cnt == 0 else 'Only '}{possible_females_cnt} female fish are available " \
+                f"for crossing. You supplied a list of {f_tags_len} female tag{'' if f_tags_len == 1 else 's'}. " \
+                f"Confirm all the fish for the entered tags were added to the database and the tags have been " \
+                f"specified as a comma separated list."
 
-    return {"success": True, "data": [insert_cnt]}
+    return_val['data'] = select_available_female_tags(username_or_err)
+    return return_val
 
 
 @cross_fish.route('/cross_fish/get_available_f_tags', methods=(['POST']))

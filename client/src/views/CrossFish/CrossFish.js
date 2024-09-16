@@ -9,17 +9,24 @@ import useToken from "../../components/App/useToken";
 import fetchFile from "../../server/fetchFile";
 import RadioGroup from "../../components/Basic/RadioGroup";
 import AmphiAlert from "../../components/Basic/AmphiAlert";
+import {useOutletContext} from "react-router-dom";
 
-export default function CrossFish() {
+export default function CrossFish(callback, deps) {
     const {token, setToken, getUsername} = useToken();
     const [reloadTable, setReloadTable] = useState(0);
-    const [selectMaleOpen, setSelectMaleOpen] = useState(false);
+    const [selectFishOpen, setSelectFishOpen] = useState(false);
+    const [possibleFishColumn, setPossibleFishColumn] = useState("");
     const [selectFemalesOpen, setSelectFemalesOpen] = useState(false);
     const [selectedMale, setSelectedMale] = useState("");
-    const [requestedCross, setRequestedCross] = useState({'m_tags':[]})
+    const [selectedFemale, setSelectedFemale] = useState("");
+    const [requestedCross, setRequestedCross] = useState({'m_tags':[]});
     const [alertText, setAlertText] = useState("");
     const [alertLevel, setAlertLevel] = useState("");
-    const [availableFTags, setAvailableFTags] = useState("")
+    const [userSetFTags, setUserSetFTags] = useState("");
+    const [availableFTags, setAvailableFTags] = useState("");
+    const [fTagAlertText, setFTagAlertText] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
+    const [setSpinning] = useOutletContext();
 
     const handleExportCrossesClick = async e => {
         fetchFile("cross_fish/export_selected_crosses", getUsername(),
@@ -55,17 +62,23 @@ export default function CrossFish() {
     }
 
     const isCompleted = (item) => {
-        return item['completed'].length > 0 && item['completed'][0] != null
+        return item['completed_x'].length > 0 && item['completed_x'][0] != null
     }
 
     const handleCompletedChecked = (e, item)  => {
         if (e.target.checked){
             if (item['m_tags'].length > 1){
-                setSelectMaleOpen(true);
+                setPossibleFishColumn("m_tags")
+                setSelectFishOpen(true);
                 setRequestedCross(item);
+            }else if (item['f_tags'].length > 1){
+                setPossibleFishColumn("f_tags")
+                setSelectFishOpen(true);
+                setRequestedCross(item);
+                setSelectedMale(item['m_tags'][0])
             }else {
                 fetchData("cross_fish/set_cross_completed", getUsername(),
-                    {f_tag: item['f_tag'], m_tag: item['m_tags'][0], f: item['f']},
+                    {f_tag: item['f_tags'][0], m_tag: item['m_tags'][0], f: item['f']},
                     () => {
                         setReloadTable(reloadTable => reloadTable + 1)},
                     null, null, setAlertLevel, setAlertText
@@ -73,49 +86,78 @@ export default function CrossFish() {
             }
         }else{
             fetchData("cross_fish/remove_completed_cross", getUsername(),
-                {f_tag: item['f_tag'], m_tag: item['completed'][0]},
+                {f_tag: item['completed_y'][0], m_tag: item['completed_x'][0]},
                 () => setReloadTable(reloadTable => reloadTable + 1),
                 null, null, setAlertLevel, setAlertText)
         }
     };
 
-    const selectMale = () => {
-        setSelectMaleOpen(false);
+    const selectFish = () => {
+        setSelectFishOpen(false);
+        if (possibleFishColumn === 'm_tags'){
+            if (requestedCross['f_tags'].length > 1) {
+                setPossibleFishColumn("f_tags")
+                setSelectFishOpen(true);
+                return;
+            }
+            else{
+                setSelectedFemale(requestedCross['f_tags'][0])
+            }
+        }
         fetchData("cross_fish/set_cross_completed", getUsername(),
-            {f_tag: requestedCross['f_tag'], m_tag: selectedMale, f: requestedCross['f']},
+            {f_tag: selectedFemale, m_tag: selectedMale, f: requestedCross['f']},
             () => {
                 setReloadTable(reloadTable => reloadTable + 1)
-        }
+            }
         );
 
     }
 
-
     const getAvailableFTags = React.useCallback(async () => {
-        fetchData("cross_fish/get_available_f_tags", getUsername(),
-            {}, (success) => setAvailableFTags(success['f_tags']));
-        }, [fetchData]
-    );
+            fetchData("cross_fish/get_available_f_tags", getUsername(),
+                {}, (success) => {
+                setAvailableFTags(success['f_tags']);
+            });
+        }, [fetchData]);
 
+    // Set the starting value for userSetFTags on page load.
     React.useEffect(() => {
-        getAvailableFTags().then()
+        getAvailableFTags().then(()=> setUserSetFTags(availableFTags))
     }, []);
+
+    // If the actual available ftags change, update the message of what the available crosses
+    // table is for.
+    React.useEffect( () => {
+        setFTagAlertText("Available female fish for crossing: " +
+            (availableFTags.length === 0 ? "None set." : availableFTags));
+    }, [availableFTags]);
+
+    React.useEffect(() =>{
+        if (isLoading){
+            setSpinning(true);
+        }else{
+            setSpinning(false);
+        }
+    }, [isLoading]);
 
     const selectFemales = () => {
         setSelectFemalesOpen(false);
         const input = document.getElementById("selectFemalesFormArea");
         const f_tags = input.value.split(",");
-        setAvailableFTags(f_tags)
-
+        setUserSetFTags(f_tags)
+        setIsLoading(true);
         fetchData("cross_fish/set_available_females", getUsername(),
             {f_tags:f_tags},
             () =>void 0,
-            (data) => setAvailableCallback(data));
+            (data) => {
+            setAvailableCallback(data);
+            setIsLoading(false);
+        });
     }
 
     const onSetAvailableFemalesOpened = () => {
         const input = document.getElementById("selectFemalesFormArea");
-        input.value = availableFTags
+        input.value = userSetFTags
     }
 
     const setAvailableCallback = (data) => {
@@ -127,22 +169,26 @@ export default function CrossFish() {
                 setAlertLevel('warning')
                 setAlertText(data['warning']);
             }
-            return;
         }
+        setAvailableFTags(data['data'])
         setReloadTable(reloadTable => reloadTable + 1)
     }
 
-    const onMaleSelected = (m_tag) => {
-        setSelectedMale(m_tag)
+    const onFishSelected = (fish_tag) => {
+        if (possibleFishColumn === 'm_tags') {
+            setSelectedMale(fish_tag)
+        }else{
+            setSelectedFemale(fish_tag)
+        }
     }
 
-    // Highlight the male tag that was used in the completed cross if there was one.
-    const formatArrayToStrMaleTags = (m_tags, requested_cross) => {
-        m_tags.sort(function (a, b){return sort_by_completed(a, b, requested_cross['completed'][0])});
-        if (requested_cross['completed'].length > 0 && requested_cross['completed'][0] != null){
-            return (m_tags.map((tag, index) => {
-                let comma = index < m_tags.length - 1 ? ", " : ""
-                if (tag === requested_cross['completed'][0]) {
+    // Highlight the tag that was used in the completed cross if there was one.
+    const formatArrayToStrTags = (tags, requested_cross, m_f) => {
+        tags.sort(function (a, b){return sort_by_completed(a, b, requested_cross['completed' + m_f][0])});
+        if (requested_cross['completed' + m_f].length > 0 && requested_cross['completed' + m_f][0] != null){
+            return (tags.map((tag, index) => {
+                let comma = index < tags.length - 1 ? ", " : ""
+                if (tag === requested_cross['completed' + m_f][0]) {
                     return(<span className='text-primary'>{tag}{comma}</span>);
                 }
                 return(<span className='text-muted'>{tag}{comma}</span>)
@@ -150,7 +196,7 @@ export default function CrossFish() {
             }
          ));
         }else{
-            return formatArrayToStr(m_tags)
+            return formatArrayToStr(tags)
         }
     }
 
@@ -163,18 +209,18 @@ export default function CrossFish() {
 
     const CROSSES_HEADER = [
         {name: "Use Cross", key: "selected", visible: true, format_fn:formatCheckbox, format_args:[handleUseChecked, isSelected], width:".7fr"},
-        {name: "Cross Completed", key: "completed", visible: true, format_fn:formatCheckbox, format_args:[handleCompletedChecked,  isCompleted], width:".8fr"},
+        {name: "Cross Completed", key: "", visible: true, format_fn:formatCheckbox, format_args:[handleCompletedChecked,  isCompleted], width:".8fr"},
         {name: "F Value", key: "f", visible: true, format_fn: formatDoubleTo3, width:"1fr"},
-        {name: "F Fish", key: "f_tag", visible: true, format_fn: formatStr, width:"1fr"},
+        {name: "F Fish", key: "f_tags", visible: true, format_fn: formatArrayToStrTags, width:"2.5fr", format_args: '_x'},
         {name: "F Group ID", key: "x_gid",  visible: true, format_fn: formatStr, width:"1fr"},
-        {name: "F Previous Crosses", key: "x_crosses", visible: true, format_fn: formatStr, width:"1fr"},
-        {name: "M Fish", key: "m_tags", visible: true, format_fn: formatArrayToStrMaleTags, width:"2.5fr"},
+        {name: "F Family Crosses", key: "x_crosses", visible: true, format_fn: formatStr, width:"1fr"},
+        {name: "M Fish", key: "m_tags", visible: true, format_fn: formatArrayToStrTags, width:"2.5fr", format_args:'_y'},
         {name: "M Group ID", key: "y_gid",  visible: true, format_fn: formatStr, width:"1fr"},
-        {name: "M Previous Crosses", key: "y_crosses", visible: true, format_fn: formatStr, width:"1fr"},
+        {name: "M Family Crosses", key: "y_crosses", visible: true, format_fn: formatStr, width:"1fr"},
         ];
 
     return (
-        <div className={classnames('wrapper', 'cross-fish')}>
+        <div className={classnames('wrapper', 'cross-fish', isLoading ? 'disabled' : '')}>
             <Modal onOpened={onSetAvailableFemalesOpened} isOpen={selectFemalesOpen}  modalClassName="modal-black" id="selectFemales">
                 <div className="modal-header justify-content-center">
                     <Button className="btn-close" onClick={() => setSelectFemalesOpen(false)}>
@@ -202,12 +248,15 @@ export default function CrossFish() {
                     <AmphiAlert alertText={alertText} alertLevel={alertLevel} setAlertText={setAlertText}/>
                 </Row>
                 <Row>
-                    <Button className="btn" color="default" type="button" onClick={handleExportCrossesClick}>
-                        Export Selected Crosses
-                    </Button>
                     <Button className="btn" color="default" type="button" onClick={handleSetAvailableFemalesClick}>
                         Set Available Females
                     </Button>
+                    <Button className="btn" color="default" type="button" onClick={handleExportCrossesClick}>
+                        Export Selected Crosses
+                    </Button>
+                </Row>
+                <Row>
+                    <AmphiAlert alertText={fTagAlertText} alertLevel="info"/>
                 </Row>
                 <Row>
                     <AmphiTable tableDataUrl="cross_fish/get_possible_crosses"
@@ -216,27 +265,28 @@ export default function CrossFish() {
                                 includePagination={false}
                     />
                 </Row>
-                <Modal isOpen={selectMaleOpen} modalClassName="modal-black" id="selectCrossedMale">
+                <Modal isOpen={selectFishOpen} modalClassName="modal-black" id="selectCrossedMale">
                     <div className="modal-header justify-content-center">
-                        <button className="btn-close" onClick={() => setSelectMaleOpen(false)}>
+                        <button className="btn-close" onClick={() => setSelectFishOpen(false)}>
                             <i className="tim-icons icon-simple-remove text-white"/>
                         </button>
                         <div className="text-muted text-center ml-auto mr-auto">
-                            <h3 className="mb-0">Select Crossed Male</h3>
+                            <h3 className="mb-0">Select Crossed {(possibleFishColumn === 'm_tags') ? 'Male' : 'Female'}</h3>
                         </div>
                     </div>
                     <div className="modal-body">
                         <div>
-                            <RadioGroup items={requestedCross['m_tags']} radioSelectedCallback={onMaleSelected}></RadioGroup>
+                            <RadioGroup items={requestedCross[possibleFishColumn]} radioSelectedCallback={onFishSelected}></RadioGroup>
                         </div>
                     </div>
                     <div className="modal-footer">
                         <Button color="default" className="btn" type="button"
-                                onClick={() => setSelectMaleOpen(false)}>Cancel</Button>
-                        <Button color="success" type="button" onClick={selectMale}>Select</Button>
+                                onClick={() => setSelectFishOpen(false)}>Cancel</Button>
+                        <Button color="success" type="button" onClick={selectFish}>Select</Button>
                     </div>
                 </Modal>
             </Container>
+
         </div>
     )
 }

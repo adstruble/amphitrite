@@ -97,3 +97,22 @@ ul.pagination .item-count{
 .alert div {
     margin-right:12px;
 }
+
+.disabled {
+    opacity: 0.4;
+    pointer-events: none;
+}
+
+.loadingSpinner {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 1;
+    z-index: 1001;
+    padding-bottom: 300px;
+}
+
+.loadingSpinner.off {
+    display: None;
+}

@@ -5,7 +5,7 @@ from datetime import date
 from enum import Enum
 
 from amphi_logging.logger import get_logger
-from cross_selection.f_calculation import FMatrix
+from algorithms.f_calculation import FMatrix
 from db_utils.core import execute_statements
 from db_utils.db_connection import get_connection, DEFAULT_DB_PARAMS
 from db_utils.insert import insert_table_data

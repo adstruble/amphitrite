@@ -1,9 +1,9 @@
-import os
 import uuid
 from unittest import TestCase
 
 from db_utils.core import execute_statements, ResultType
-from model.fish import get_fishes_from_db, insert_possible_crosses
+from model.fish import get_fishes_from_db
+from model.crosses import insert_possible_crosses
 
 
 class Test(TestCase):

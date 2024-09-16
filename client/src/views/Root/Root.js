@@ -1,22 +1,24 @@
 import AmphiNavbar from "../../components/AmphiNavbar/AmphiNavbar";
 import BkgrdPath from "../../assets/img/path1.png";
-import React from "react";
+import React, {useState} from "react";
 import {Outlet} from "react-router-dom";
+import AmphiSpinner from "../../components/Basic/AmphiSpinner";
 
 export default function Root(){
-    //const [alertText, setAlertText] = useState("");
-    //const [alertLevel, setAlertLevel] = useState("")
+    const [spinning, setSpinning] = useState(false);
 
     return (
         <div className="App index-page">
             <AmphiNavbar/>
+
             {/*<Squares classToggle="index-page" setSquares7and8={() => {}}/>*/}
             <div className="main">
+                <AmphiSpinner spinning={spinning}/>
                 <div className="section section-basic">
                     <img alt="..." className="path" src={BkgrdPath}/>
-                    <Outlet/>
-                </div>
+                <Outlet context={[setSpinning]}/>
             </div>
         </div>
-    );
+</div>
+);
 }

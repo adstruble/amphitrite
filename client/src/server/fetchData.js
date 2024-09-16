@@ -2,7 +2,11 @@ import PropTypes from "prop-types";
 
 
 export default function fetchData(fetchUrl, username, params, setData, fetchCallback=null, fetchException=null,
-                                  setAlertLevel=null, setAlertText=null) {
+                                  setAlertLevel=null, setAlertText=null,
+                                  setLoading=null) {
+    if (setLoading){
+        setLoading(true)
+    }
     fetch("/amphitrite/" + fetchUrl, {
         method: "POST",
         headers: {
@@ -31,7 +35,11 @@ export default function fetchData(fetchUrl, username, params, setData, fetchCall
                 fetchException(err);
             }
         }
-    )
+    ).finally({
+        if (setLoading) {
+            setLoading(false);
+        }
+    })
 
 };
 

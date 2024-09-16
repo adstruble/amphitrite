@@ -4,7 +4,11 @@ import React from "react";
 
 export default function AmphiAlert({alertText, alertLevel, setAlertText}){
 
-    return (<Alert isOpen={alertText.length > 0} color={alertLevel} fade={true} toggle={() => setAlertText("")}>
+    const setAlertTextFunc = () =>{
+        setAlertText("")
+    }
+
+    return (<Alert isOpen={alertText.length > 0} color={alertLevel} fade={true} toggle={setAlertText && setAlertTextFunc}>
         <div>{alertLevel === "danger" && <strong>Error: </strong>} {alertText}</div>
     </Alert>);
 

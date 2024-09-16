@@ -8,7 +8,7 @@ def test_import_masterdata():
     class MockTempDir:
         name = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'resources/import')
 
-    results = import_master_data(MockTempDir(), 'amphiadmin', '2023', 'bulk_upload_batch12023.csv')
+    results = import_master_data(MockTempDir(), 'amphiadmin', 'batch1_2023', 'bulk_upload_batch1_2023.csv')
     assert 1 == len(results)
     assert 'success' in results.keys()
 

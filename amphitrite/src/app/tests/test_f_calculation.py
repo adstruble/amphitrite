@@ -1,4 +1,4 @@
-from cross_selection.f_calculation import rank_available_crosses_by_f
+from algorithms.f_calculation import rank_available_crosses_by_f
 from model.fish import get_fish_available_for_crossing
 
 

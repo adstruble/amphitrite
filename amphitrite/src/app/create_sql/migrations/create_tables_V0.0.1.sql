@@ -126,11 +126,16 @@ CREATE TABLE family
     cross_year   numeric GENERATED ALWAYS AS (extract(year from cross_date)) STORED, -- The year the parent's were crossed
     PRIMARY KEY (id)
 ) INHERITS (element);
-ALTER TABLE family
-    ADD CONSTRAINT unique_parents UNIQUE (parent_1, parent_2, cross_date, group_id);
 -- group ids aren't unique per year. Example 2010: 300252/300251 -> GroupID 25 for children 401271 401492 400962
 -- and 2010 200252/200251 -> Group ID 25 for child 402601
 --ALTER TABLE family ADD CONSTRAINT unique_family_no_parents UNIQUE(cross_year, group_id);
+
+-- There are 35 cases where the same parents were bred in two different years. One of these cases is
+-- probably incorrect as one year is 2017 and one is 2007. However, the others seems legitimate.
+-- Therefore we need to include cross_year in the constraint on unique parents
+-- Here is the SQL to find them:
+-- select array_agg(f1.gen_id) as children_first_cross, family.group_id,family.cross_year, array_agg(f2.gen_id) as children_second_cross, family_2.group_id,family_2.cross_year from family join family as family_2 on family.parent_1 = family_2.parent_1 and family.id != family_2.id AND family.parent_2 = family_2.parent_2 join animal f1 on f1.family = family.id join animal f2 on f2.family = family_2.id where family.cross_year < family_2.cross_year group by family.group_id, family.cross_year, family_2.group_id, family_2.cross_year;
+ALTER TABLE family ADD CONSTRAINT unique_parents UNIQUE (parent_1, parent_2, cross_year);
 ALTER TABLE family
     ADD CONSTRAINT different_parents CHECK (not (parent_1 = parent_2));
 
@@ -151,6 +156,7 @@ CREATE INDEX pedigree_parent_idx on pedigree(parent);
 CREATE TABLE requested_cross
 (
     parent_m_fam uuid REFERENCES family (id) DEFERRABLE NOT NULL,
+    parent_f_fam uuid REFERENCES family (id) DEFERRABLE NOT NULL,
     parent_f uuid REFERENCES animal (id) DEFERRABLE,
     parent_m uuid REFERENCES animal (id) DEFERRABLE,
     cross_date timestamp,
@@ -161,7 +167,8 @@ CREATE TABLE possible_cross
 (
     female  uuid REFERENCES animal (id) NOT NULL,
       male  uuid REFERENCES family (id) NOT NULL,
-         f  float NOT NULL
+         f  float NOT NULL,
+        di  float NOT NULL
 ) INHERITS (element);
 ALTER TABLE possible_cross ADD
     CONSTRAINT unique_parental_cross UNIQUE (female, male);

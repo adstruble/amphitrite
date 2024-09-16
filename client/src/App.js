@@ -6,7 +6,6 @@ import {
 import './App.css';
 import Login from './views/Login/Login.js'
 import useToken from "./components/App/useToken";
-import AmphiNavbar from "./components/AmphiNavbar/AmphiNavbar";
 import Squares from "./components/Styles/Squares";
 import ManageFish from "./views/ManageFish/ManageFish";
 import BkgrdPath from "./assets/img/path1.png";

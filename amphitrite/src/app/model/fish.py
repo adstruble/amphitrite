@@ -1,10 +1,5 @@
-import logging
-
 from amphi_logging.logger import get_logger
-from db_utils import db_connection
-from db_utils.core import execute_statements, ResultType
-from db_utils.db_connection import DEFAULT_DB_PARAMS, get_connection
-from db_utils.insert import insert_table_data
+from db_utils.core import execute_statements
 
 LOGGER = get_logger('model')
 
@@ -86,28 +81,3 @@ def get_fish_f_values(fish_ids: list, username):
                 FROM animal 
                 JOIN family ON animal.family = family.id
                 WHERE animal.id in ({ids_str})""", username).get_as_list_of_dicts()
-
-
-def insert_possible_crosses(username: str, possible_crosses: list, female_tags: set):
-    """
-    Given a list of  possible crosses insert them
-    :param username: Username responsible for the insert
-    :param possible_crosses: List of possible crosses with f values calculated
-    :param female_tags: If possible crosses exist not for the given female_tags delete them.
-    :return: Number of available females inserted
-
-"""
-    # TODO: Clean up this table when adding new males
-    stmts = [('DELETE FROM possible_cross USING refuge_tag WHERE not (tag = ANY(:f_tags)) AND female = animal'), # noqa
-             {"f_tags": list(female_tags)}]
-    with get_connection(DEFAULT_DB_PARAMS, username=username) as conn:
-        with conn.connection.cursor() as cursor:
-            return insert_table_data('possible_cross', possible_crosses, cursor)
-
-
-def select_available_female_tags(username):
-    results = execute_statements('SELECT distinct tag FROM possible_cross JOIN refuge_tag on animal = female',
-                                 username).row_results
-    f_tags = [row[0] for row in results]
-
-    return ",".join(f_tags)

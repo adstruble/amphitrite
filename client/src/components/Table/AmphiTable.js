@@ -163,27 +163,35 @@ export default function AmphiTable({tableDataUrl,
         <div className='amphi-table-container'>
             <div className='amphi-table-header'>
                ` <InputGroup
-                    className={classnames({
-                        "input-group-focus": filterFocus
-                    })}
-                >
-                    <div className="input-group-prepend">
-                        <InputGroupText>
-                            <i className="tim-icons icon-zoom-split" />
-                        </InputGroupText>
-                    </div>
-                    <Input
-                        placeholder="Filter"
-                        type="text"
-                        onFocus={() => setFilterFocus(true)}
-                        onBlur={() => setFilterFocus(false)}
-                        onChange={e => setFilter(e.target.value)}
-                        onKeyUp={e => {maybeFilterTable(e)}}
-                        id={tableDataUrl + "_amphiTable"}
-                    />
-                </InputGroup>
-                {includePagination && <AmphiPagination LIMIT={LIMIT} tableNodes={tableNodes} onPaginationChange={onPaginationChange}
-                tableSize={tableSize} currPage={currPage} currElementCnt={currElementCnt}/>}
+                className={classnames({
+                    "input-group-focus": filterFocus
+                })}
+            >
+                <div className="input-group-prepend">
+                    <InputGroupText>
+                        <i className="tim-icons icon-zoom-split"/>
+                    </InputGroupText>
+                </div>
+                <Input
+                    placeholder="Filter"
+                    type="text"
+                    onFocus={() => setFilterFocus(true)}
+                    onBlur={() => setFilterFocus(false)}
+                    onChange={e => setFilter(e.target.value)}
+                    onKeyUp={e => {
+                        maybeFilterTable(e)
+                    }}
+                    id={tableDataUrl + "_amphiTable"}
+                />
+{/*                <div className="input-group-append">
+                    <InputGroupText>
+                        <i className="amphi-icon icon-filter"/>
+                    </InputGroupText>
+                </div>*/}
+            </InputGroup>
+                {includePagination &&
+                    <AmphiPagination LIMIT={LIMIT} tableNodes={tableNodes} onPaginationChange={onPaginationChange}
+                                     tableSize={tableSize} currPage={currPage} currElementCnt={currElementCnt}/>}
             </div>
             <div
                 style={{

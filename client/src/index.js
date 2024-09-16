@@ -4,6 +4,7 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import './assets/css/blk-design-system-react.css'
 import './assets/css/nucleo-icons.css'
+import './assets/css/amphi-icons.css'
 import './assets/css/amphi.css'
 
 import App from './App';

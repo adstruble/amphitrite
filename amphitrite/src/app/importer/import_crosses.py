@@ -17,8 +17,10 @@ class RecCrossesDataCols(object):
     Date = 0
     Male = 1
     Female = 3
-    SFG = 6
-    MFG = -1
+    Male_Sibling_Group = 2
+    Female_Sibling_Group = 4
+    SFG = 7
+    MFG = 6
 
 
 def import_crosses(t_file_dir, username, job_id):
@@ -111,10 +113,10 @@ def count_sibling_groups(t_file_dir, job_id):
                 csv_lines = csv.reader(rec_crosses)
                 header = next(csv_lines, None)
                 # Check that we actually have recommended crosses by looking for correct column header
-                if not (header[RecCrossesDataCols.Date.value] == 'Date' and
-                        header[RecCrossesDataCols.Male.value] == 'Male' and
-                        header[RecCrossesDataCols.Female.value] == 'Female' and
-                        header[RecCrossesDataCols.MFG.value].startswith('MFG BY') ):
+                if not (header[RecCrossesDataCols.Date] == 'Date' and
+                        header[RecCrossesDataCols.Male] == 'Male' and
+                        header[RecCrossesDataCols.Female] == 'Female' and
+                        header[RecCrossesDataCols.MFG].startswith('MFG') ):
                     raise Exception("Not a valid recommended crosses sheet")
 
             except: # noqa
@@ -123,8 +125,8 @@ def count_sibling_groups(t_file_dir, job_id):
                 return {"error": "Data for recommended crosses sheet upload is not in valid CSV format."}
 
             for line in csv.reader(rec_crosses):
-                sibling_groups.add(line[RecCrossesDataCols.Male_Sibling_Group.value])
-                sibling_groups.add(line[RecCrossesDataCols.Female_Sibling_Group.value])
+                sibling_groups.add(line[RecCrossesDataCols.Male_Sibling_Group])
+                sibling_groups.add(line[RecCrossesDataCols.Female_Sibling_Group])
             LOGGER.info(f"{len(sibling_groups)} unique sibling groups")
     except Exception as e:
         LOGGER.exception("Oops! ")
@@ -142,10 +144,10 @@ def determine_parents_for_backup_tanks(t_file_dir, job_id):
                 csv_lines = csv.reader(rec_crosses)
                 header = next(csv_lines, None)
                 # Check that we actually have recommended crosses by looking for correct column header
-                if not (header[RecCrossesDataCols.Date.value] == 'Date' and
-                        header[RecCrossesDataCols.Male.value] == 'Male' and
-                        header[RecCrossesDataCols.Female.value] == 'Female' and
-                        header[RecCrossesDataCols.MFG.value].startswith('MFG BY')):
+                if not (header[RecCrossesDataCols.Date] == 'Date' and
+                        header[RecCrossesDataCols.Male] == 'Male' and
+                        header[RecCrossesDataCols.Female] == 'Female' and
+                        header[RecCrossesDataCols.MFG].startswith('MFG')):
                     raise Exception("Not a valid recommended crosses sheet")
 
             except: # noqa
@@ -154,15 +156,15 @@ def determine_parents_for_backup_tanks(t_file_dir, job_id):
                 return {"error": "Data for recommended crosses sheet upload is not in valid CSV format."}
 
             for line in csv.reader(rec_crosses):
-                mfg = line[RecCrossesDataCols.MFG.value]
+                mfg = line[RecCrossesDataCols.MFG]
                 tanks.setdefault(mfg, set())
-                tanks[mfg].add(line[RecCrossesDataCols.Male_Sibling_Group.value])
-                tanks[mfg].add(line[RecCrossesDataCols.Female_Sibling_Group.value])
+                tanks[mfg].add(line[RecCrossesDataCols.Male_Sibling_Group])
+                tanks[mfg].add(line[RecCrossesDataCols.Female_Sibling_Group])
 
         tank_keys = list(tanks.keys())
         tank_keys.sort()
 
-        print(tank_keys)
+        LOGGER.info(tank_keys)
         add_sibling_group(tanks, tank_keys, tanks_included=tanks_included,
                           sibling_groups_included=sibling_groups_included)
         LOGGER.info(tanks_included)
@@ -175,19 +177,19 @@ def determine_parents_for_backup_tanks(t_file_dir, job_id):
 
 sibling_group_included_final = set()
 tanks_included_final = set()
-num_permutations = 0
+num_combinations = 0
 
 
 def add_sibling_group(tanks, tank_keys, tanks_included, sibling_groups_included):
     global sibling_group_included_final
     global tanks_included_final
-    global num_permutations
+    global num_combinations
 
     for i in range(len(tank_keys)):
-        if len(tanks_included) == 23:
-            num_permutations = num_permutations + 1
-            if num_permutations % 10000000 == 0:
-                LOGGER.info(f"Completed {num_permutations}")
+        if len(tanks_included) == 30:
+            num_combinations = num_combinations + 1
+            if num_combinations % 1000000 == 0:
+                LOGGER.info(f"Completed {num_combinations}")
             tank_set = {tank_keys[i]}
             sibling_group = tanks[tank_keys[i]]
             next_sibling_groups_included = sibling_groups_included.union(sibling_group)
@@ -197,6 +199,7 @@ def add_sibling_group(tanks, tank_keys, tanks_included, sibling_groups_included)
                 sibling_group_included_final = next_sibling_groups_included
                 tanks_included_final = next_tanks_included
                 LOGGER.info(f"tanks to include: {tanks_included_final}")
+                LOGGER.info(f"Completed {num_combinations}")
         else:
             next_tank_set = {tank_keys[i]}
             next_sibling_group = tanks[tank_keys[i]]
