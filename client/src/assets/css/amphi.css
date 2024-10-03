@@ -100,7 +100,6 @@ ul.pagination .item-count{
 
 .disabled {
     opacity: 0.4;
-    pointer-events: none;
 }
 
 .loadingSpinner {
@@ -115,4 +114,15 @@ ul.pagination .item-count{
 
 .loadingSpinner.off {
     display: None;
+}
+
+.form-check.no-label {
+    width:20px;
+}
+
+.form-check.disabled {
+    cursor: not-allowed;
+}
+.disabled .form-check-label .form-check-sign {
+    pointer-events: none;
 }

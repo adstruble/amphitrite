@@ -117,9 +117,6 @@ def parse_pedigree_file(ped_state, pedigree_file_path):
     try:
         with (open(pedigree_file_path, mode='r', encoding='UTF-8') as pedigree_data):
             for line_num, line in enumerate(csv.reader(pedigree_data)):
-                if line_num > 9981:
-                    LOGGER.info(f"Line: {line_num}: {line}")
-                    break
                 if line_num % 1000 == 0:
                     LOGGER.info(f"Line: {line_num}: {line}")
                     print(f"LINE: {line_num}: {line}")
@@ -150,7 +147,16 @@ def parse_pedigree_file(ped_state, pedigree_file_path):
 
                 parent_1_fam_uuid = ped_state.gen_id_unparsed_to_uuid[parent_1]
                 parent_2_fam_uuid = ped_state.gen_id_unparsed_to_uuid[parent_2]
-                generation_int = int(group_id_unparsed[0:2])
+                if len(parent_1) == 6:
+                    generation_int = int(parent_1[0:2]) # Use parent if it's not wildtype, because the child
+                    # might be a 2-year-old, in which case the cross year determine from _its_ genid would be wrong
+                    if generation_int % 10 == 0:
+                        generation_int = generation_int + 10
+                    else:
+                        generation_int = generation_int + 1
+                else:
+                    generation_int = int(group_id_unparsed[0:2])
+
                 if generation_int % 10 == 0:
                     # first 9 generations start with "<generation num>0"
                     cross_year = date(int(generation_int / 10) + 2006, 1, 1)
@@ -258,7 +264,7 @@ def parse_pedigree_file(ped_state, pedigree_file_path):
         # determine the f values for their families if they do exist
         bred_animal_gen_ids = list(ped_state.bred_animal.keys())
         for gen_id in bred_animal_gen_ids:
-            if 170000 < int(gen_id) < 190000:
+            if 180000 < int(gen_id) < 190000:
                 fish = ped_state.bred_animal.pop(gen_id)
                 ped_state.pedigrees.pop(fish['id'])
 

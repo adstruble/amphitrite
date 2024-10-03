@@ -21,6 +21,9 @@ def get_new_possible_crosses_for_females(username, f_tags):
                 JOIN animal as y ON TRUE
                 JOIN family as xf ON x.family = xf.id
                 JOIN family as yf ON y.family = yf.id
+                                 AND yf.id NOT IN (SELECT family FROM animal
+                                                                 JOIN refuge_tag ON animal.id = refuge_tag.animal
+                                                                                AND tag = ANY(:f_tags))
                 JOIN refuge_tag rty ON rty.animal = y.id
            LEFT JOIN possible_cross pc ON pc.female = rtx.animal
            LEFT JOIN family next_gen_fam ON next_gen_fam.parent_1 = x.id and next_gen_fam.parent_2 = y.id
@@ -46,7 +49,8 @@ def get_possible_crosses(username):
             array_remove(array_agg(y_crossed_tag.tag), NULL) as completed_y,
             array_remove(array_agg(x_crossed_tag.tag), NULL) as completed_x,
             pc.f,
-            pc.di
+            pc.di,
+            (select count(*) from requested_cross WHERE parent_m_fam = pc.male AND parent_f_fam != xf.id) AS selected_male_fam_cnt
                             FROM possible_cross as pc
                             JOIN animal as x ON pc.female = x.id
                             JOIN animal as y ON y.family = pc.male
@@ -58,9 +62,10 @@ def get_possible_crosses(username):
                        LEFT JOIN family next_gen_fam ON next_gen_fam.parent_1 = x.id and next_gen_fam.parent_2 = y.id
                        LEFT JOIN refuge_tag y_crossed_tag ON y_crossed_tag.animal = next_gen_fam.parent_2 AND next_gen_fam.id IS NOT NULL
                        LEFT JOIN refuge_tag x_crossed_tag ON x_crossed_tag.animal = next_gen_fam.parent_1 AND next_gen_fam.id IS NOT NULL
-                           WHERE x.sex = 'F' AND y.sex = 'M'
+                           WHERE x.sex = 'F' AND y.sex = 'M' AND x.alive AND y.alive
                         GROUP BY xf.group_id, yf.group_id, pc.male, xf.id, requested_cross.id, pc.f, pc.di)q 
-                           WHERE q.x_crosses <= 2 and q.y_crosses <= 2 ORDER BY f"""
+                        ORDER BY selected DESC, y_crosses, x_crosses, f"""
+
     possible_crosses = execute_statements(possible_crosses_sql, username).get_as_list_of_dicts()
 
     possible_crosses_cnt_sql = """SELECT  count(*) FROM possible_cross"""
@@ -85,7 +90,7 @@ def add_requested_cross(username, fam_f_id, fam_m_id, f):
 def remove_requested_cross(username, fam_f_id, fam_m_id):
     insert_requested_sql = f"""
         DELETE FROM requested_cross
-        WHERE parent_f = '{fam_f_id}' AND parent_m_fam = '{fam_m_id}'"""
+        WHERE parent_f_fam = '{fam_f_id}' AND parent_m_fam = '{fam_m_id}'"""
     return execute_statements(insert_requested_sql, username, ResultType.RowCount).get_single_result()
 
 
@@ -93,11 +98,16 @@ def get_requested_crosses_csv(username, csv_file):
     req_crosses = get_requested_crosses(username)
     csv_file.write(
         f"Female Tags,Female Family,Male Tags,Male Family,Female Family Prev Cross Count,Male Family Prev Cross Count,f\n") # noqa
-    prev_female = ""
+    prev_female_group = ""
     for cross in req_crosses:
-        csv_file.write(f"\"{', '.join(cross['f_tags'])}\","
+        if cross['f_group_id'] == prev_female_group:
+            cross['f_tags'] = ''
+            cross['f_group_id'] = ''
+        else:
+            prev_female_group = cross['f_group_id']
+        csv_file.write(f"\"{', '.join(cross['f_tags'])}\"{' (pick one)' if len(cross['f_tags']) > 1 else ''},"
                        f"{cross['f_group_id']},"
-                       f"\"{', '.join(cross['m_tags'])}\","
+                       f"\"{', '.join(cross['m_tags'])}\"{' (pick one)' if len(cross['m_tags']) > 1 else ''},"
                        f"{cross['m_group_id']},"
                        f"{cross['x_cross_cnt']},"
                        f"{cross['y_cross_cnt']},"
@@ -107,7 +117,7 @@ def get_requested_crosses_csv(username, csv_file):
 
 def get_requested_crosses(username):
     requested_crosses_sql = """
-    SELECT array_agg ((select tag from refuge_tag where animal = f_parent.id order by f_parent.id)) f_tags,
+    SELECT array(select distinct unnest(array_agg ((select tag from refuge_tag where animal = f_parent.id order by f_parent.id)))) f_tags,
            f_family.group_id f_group_id,
            count(x_crosses) as x_cross_cnt,
            array(select distinct unnest(array_agg ((select tag from refuge_tag where animal = m_parent.id order by m_parent.id)))) m_tags,

@@ -42,18 +42,15 @@ export default function CrossFish(callback, deps) {
         console.info("selected crosses exported")
 
     }
-
-    const updateCheckbox = (checkbox, selected) => {
-        checkbox.checked = selected;
-    };
-
     const handleUseChecked = (e, item)  => {
         if (e.target.checked){
             fetchData("cross_fish/add_selected_cross", getUsername(),
-                {cross_id: item['id'], f: item['f']}, () => void 0)
+                {cross_id: item['id'], f: item['f']}, () => {
+                    setReloadTable(reloadTable => reloadTable + 1)})
         }else{
             fetchData("cross_fish/remove_selected_cross", getUsername(),
-                {cross_id: item['id']}, () => void 0)
+                {cross_id: item['id']}, () => {
+                    setReloadTable(reloadTable => reloadTable + 1)})
         }
     };
 
@@ -61,21 +58,27 @@ export default function CrossFish(callback, deps) {
         return item['selected']
     }
 
+    const cantUse = (item) =>{
+        return item['selected_male_fam_cnt'] > 0;
+    }
+
     const isCompleted = (item) => {
         return item['completed_x'].length > 0 && item['completed_x'][0] != null
     }
 
     const handleCompletedChecked = (e, item)  => {
+        setSelectedFemale("");
+        setSelectedMale("");
         if (e.target.checked){
-            if (item['m_tags'].length > 1){
-                setPossibleFishColumn("m_tags")
-                setSelectFishOpen(true);
-                setRequestedCross(item);
-            }else if (item['f_tags'].length > 1){
+            if (item['f_tags'].length > 1){
                 setPossibleFishColumn("f_tags")
                 setSelectFishOpen(true);
                 setRequestedCross(item);
-                setSelectedMale(item['m_tags'][0])
+            }else if (item['m_tags'].length > 1){
+                setPossibleFishColumn("m_tags")
+                setSelectFishOpen(true);
+                setRequestedCross(item);
+                setSelectedFemale(item['f_tags'][0])
             }else {
                 fetchData("cross_fish/set_cross_completed", getUsername(),
                     {f_tag: item['f_tags'][0], m_tag: item['m_tags'][0], f: item['f']},
@@ -86,7 +89,7 @@ export default function CrossFish(callback, deps) {
             }
         }else{
             fetchData("cross_fish/remove_completed_cross", getUsername(),
-                {f_tag: item['completed_y'][0], m_tag: item['completed_x'][0]},
+                {f_tag: item['completed_x'][0], m_tag: item['completed_y'][0]},
                 () => setReloadTable(reloadTable => reloadTable + 1),
                 null, null, setAlertLevel, setAlertText)
         }
@@ -94,18 +97,20 @@ export default function CrossFish(callback, deps) {
 
     const selectFish = () => {
         setSelectFishOpen(false);
-        if (possibleFishColumn === 'm_tags'){
-            if (requestedCross['f_tags'].length > 1) {
-                setPossibleFishColumn("f_tags")
+        let selectedMaleVar = requestedCross['m_tags'][0];
+        if (possibleFishColumn === 'f_tags') {
+            if (requestedCross['m_tags'].length > 1) {
+                setPossibleFishColumn("m_tags")
                 setSelectFishOpen(true);
                 return;
             }
-            else{
-                setSelectedFemale(requestedCross['f_tags'][0])
-            }
+        }else{
+            selectedMaleVar = selectedMale;
         }
+
+
         fetchData("cross_fish/set_cross_completed", getUsername(),
-            {f_tag: selectedFemale, m_tag: selectedMale, f: requestedCross['f']},
+            {f_tag: selectedFemale, m_tag: selectedMaleVar, f: requestedCross['f']},
             () => {
                 setReloadTable(reloadTable => reloadTable + 1)
             }
@@ -182,6 +187,10 @@ export default function CrossFish(callback, deps) {
         }
     }
 
+    const closeSelectFish = () => {
+        document.getElementById(requestedCross['id'] + 'handleCompletedChecked').checked = false;
+        setSelectFishOpen(false);
+    }
     // Highlight the tag that was used in the completed cross if there was one.
     const formatArrayToStrTags = (tags, requested_cross, m_f) => {
         tags.sort(function (a, b){return sort_by_completed(a, b, requested_cross['completed' + m_f][0])});
@@ -208,9 +217,10 @@ export default function CrossFish(callback, deps) {
     }
 
     const CROSSES_HEADER = [
-        {name: "Use Cross", key: "selected", visible: true, format_fn:formatCheckbox, format_args:[handleUseChecked, isSelected], width:".7fr"},
-        {name: "Cross Completed", key: "", visible: true, format_fn:formatCheckbox, format_args:[handleCompletedChecked,  isCompleted], width:".8fr"},
-        {name: "F Value", key: "f", visible: true, format_fn: formatDoubleTo3, width:"1fr"},
+        {name: "Use Cross", key: "selected", visible: true, format_fn:formatCheckbox, format_args:[handleUseChecked, isSelected, cantUse], width:".7fr"},
+        {name: "Cross Completed", key: "", visible: true, format_fn:formatCheckbox, format_args:[handleCompletedChecked,  isCompleted], width:".9fr"},
+        {name: "F", key: "f", visible: true, format_fn: formatDoubleTo3, width:"1fr"},
+        {name: "DI", key: "di", visible: true, format_fn: formatDoubleTo3, width:".5fr"},
         {name: "F Fish", key: "f_tags", visible: true, format_fn: formatArrayToStrTags, width:"2.5fr", format_args: '_x'},
         {name: "F Group ID", key: "x_gid",  visible: true, format_fn: formatStr, width:"1fr"},
         {name: "F Family Crosses", key: "x_crosses", visible: true, format_fn: formatStr, width:"1fr"},
@@ -267,7 +277,7 @@ export default function CrossFish(callback, deps) {
                 </Row>
                 <Modal isOpen={selectFishOpen} modalClassName="modal-black" id="selectCrossedMale">
                     <div className="modal-header justify-content-center">
-                        <button className="btn-close" onClick={() => setSelectFishOpen(false)}>
+                        <button className="btn-close" onClick={() => closeSelectFish()}>
                             <i className="tim-icons icon-simple-remove text-white"/>
                         </button>
                         <div className="text-muted text-center ml-auto mr-auto">
@@ -276,13 +286,16 @@ export default function CrossFish(callback, deps) {
                     </div>
                     <div className="modal-body">
                         <div>
-                            <RadioGroup items={requestedCross[possibleFishColumn]} radioSelectedCallback={onFishSelected}></RadioGroup>
+                            <RadioGroup items={requestedCross[possibleFishColumn]} radioSelectedCallback={onFishSelected}
+                            selectedItem={(possibleFishColumn === 'm_tags') ? selectedMale : selectedFemale}></RadioGroup>
                         </div>
                     </div>
                     <div className="modal-footer">
                         <Button color="default" className="btn" type="button"
-                                onClick={() => setSelectFishOpen(false)}>Cancel</Button>
-                        <Button color="success" type="button" onClick={selectFish}>Select</Button>
+                                onClick={() => closeSelectFish()}>Cancel</Button>
+                        <Button disabled={(possibleFishColumn === "m_tags" && selectedMale === "") ||
+                            (possibleFishColumn === "f_tags" && selectedFemale === "")} color="success" type="button"
+                                onClick={selectFish}>Select</Button>
                     </div>
                 </Modal>
             </Container>

@@ -64,7 +64,8 @@ def import_master_data(t_file_dir, username, job_id, filename):
                         # TODO Mark as do not cross and add a note
 
                 animal_id = str(uuid.uuid4())
-                if group_id == -1:
+                if group_id == -1 or (group_id > 324 and sibling_birth_year.year == 2023) or \
+                    (group_id > 343 and sibling_birth_year.year == 2022):
                     LOGGER.warning(f"Invalid family group_id: '{line[MasterDataCols.Family_Id.value]}' for: {refuge_tag}. "
                                    f"Fish record will be skipped.")
                     continue

@@ -8,11 +8,10 @@ def test_import_masterdata():
     class MockTempDir:
         name = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'resources/import')
 
-    results = import_master_data(MockTempDir(), 'amphiadmin', 'batch1_2023', 'bulk_upload_batch1_2023.csv')
-    assert 1 == len(results)
-    assert 'success' in results.keys()
+    # SQL for finding fish with null family: select sibling_birth_year_temp, group_id_temp,box from animal_insert where family is null order by sibling_birth_year_temp asc;
+    import_master_data(MockTempDir(), 'amphiadmin', 'master_2024', 'bulk_upload_master_2024')
 
-    assert 3583 == execute_statements("SELECT COUNT(*) FROM animal", 'amphiadmin').get_single_result()
+    assert 9968 == execute_statements("SELECT COUNT(*) FROM animal", 'amphiadmin').get_single_result()
 
     assert 268725 == execute_statements(
         "SELECT count(DISTINCT id) FROM gene WHERE animal = ANY (SELECT id FROM animal)",
