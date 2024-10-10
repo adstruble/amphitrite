@@ -2,12 +2,10 @@ from csv import DictWriter
 from io import StringIO
 from sqlite3 import IntegrityError
 
-from psycopg2 import errors, ProgrammingError
-from sqlalchemy import text
+from psycopg2 import errors
 
 from amphi_logging.logger import get_logger
-from db_utils.db_connection import get_connection, DEFAULT_DB_PARAMS
-
+from db_utils.db_connection import get_connection, DEFAULT_DB_PARAMS, make_connection_kwargs
 
 LOGGER = get_logger('importer')
 
@@ -41,7 +39,7 @@ def batch_insert_master_data(table_data: list[InsertTableData], username):
     results = dict()
     table_for_error = ""
     try:
-        with get_connection(DEFAULT_DB_PARAMS, username) as conn:
+        with get_connection(**make_connection_kwargs(DEFAULT_DB_PARAMS, username)) as conn:
             with conn.connection.cursor() as cursor:
                 for table in table_data:
                     table_for_error = table
@@ -85,7 +83,7 @@ def copy_to_final_table(table: InsertTableData, cursor, col_str=None):
 def batch_insert_cross_data(table: InsertTableData, username):
     try:
         results = {}
-        with get_connection(DEFAULT_DB_PARAMS, username) as conn:
+        with get_connection(**make_connection_kwargs(DEFAULT_DB_PARAMS, username)) as conn:
             with conn.connection.cursor() as cursor:
                 custom_alters = [
                     f"ALTER TABLE family_insert ADD COLUMN IF NOT EXISTS parent_1_tag_temp varchar(12)",

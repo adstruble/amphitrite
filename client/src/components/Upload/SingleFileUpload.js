@@ -8,7 +8,7 @@ export default function FileUploadSingle({fileUploadUrl,
                                              submitCallback,
                                              cancelCallback,
                                              formModalProp,
-                                         formModalTitle}) {
+                                         formModalTitle, setIsLoading}) {
 
     const [formModal, setFormModal] = useState(false);
     const [file, setFile] = useState();
@@ -47,6 +47,7 @@ export default function FileUploadSingle({fileUploadUrl,
             if (!mounted){
                 return;
             }
+            setIsLoading?.(true);
             fetch("/amphitrite/common/check_job/" + jobId, {
                 method: "GET",
                 headers: {
@@ -68,6 +69,7 @@ export default function FileUploadSingle({fileUploadUrl,
                         return;
                     }
                     setSubmitDisabled(false);
+                    setIsLoading?.(false);
                 });
             }, 1000);
     }
@@ -90,7 +92,7 @@ export default function FileUploadSingle({fileUploadUrl,
             .then((res) => res.json())
             .then((data) => {
                 if ("job_id" in data) {
-                    // The server has accepted this as a job that client can then check o status of
+                    // The server has accepted this as a job that client can then check on status of
                     waitForJob(data["job_id"])
                     return;
                 }

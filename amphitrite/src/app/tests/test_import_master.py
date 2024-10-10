@@ -8,7 +8,8 @@ def test_import_masterdata():
     class MockTempDir:
         name = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'resources/import')
 
-    # SQL for finding fish with null family: select sibling_birth_year_temp, group_id_temp,box from animal_insert where family is null order by sibling_birth_year_temp asc;
+    # SQL for finding fish with null family: select sibling_birth_year_temp, group_id_temp,box from animal_insert where
+    # family is null order by sibling_birth_year_temp asc;
     import_master_data(MockTempDir(), 'amphiadmin', 'master_2024', 'bulk_upload_master_2024')
 
     assert 9968 == execute_statements("SELECT COUNT(*) FROM animal", 'amphiadmin').get_single_result()

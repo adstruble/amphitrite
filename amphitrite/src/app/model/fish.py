@@ -47,7 +47,7 @@ def get_fishes_from_db(username: str, query_params: dict, order_by_clause: str):
                 LEFT JOIN refuge_tag on animal.id = refuge_tag.animal
                 {filter_str}
                 {order_by_clause} OFFSET :offset LIMIT :limit""",
-        query_params), username).get_as_list_of_dicts()
+        query_params), username=username).get_as_list_of_dicts()
 
     fish_cnt = execute_statements(('SELECT count(animal.id) '
                                    '  FROM animal '

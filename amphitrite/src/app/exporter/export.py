@@ -3,7 +3,7 @@ import logging
 
 import sqlalchemy
 
-from db_utils.db_connection import get_connection, DEFAULT_DB_PARAMS
+from db_utils.db_connection import get_connection, DEFAULT_DB_PARAMS, make_connection_kwargs
 from utils.envionment import get_integer_env_variable
 
 DEFAULT_EXPORT_BATCH_SIZE = 50000
@@ -31,7 +31,7 @@ def export_data_as_csv(query, columns, stream, username, batch_size=None):
     record_count = 0
 
     batch_size = batch_size or get_export_batch_size()
-    with get_connection(DEFAULT_DB_PARAMS, username) as conn:
+    with get_connection(**make_connection_kwargs(DEFAULT_DB_PARAMS, username)) as conn:
 
         cur = conn.execute(sqlalchemy.text(query))
 

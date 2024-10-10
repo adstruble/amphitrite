@@ -7,7 +7,7 @@ from enum import Enum
 from amphi_logging.logger import get_logger
 from algorithms.f_calculation import FMatrix
 from db_utils.core import execute_statements
-from db_utils.db_connection import get_connection, DEFAULT_DB_PARAMS
+from db_utils.db_connection import get_connection, DEFAULT_DB_PARAMS, make_connection_kwargs
 from db_utils.insert import insert_table_data
 from exceptions.exceptions import WildTypeCrossedWithRefugeInWild
 
@@ -83,7 +83,7 @@ def pedigree_exists():
 def ingest_pedigree_data(ped_state):
     results = dict()
     try:
-        with get_connection(DEFAULT_DB_PARAMS, 'amphiadmin') as conn:
+        with get_connection(**make_connection_kwargs(DEFAULT_DB_PARAMS, 'amphiadmin')) as conn:
             with conn.connection.cursor() as cursor:
                 # Insert all the child family groups
                 results['family'] = insert_table_data('family', list(ped_state.families.values()), cursor)

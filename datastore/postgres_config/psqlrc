@@ -1,0 +1,2 @@
+SELECT reset_access();
+SELECT session_add_user('amphiadmin');

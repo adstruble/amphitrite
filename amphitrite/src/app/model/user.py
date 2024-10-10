@@ -3,6 +3,8 @@ import logging
 
 import jwt
 
+from db_utils.core import execute_statements
+
 
 def encode_auth_token(username, secret_key):
     """
@@ -24,8 +26,13 @@ def encode_auth_token(username, secret_key):
         return e
 
 
-def maybe_authenticate_user(username, password):
-    if not (username and password):
+def maybe_authenticate_user(username, p):
+    if not (username and p):
         return None
     else:
-        return username
+        if execute_statements(('''SELECT enabled FROM amphi_user 
+                             WHERE username = :u
+                               AND password = :p''', {'u': username, 'p': p}),
+                                  username=username).get_single_result():
+            return username
+    return None

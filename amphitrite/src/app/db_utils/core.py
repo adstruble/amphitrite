@@ -4,7 +4,7 @@ from enum import Enum
 import sqlalchemy
 
 from amphi_logging.logger import get_logger
-from db_utils.db_connection import get_connection, DEFAULT_DB_PARAMS, AMPHIADMIN_DB_PARAMS
+from db_utils.db_connection import get_connection, DEFAULT_DB_PARAMS, AMPHIADMIN_DB_PARAMS, make_connection_kwargs
 
 LOGGER = get_logger('db_utils')
 
@@ -68,7 +68,7 @@ def execute_statements(stmt_param_tuples, username: str,
         stmt_param_tuples = [stmt_param_tuples]
 
     results = ExecuteSqlResult()
-    with get_connection(DEFAULT_DB_PARAMS, username) as conn:
+    with get_connection(**make_connection_kwargs(DEFAULT_DB_PARAMS, username)) as conn:
         for maybe_stmt_tuple in stmt_param_tuples:
             stmt, params = (maybe_stmt_tuple[0], maybe_stmt_tuple[1]) \
                 if isinstance(maybe_stmt_tuple, tuple) else (maybe_stmt_tuple, {})

@@ -5,7 +5,7 @@ import PropTypes from "prop-types";
 
 
 export default function FishDataUpload({dataUploadUrl, uploadCallback, uploadButtonText,
-                                       formModalTitle}) {
+                                       formModalTitle, setIsLoading=null}) {
     const [formModal, setFormModal] = useState(false);
     const [alertText, setAlertText] = useState("");
     const [alertLevel, setAlertLevel] = useState("");
@@ -50,9 +50,11 @@ export default function FishDataUpload({dataUploadUrl, uploadCallback, uploadBut
             </Row>
             <Row>
                 <FileUploadSingle formModalProp={formModal} fileUploadUrl={dataUploadUrl}
-                              submitReturnCallback={fishDataUploadCallback} submitCallback={fishDataUploadInProgress}
-                              cancelCallback={fishDataUploadCancel}
-                formModalTitle={formModalTitle}/>
+                                  submitReturnCallback={fishDataUploadCallback}
+                                  submitCallback={fishDataUploadInProgress}
+                                  cancelCallback={fishDataUploadCancel}
+                                  formModalTitle={formModalTitle}
+                                  setIsLoading={setIsLoading}/>
                 <Button className="btn" color="default" type="button" onClick={handleUploadFishDataClick}>
                     {uploadButtonText}
                 </Button>

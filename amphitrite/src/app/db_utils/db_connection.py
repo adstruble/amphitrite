@@ -1,4 +1,3 @@
-import time
 from contextlib import contextmanager
 
 import sqlalchemy
@@ -42,8 +41,16 @@ class _PGConnections:
         return self._engines[conn_string]
 
 
+def make_connection_kwargs(database_params: dict, username: str, setup_tx:bool = True):
+    return {'database_params': database_params, 'username': username, 'setup_tx': setup_tx}
+
+
 @contextmanager
-def get_connection(database_params, username, setup_tx=True) -> Connection:
+def get_connection(**kwargs) -> Connection:
+    database_params = kwargs['database_params']
+    username = kwargs['username']
+    setup_tx = kwargs['setup_tx']
+    LOGGER.info(f"Setting up connection for: {username}")
 
     engine = _PGConnections().get_engine(database_params)
     conn = engine.connect()

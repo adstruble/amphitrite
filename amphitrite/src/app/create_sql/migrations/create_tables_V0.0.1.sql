@@ -5,6 +5,40 @@ CREATE USER amphireadonly WITH ENCRYPTED PASSWORD 'amphireadonly' CONNECTION LIM
 GRANT amphireadonly to amphiadmin;
 ALTER DEFAULT PRIVILEGES FOR USER amphiadmin IN SCHEMA public GRANT SELECT ON TABLES TO amphireadonly;
 
+CREATE SCHEMA history;
+REVOKE ALL ON SCHEMA history FROM public;
+
+CREATE TABLE history.logged_actions (
+        event_id bigint,
+        schema_name text not null,
+        table_name text not null,
+        id text not null,
+        relid oid not null,
+        postgres_user_name text,
+        application_user_name text not null,
+        action_tstamp_tx TIMESTAMP WITH TIME ZONE NOT NULL,
+        action_tstamp_stm TIMESTAMP WITH TIME ZONE NOT NULL,
+        action_tstamp_clk TIMESTAMP WITH TIME ZONE NOT NULL,
+        transaction_id bigint,
+        client_addr inet,
+        client_port integer,
+        client_query text,
+        action TEXT NOT NULL CHECK (action IN ('I','D','U','T')),
+        row_data jsonb,
+        changed_fields jsonb,
+        statement_only boolean not null,
+        schema_version text
+);
+REVOKE ALL ON history.logged_actions FROM public;
+CREATE INDEX IF NOT EXISTS logged_actions_relid_idx ON history.logged_actions(relid);
+CREATE INDEX IF NOT EXISTS logged_actions_txid_idx ON history.logged_actions(transaction_id);
+CREATE INDEX IF NOT EXISTS logged_actions_tablename_idx ON history.logged_actions(table_name);
+CREATE INDEX IF NOT EXISTS logged_actions_action_tstamp_tx_idx ON history.logged_actions(action_tstamp_tx);
+CREATE INDEX IF NOT EXISTS logged_actions_action_tstamp_stm_idx ON history.logged_actions(action_tstamp_stm);
+CREATE INDEX IF NOT EXISTS logged_actions_id_idx ON history.logged_actions(id);
+CREATE INDEX IF NOT EXISTS logged_actions_action_idx ON history.logged_actions(action);
+
+
 CREATE OR REPLACE FUNCTION reset_access() returns void as
 $$
 DECLARE
@@ -41,9 +75,16 @@ $$
 BEGIN
     INSERT INTO pg_temp.session_vars (key, value) VALUES ('user_current', value);
     INSERT INTO pg_temp.session_vars SELECT 'user_id' as key, id as value FROM amphi_user WHERE username = value;
+    IF get_current_user() IS NULL THEN RAISE EXCEPTION 'Unknown user, database transactions will be prohibited';
+    END IF;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+SELECT reset_access();
+
+CREATE OR REPLACE FUNCTION desired_time_st() RETURNS TIMESTAMP AS $$
+    SELECT coalesce(NULLIF(current_setting('planx.desired_time', 't'), ''), statement_timestamp()::text)::timestamp;
+$$ LANGUAGE SQL STABLE STRICT;
 
 CREATE OR REPLACE FUNCTION drop_null_constraints(varchar) RETURNS integer AS
 $$
@@ -95,12 +136,140 @@ CREATE TABLE amphi_user
 ) INHERITS (element);
 ALTER TABLE amphi_user
     ADD CONSTRAINT unique_user UNIQUE (username);
+CREATE INDEX amphi_user_username_idx ON amphi_user(username);
+
+CREATE OR REPLACE FUNCTION get_current_user()
+    RETURNS text AS $$
+SELECT amphi_user.id FROM pg_temp.session_vars JOIN amphi_user ON value = amphi_user.username WHERE key = 'user_current';
+$$ language 'sql' STABLE STRICT;
 
 INSERT INTO amphi_user (username, password, enabled, id, created_at, last_modified)
 VALUES ('amphiadmin', 'amphiadmin', True, '3905193d-1556-4800-bc9b-27a538a9fd55'::uuid, now(), now());
 ALTER TABLE element
     ADD COLUMN last_modified_by uuid NOT NULL REFERENCES amphi_user (id) DEFERRABLE
         DEFAULT '3905193d-1556-4800-bc9b-27a538a9fd55';
+ALTER TABLE element
+    ADD COLUMN created_by uuid NOT NULL REFERENCES amphi_user (id) DEFERRABLE
+        DEFAULT '3905193d-1556-4800-bc9b-27a538a9fd55';
+
+CREATE OR REPLACE FUNCTION element_pre_insert()
+    RETURNS trigger
+AS $$
+DECLARE
+    timestamp timestamp;
+    cuser text;
+BEGIN
+    timestamp = desired_time_st();
+    cuser = get_current_user();
+    NEW."last_modified" = timestamp;
+    NEW."created_at" = timestamp;
+    NEW."created_by" = cuser;
+    NEW."last_modified_by" = cuser;
+    RETURN NEW;
+END;
+$$ LANGUAGE 'plpgsql';
+CREATE OR REPLACE TRIGGER element_pre_insert_t BEFORE INSERT ON element FOR EACH ROW EXECUTE PROCEDURE element_pre_insert();
+
+CREATE OR REPLACE FUNCTION public.element_pre_update()
+    RETURNS trigger
+AS $function$
+BEGIN
+    IF row(NEW.*) IS DISTINCT FROM row(OLD.*) THEN
+        NEW.last_modified = desired_time_st();
+        NEW."last_modified_by" = get_current_user();
+        RETURN NEW;
+    ELSE
+        RETURN OLD;
+    END IF;
+END;
+$function$ language 'plpgsql';
+CREATE OR REPLACE TRIGGER element_pre_update_t BEFORE UPDATE ON element FOR EACH ROW EXECUTE PROCEDURE element_pre_update();
+
+CREATE OR REPLACE FUNCTION history.if_modified_func() RETURNS TRIGGER AS $body$
+    DECLARE
+        history_row history.logged_actions;
+        updated_row jsonb;
+        _key text;
+        _value text;
+    BEGIN
+        IF TG_WHEN <> 'AFTER' THEN
+            RAISE EXCEPTION 'history.if_modified_func() may only run as an AFTER trigger';
+        END IF;
+
+        history_row = ROW(
+            999,                                            -- event_id (placeholder, column to be dropped in future)
+            TG_TABLE_SCHEMA::text,                          -- schema_name
+            TG_TABLE_NAME::text,                            -- table_name
+            NULL,                                           -- id
+            TG_RELID,                                       -- relation OID for much quicker searches
+            session_user::text,                             -- postgres_user_name
+            get_current_user(),                             -- application_user_name
+            now(),                                          -- action_tstamp_tx
+            statement_timestamp(),                          -- action_tstamp_stm
+            clock_timestamp(),                              -- action_tstamp_clk
+            txid_current(),                                 -- transaction ID
+            inet_client_addr(),                             -- client_addr
+            inet_client_port(),                             -- client_port
+            current_query(),                                -- top-level query or queries (if multistatement) from client
+            substring(TG_OP,1,1),                           -- action
+            NULL, NULL,                                     -- row_data, changed_fields
+            'f',                                            -- statement_only
+            NULL, NULL,                                     -- created_in, last_modified_in
+            (SELECT concat(major, '.', minor, '.', patch, '.')
+               FROM version ORDER BY major DESC, minor DESC , patch DESC LIMIT 1) -- schema_version
+            );
+
+        IF NOT TG_ARGV[0]::boolean IS DISTINCT FROM 'f'::boolean THEN
+            history_row.client_query = NULL;
+        END IF;
+
+        IF ((TG_OP = 'UPDATE' OR TG_OP = 'INSERT') AND TG_LEVEL = 'ROW') THEN
+            -- Set id new value
+            history_row.id = NEW.id;
+        ELSIF (TG_LEVEL = 'ROW') THEN
+            -- Set id to old value
+            history_row.id = OLD.id;
+        END IF;
+
+        IF (TG_OP = 'UPDATE' AND TG_LEVEL = 'ROW') THEN
+            history_row.row_data = row_to_json(OLD)::JSONB;
+            updated_row = row_to_json(NEW)::jsonb;
+
+            --Computing differences
+            FOR _key, _value IN
+                SELECT * from jsonb_each_text(history_row.row_data)
+            LOOP
+                IF history_row.row_data->>_key = updated_row->>_key OR (history_row.row_data->>_key IS NULL AND updated_row->>_key IS NULL) THEN
+                    updated_row = updated_row - _key;
+                END IF;
+            END LOOP;
+            history_row.changed_fields := updated_row;
+
+            IF history_row.changed_fields IS NULL OR history_row.changed_fields = '{}'::JSONB THEN
+                -- All changed fields are ignored. Skip this update.
+                RETURN NULL;
+            END IF;
+        ELSIF (TG_OP = 'DELETE' AND TG_LEVEL = 'ROW') THEN
+            history_row.row_data = row_to_json(OLD)::JSONB;
+        ELSIF (TG_OP = 'INSERT' AND TG_LEVEL = 'ROW') THEN
+            history_row.row_data = row_to_json(NEW)::JSONB;
+        ELSIF (TG_LEVEL = 'STATEMENT' AND TG_OP IN ('INSERT','UPDATE','DELETE','TRUNCATE')) THEN
+            history_row.statement_only = 't';
+        ELSE
+            RAISE EXCEPTION '[history.if_modified_func] - Trigger func added as trigger for unhandled case: %, %',TG_OP, TG_LEVEL;
+        END IF;
+        IF (TG_OP = 'TRUNCATE') THEN
+            RETURN NULL;
+        END IF;
+        INSERT INTO history.logged_actions VALUES (history_row.*);
+        RETURN NULL;
+    END;
+$body$
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, public;
+CREATE TRIGGER history_trigger_row AFTER INSERT OR DELETE OR UPDATE ON element FOR EACH ROW EXECUTE FUNCTION history.if_modified_func('false');
+CREATE TRIGGER history_trigger_stm AFTER TRUNCATE ON element FOR EACH STATEMENT EXECUTE FUNCTION history.if_modified_func('false');
 
 CREATE TABLE animal
 (
@@ -111,6 +280,10 @@ CREATE TABLE animal
     gen_id int,
     PRIMARY KEY (id)
 ) INHERITS (element);
+CREATE TRIGGER history_trigger_row AFTER INSERT OR DELETE OR UPDATE ON animal FOR EACH ROW EXECUTE FUNCTION history.if_modified_func('false');
+CREATE TRIGGER history_trigger_stm AFTER TRUNCATE ON animal FOR EACH STATEMENT EXECUTE FUNCTION history.if_modified_func('false');
+CREATE OR REPLACE TRIGGER element_pre_insert_t BEFORE INSERT ON animal FOR EACH ROW EXECUTE PROCEDURE element_pre_insert();
+CREATE OR REPLACE TRIGGER element_pre_update_t BEFORE UPDATE ON animal FOR EACH ROW EXECUTE PROCEDURE element_pre_update();
 
 CREATE TABLE family
 (
@@ -138,6 +311,10 @@ CREATE TABLE family
 ALTER TABLE family ADD CONSTRAINT unique_parents UNIQUE (parent_1, parent_2, cross_year);
 ALTER TABLE family
     ADD CONSTRAINT different_parents CHECK (not (parent_1 = parent_2));
+CREATE TRIGGER history_trigger_row AFTER INSERT OR DELETE OR UPDATE ON family FOR EACH ROW EXECUTE FUNCTION history.if_modified_func('false');
+CREATE TRIGGER history_trigger_stm AFTER TRUNCATE ON family FOR EACH STATEMENT EXECUTE FUNCTION history.if_modified_func('false');
+CREATE OR REPLACE TRIGGER element_pre_insert_t BEFORE INSERT ON family FOR EACH ROW EXECUTE PROCEDURE element_pre_insert();
+CREATE OR REPLACE TRIGGER element_pre_update_t BEFORE UPDATE ON family FOR EACH ROW EXECUTE PROCEDURE element_pre_update();
 
 -- Add family column to animal now that that table exists
 ALTER TABLE animal
@@ -152,6 +329,10 @@ CREATE TABLE pedigree
 ALTER TABLE pedigree
     ADD CONSTRAINT unique_pedigree UNIQUE (parent, child);
 CREATE INDEX pedigree_parent_idx on pedigree(parent);
+CREATE TRIGGER history_trigger_row AFTER INSERT OR DELETE OR UPDATE ON pedigree FOR EACH ROW EXECUTE FUNCTION history.if_modified_func('false');
+CREATE TRIGGER history_trigger_stm AFTER TRUNCATE ON pedigree FOR EACH STATEMENT EXECUTE FUNCTION history.if_modified_func('false');
+CREATE OR REPLACE TRIGGER element_pre_insert_t BEFORE INSERT ON pedigree FOR EACH ROW EXECUTE PROCEDURE element_pre_insert();
+CREATE OR REPLACE TRIGGER element_pre_update_t BEFORE UPDATE ON pedigree FOR EACH ROW EXECUTE PROCEDURE element_pre_update();
 
 CREATE TABLE requested_cross
 (
@@ -162,6 +343,10 @@ CREATE TABLE requested_cross
     cross_date timestamp,
     f float not null
 ) INHERITS (element);
+CREATE TRIGGER history_trigger_row AFTER INSERT OR DELETE OR UPDATE ON requested_cross FOR EACH ROW EXECUTE FUNCTION history.if_modified_func('false');
+CREATE TRIGGER history_trigger_stm AFTER TRUNCATE ON requested_cross FOR EACH STATEMENT EXECUTE FUNCTION history.if_modified_func('false');
+CREATE OR REPLACE TRIGGER element_pre_insert_t BEFORE INSERT ON requested_cross FOR EACH ROW EXECUTE PROCEDURE element_pre_insert();
+CREATE OR REPLACE TRIGGER element_pre_update_t BEFORE UPDATE ON requested_cross FOR EACH ROW EXECUTE PROCEDURE element_pre_update();
 
 CREATE TABLE possible_cross
 (
@@ -172,6 +357,10 @@ CREATE TABLE possible_cross
 ) INHERITS (element);
 ALTER TABLE possible_cross ADD
     CONSTRAINT unique_parental_cross UNIQUE (female, male);
+CREATE TRIGGER history_trigger_row AFTER INSERT OR DELETE OR UPDATE ON possible_cross FOR EACH ROW EXECUTE FUNCTION history.if_modified_func('false');
+CREATE TRIGGER history_trigger_stm AFTER TRUNCATE ON possible_cross FOR EACH STATEMENT EXECUTE FUNCTION history.if_modified_func('false');
+CREATE OR REPLACE TRIGGER element_pre_insert_t BEFORE INSERT ON possible_cross FOR EACH ROW EXECUTE PROCEDURE element_pre_insert();
+CREATE OR REPLACE TRIGGER element_pre_update_t BEFORE UPDATE ON possible_cross FOR EACH ROW EXECUTE PROCEDURE element_pre_update();
 
 CREATE TABLE gene
 (
@@ -183,6 +372,10 @@ CREATE TABLE gene
     UNIQUE (name, animal)
 ) INHERITS (element);
 CREATE INDEX animal_fish_idx on gene (animal);
+CREATE TRIGGER history_trigger_row AFTER INSERT OR DELETE OR UPDATE ON gene FOR EACH ROW EXECUTE FUNCTION history.if_modified_func('false');
+CREATE TRIGGER history_trigger_stm AFTER TRUNCATE ON gene FOR EACH STATEMENT EXECUTE FUNCTION history.if_modified_func('false');
+CREATE OR REPLACE TRIGGER element_pre_insert_t BEFORE INSERT ON gene FOR EACH ROW EXECUTE PROCEDURE element_pre_insert();
+CREATE OR REPLACE TRIGGER element_pre_update_t BEFORE UPDATE ON gene FOR EACH ROW EXECUTE PROCEDURE element_pre_update();
 
 CREATE TABLE refuge_tag
 (
@@ -196,18 +389,30 @@ CREATE TABLE refuge_tag
     PRIMARY KEY (id)
 ) INHERITS (element);
 CREATE INDEX tagged_animal_idx on refuge_tag (animal);
+CREATE TRIGGER history_trigger_row AFTER INSERT OR DELETE OR UPDATE ON refuge_tag FOR EACH ROW EXECUTE FUNCTION history.if_modified_func('false');
+CREATE TRIGGER history_trigger_stm AFTER TRUNCATE ON refuge_tag FOR EACH STATEMENT EXECUTE FUNCTION history.if_modified_func('false');
+CREATE OR REPLACE TRIGGER element_pre_insert_t BEFORE INSERT ON refuge_tag FOR EACH ROW EXECUTE PROCEDURE element_pre_insert();
+CREATE OR REPLACE TRIGGER element_pre_update_t BEFORE UPDATE ON refuge_tag FOR EACH ROW EXECUTE PROCEDURE element_pre_update();
 
 CREATE TABLE notes
 (
     text text,
     PRIMARY KEY (id)
 ) INHERITS (element);
+CREATE TRIGGER history_trigger_row AFTER INSERT OR DELETE OR UPDATE ON notes FOR EACH ROW EXECUTE FUNCTION history.if_modified_func('false');
+CREATE TRIGGER history_trigger_stm AFTER TRUNCATE ON notes FOR EACH STATEMENT EXECUTE FUNCTION history.if_modified_func('false');
+CREATE OR REPLACE TRIGGER element_pre_insert_t BEFORE INSERT ON notes FOR EACH ROW EXECUTE PROCEDURE element_pre_insert();
+CREATE OR REPLACE TRIGGER element_pre_update_t BEFORE UPDATE ON notes FOR EACH ROW EXECUTE PROCEDURE element_pre_update();
 
 CREATE TABLE notes_element
 (
     note    uuid REFERENCES notes (id) DEFERRABLE,
     element uuid REFERENCES element (id) DEFERRABLE
-);
+) INHERITS (element);
+CREATE TRIGGER history_trigger_row AFTER INSERT OR DELETE OR UPDATE ON notes_element FOR EACH ROW EXECUTE FUNCTION history.if_modified_func('false');
+CREATE TRIGGER history_trigger_stm AFTER TRUNCATE ON notes_element FOR EACH STATEMENT EXECUTE FUNCTION history.if_modified_func('false');
+CREATE OR REPLACE TRIGGER element_pre_insert_t BEFORE INSERT ON notes_element FOR EACH ROW EXECUTE PROCEDURE element_pre_insert();
+CREATE OR REPLACE TRIGGER element_pre_update_t BEFORE UPDATE ON notes_element FOR EACH ROW EXECUTE PROCEDURE element_pre_update();
 
 CREATE TABLE f_matrix_row
 (
@@ -217,6 +422,8 @@ CREATE TABLE f_matrix_row
     PRIMARY KEY (id)
 ) INHERITS (element);
 CREATE INDEX f_matrix_row_animal_fam_idx on f_matrix_row (animal_fam);
+CREATE OR REPLACE TRIGGER element_pre_insert_t BEFORE INSERT ON f_matrix_row FOR EACH ROW EXECUTE PROCEDURE element_pre_insert();
+CREATE OR REPLACE TRIGGER element_pre_update_t BEFORE UPDATE ON f_matrix_row FOR EACH ROW EXECUTE PROCEDURE element_pre_update();
 
 CREATE TABLE f_row_val
 (
@@ -226,6 +433,8 @@ CREATE TABLE f_row_val
     PRIMARY KEY (id)
 ) INHERITS (element);
 CREATE INDEX f_row_val_animal_fam_idx on f_row_val (animal_fam);
+CREATE OR REPLACE TRIGGER element_pre_insert_t BEFORE INSERT ON f_row_val FOR EACH ROW EXECUTE PROCEDURE element_pre_insert();
+CREATE OR REPLACE TRIGGER element_pre_update_t BEFORE UPDATE ON f_row_val FOR EACH ROW EXECUTE PROCEDURE element_pre_update();
 
 CREATE TABLE version
 (

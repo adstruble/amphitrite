@@ -11,7 +11,9 @@ if [ "$1" = "dev" ]; then
   echo "ENV: DEV"
   echo "Setting to use local conf file..."
   CONF="file:configs/gunicorn_conf_local.py"
-  exec python ./start_manager.py &
+  if ! [ $(pgrep -f "start_manager.py" | head -n 1) ]; then
+    exec python ./start_manager.py &
+  fi
 else
   echo "ENV: CLUSTER"
   exec python /home/amphitrite/src/app/start_manager.py &
