@@ -36,23 +36,29 @@ def batch_insert_master_data(table_data: list[InsertTableData], username):
     must be tag_temp and sibling_birth_year_temp
     :param username: user that is performing the batch upload
     """
-    results = dict()
+    results = {'updated': dict(), 'inserted': dict()}
     table_for_error = ""
     try:
         with get_connection(**make_connection_kwargs(DEFAULT_DB_PARAMS, username)) as conn:
             with conn.connection.cursor() as cursor:
                 for table in table_data:
+                    cursor.execute(f"SELECT COUNT(*) FROM {table.name}")
+                    start_cnt = cursor.fetchone()[0]
                     table_for_error = table
                     custom_alters = [
-                        f"ALTER TABLE {table.name}_insert ADD COLUMN IF NOT EXISTS tag_temp varchar(12)",
                         f"ALTER TABLE {table.name}_insert ADD COLUMN IF NOT EXISTS sibling_birth_year_temp timestamp",
                         f"ALTER TABLE {table.name}_insert ADD COLUMN IF NOT EXISTS group_id_temp int NOT NULL"]
                     custom_alters.extend(table.temp_table_updates)
                     prepare_copy_table_for_bulk_insert(table, cursor, custom_alters)
-                    final_table_col_str = ",".join([f"\"{col}\"" for col in list(table.data[0].keys())[:-3]])
+                    final_table_col_str = ",".join([f"\"{col}\"" for col in list(table.data[0].keys())[:-2]])
                     copy_to_final_table(table, cursor, final_table_col_str)
 
-                    results[table.name] = cursor.rowcount
+                    changed = cursor.rowcount
+                    cursor.execute(f"SELECT COUNT(*) FROM {table.name}")
+                    end_cnt = cursor.fetchone()[0]
+                    results['updated'][table.name] = changed - (end_cnt - start_cnt)
+                    results['inserted'][table.name] = end_cnt - start_cnt
+
             cursor.close()
         return {"success": results}
 

@@ -278,7 +278,9 @@ CREATE TABLE animal
     alive  bool NOT NULL DEFAULT TRUE,
     wt     bool NOT NULL DEFAULT FALSE,
     gen_id int,
-    PRIMARY KEY (id)
+    genotype varchar(150),
+    PRIMARY KEY (id),
+    UNIQUE (genotype)
 ) INHERITS (element);
 CREATE TRIGGER history_trigger_row AFTER INSERT OR DELETE OR UPDATE ON animal FOR EACH ROW EXECUTE FUNCTION history.if_modified_func('false');
 CREATE TRIGGER history_trigger_stm AFTER TRUNCATE ON animal FOR EACH STATEMENT EXECUTE FUNCTION history.if_modified_func('false');
@@ -386,6 +388,7 @@ CREATE TABLE refuge_tag
     date_tagged   timestamp,
     date_untagged timestamp,
     animal        uuid        NOT NULL REFERENCES animal (id) DEFERRABLE,
+    UNIQUE(animal),
     PRIMARY KEY (id)
 ) INHERITS (element);
 CREATE INDEX tagged_animal_idx on refuge_tag (animal);

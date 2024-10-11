@@ -70,73 +70,64 @@ def import_master_data(t_file_dir, username, job_id, filename):
                                    f"Fish record will be skipped.")
                     continue
 
-                try:
-                    box = int(line[MasterDataCols.Box.value])
-                except Exception: # noqa:
-                    box = "\\N"
-
-                animal = {"sex": line[MasterDataCols.Sex.value].upper(),
-                          "box": box,
-                          "id": animal_id,
-                          "family": "\\N",
-                          "tag_temp": refuge_tag,
-                          "sibling_birth_year_temp": sibling_birth_year,
-                          "group_id_temp": group_id}
-                if not(animal['sex'] == 'M' or animal['sex'] == 'F'):
-                    animal['sex'] = 'UNKNOWN'
-                animals.append(animal)
-
                 refuge_tags[line[MasterDataCols.Id.value]] = {"tag": refuge_tag,
                                                               "animal": animal_id,
                                                               "id": str(uuid.uuid4()),
-                                                              "tag_temp": refuge_tag,
                                                               "sibling_birth_year_temp": sibling_birth_year,
                                                               "group_id_temp": group_id}
 
+                genotype_string = ""
                 for allele_idx, col in enumerate(range(MasterDataCols.ALLELE_1.value, MasterDataCols.ALLELE_N.value, 2)):
                     genes.append({"name": f"Htr-GVL-00{allele_idx + 1}",
                                   "allele_1": line[col],
                                   "allele_2": line[col+1],
                                   "animal": animal_id,
                                   "id": str(uuid.uuid4()),
-                                  "tag_temp": refuge_tag,
                                   "sibling_birth_year_temp": sibling_birth_year,
                                   "group_id_temp": group_id})
+                    genotype_string = f'{genotype_string}{line[col]}{line[col+1]}'
+                try:
+                    box = int(line[MasterDataCols.Box.value])
+                except Exception: # noqa:
+                    box = "\\N"
+                animal = {"sex": line[MasterDataCols.Sex.value].upper(),
+                          "box": box,
+                          "id": animal_id,
+                          "family": "\\N",
+                          "genotype": genotype_string,
+                          "sibling_birth_year_temp": sibling_birth_year,
+                          "group_id_temp": group_id}
+                if not(animal['sex'] == 'M' or animal['sex'] == 'F'):
+                    animal['sex'] = 'UNKNOWN'
+                animals.append(animal)
 
             gene_table_data = InsertTableData('gene', genes)
-            gene_table_data.set_insert_condition("ON CONFLICT (name, animal) DO UPDATE SET (allele_1, allele_2) = "
-                                                 "(EXCLUDED.allele_1, EXCLUDED.allele_2)")
-            gene_table_data.add_temp_table_update("""UPDATE gene_insert as gi SET (animal) = (
-                                                     SELECT fi.id)
-                                                       FROM animal fi
-                                                       JOIN refuge_tag rt ON fi.id = rt.animal
-                                                  LEFT JOIN family fam ON fam.id = fi.family
-                                                      WHERE gi.tag_temp = rt.tag
-                                                        AND (fam.cross_date = gi.sibling_birth_year_temp
-                                                            OR fam.id IS NULL)""")
+            gene_table_data.set_insert_condition("ON CONFLICT (name, animal) DO NOTHING")
+            gene_table_data.add_temp_table_update("""UPDATE gene_insert as gi SET (animal) = (SELECT a.id)
+                                                       FROM animal a 
+                                                       JOIN animal_insert a_i ON a_i.genotype = a.genotype
+                                                      WHERE gi.animal = a_i.id""")
 
             animal_table_data = InsertTableData('animal', animals)
             animal_table_data.add_temp_table_update("""UPDATE animal_insert a_i SET (family) = (
                                                      SELECT f.id FROM family as f
                                                      WHERE a_i.group_id_temp = f.group_id
                                                      AND a_i.sibling_birth_year_temp = f.cross_date)""")
-            animal_table_data.set_insert_condition("""WHERE NOT EXISTS (
-                                                    SELECT 1
-                                                    FROM refuge_tag as rt
-                                                    JOIN animal ON rt.animal = animal.id
-                                                    JOIN family ON family.id = animal.family
-                                                        WHERE animal_insert.tag_temp = rt.tag
-                                                        AND animal_insert.sibling_birth_year_temp = family.cross_date)
-            """)
+            animal_table_data.set_insert_condition("""ON CONFLICT (genotype) DO UPDATE 
+              SET (sex, box, family) = (EXCLUDED.sex, EXCLUDED.box, EXCLUDED.family)
+            WHERE animal.genotype = EXCLUDED.genotype 
+              AND (animal.sex != EXCLUDED.sex OR animal.box != EXCLUDED.box OR animal.family != EXCLUDED.family)""")
+
             refuge_tag_data = InsertTableData('refuge_tag', list(refuge_tags.values()))
-            refuge_tag_data.set_insert_condition("""WHERE NOT EXISTS (
-                                                    SELECT 1
-                                                    FROM refuge_tag as rt
-                                                    JOIN animal ON rt.animal = animal.id
-                                                    JOIN family ON family.id = animal.family
-                                                      WHERE refuge_tag_insert.tag_temp = rt.tag
-                                                      AND refuge_tag_insert.sibling_birth_year_temp = family.cross_date)
-            """)
+            refuge_tag_data.add_temp_table_update("""
+            UPDATE refuge_tag_insert rt_i SET (animal) = (SELECT a.id)
+                  FROM animal a 
+                  JOIN animal_insert a_i ON a_i.genotype = a.genotype
+                 WHERE rt_i.animal = a_i.id""")
+            refuge_tag_data.set_insert_condition("""ON CONFLICT (animal) DO UPDATE
+              SET tag = EXCLUDED.tag
+            WHERE refuge_tag.animal = EXCLUDED.animal AND (refuge_tag.tag != EXCLUDED.tag)""")
+
             table_data = [animal_table_data,
                           refuge_tag_data,
                           gene_table_data]

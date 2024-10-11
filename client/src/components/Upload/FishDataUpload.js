@@ -18,9 +18,13 @@ export default function FishDataUpload({dataUploadUrl, uploadCallback, uploadBut
     const fishDataUploadCallback = result => {
 
         if ("success" in result) {
-            let message = "Records successfully imported. ";
-            for (let k in result['success']) {
-                message += k + ": " + result['success'][k] + " ";
+            let message = "Records successfully imported.";
+            for (let k in result['success']['inserted']) {
+                message += " " + k + " insertions: " + result['success']['inserted'][k];
+            }
+            message += ". "
+            for (let k in result['success']['updated']) {
+                message += k + " updates: " + result['success']['updated'][k] + " ";
             }
             setAlertText(message);
             setAlertLevel("success");

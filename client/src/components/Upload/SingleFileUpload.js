@@ -47,7 +47,6 @@ export default function FileUploadSingle({fileUploadUrl,
             if (!mounted){
                 return;
             }
-            setIsLoading?.(true);
             fetch("/amphitrite/common/check_job/" + jobId, {
                 method: "GET",
                 headers: {
@@ -81,6 +80,7 @@ export default function FileUploadSingle({fileUploadUrl,
         setSubmitDisabled(true);
         const formData = new FormData();
         formData.append('file', file);
+        setIsLoading?.(true);
         // 👇 Uploading the file using the fetch API to the server
         fetch("/amphitrite/" + fileUploadUrl, {
             method: "POST",
@@ -98,11 +98,13 @@ export default function FileUploadSingle({fileUploadUrl,
                 }
                 submitReturnCallback(data);
                 setSubmitDisabled(false);
+                setIsLoading?.(false);
             }
             )
             .catch((err) => {
                     console.error(err);
                     setSubmitDisabled(false);
+                    setIsLoading?.(false);
                     submitReturnCallback({"error": err.message});
                 }
             )

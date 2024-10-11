@@ -27,6 +27,7 @@ export default function CrossFish(callback, deps) {
     const [fTagAlertText, setFTagAlertText] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [setSpinning] = useOutletContext();
+    const [crossCompletionDate, setCrossCompletionDate] = useState("");
 
     const handleExportCrossesClick = async e => {
         fetchFile("cross_fish/export_selected_crosses", getUsername(),
@@ -134,7 +135,10 @@ export default function CrossFish(callback, deps) {
     // table is for.
     React.useEffect( () => {
         setFTagAlertText("Available female fish for crossing: " +
-            (availableFTags.length === 0 ? "None set." : availableFTags));
+            (availableFTags.length === 0 ? "None set." : availableFTags) +
+        "<br>" +
+            "Cross completion date: " + (crossCompletionDate.length === 0 ? "Not set." : crossCompletionDate)
+        );
     }, [availableFTags]);
 
     React.useEffect(() =>{
