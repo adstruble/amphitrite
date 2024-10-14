@@ -33,7 +33,8 @@ def get_possible_crosses_api():
     if isinstance (username_or_err, dict): # noqa
         return username_or_err
 
-    possible_crosses, possible_crosses_cnt = get_possible_crosses(username_or_err)
+    query_params = request.get_json()
+    possible_crosses, possible_crosses_cnt = get_possible_crosses(username_or_err, query_params)
     return {"success": {'data': possible_crosses, 'size': possible_crosses_cnt}}
 
 
@@ -46,9 +47,9 @@ def add_selected_cross():
 
     request_params = request.get_json()
     ids = request_params['cross_id'].split("__")
-    f = request_params['f']
 
-    requests = add_requested_cross(username_or_err, ids[0], ids[1], f)
+    requests = add_requested_cross(username_or_err, ids[0], ids[1], request_params['f'],
+                                   request_params['supplementation'])
     return {"success": requests == 1, "data": []}
 
 

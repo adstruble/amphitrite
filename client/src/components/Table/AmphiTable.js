@@ -36,7 +36,7 @@ export default function AmphiTable({tableDataUrl,
     const [tableSize, setTableSize] = useState(0);
     const [currElementCnt, setCurrElementCnt] = useState(0);
     const [currPage, setCurrPage] = useState(0)
-    const LIMIT = 20;
+    const LIMIT = 30;
 
     const [tableNodes, setTableNodes] = useState({
         nodes: [],

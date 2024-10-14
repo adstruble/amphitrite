@@ -10,6 +10,9 @@ body{
     height: 100vh;
     width: 100%;
 }
+.cross-fish .amphi-table-container{
+    height: calc(100vh - 80px);
+}
 .amphi-table-header {
     display: flex;
     width: 100%;
@@ -125,4 +128,26 @@ ul.pagination .item-count{
 }
 .disabled .form-check-label .form-check-sign {
     pointer-events: none;
+}
+.btn.setting{
+    margin-left:10px;
+
+    padding: 4px 7px;
+    font-size: 0.75rem;
+    line-height: 1.35;
+    border-radius: 0.25rem;
+}
+.form-group.setting{
+    padding: 0;
+    margin-bottom: 0;
+}
+.setting .form-control{
+    padding: 0 10px;
+    height:24px;
+}
+.datepicker-container.setting{
+    margin-left: 10px;
+}
+.setting .amphi-date {
+    width: 82px;
 }

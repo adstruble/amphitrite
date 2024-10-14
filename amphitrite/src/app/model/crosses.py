@@ -34,7 +34,7 @@ def get_new_possible_crosses_for_females(username, f_tags):
                               username).get_as_list_of_dicts()
 
 
-def get_possible_crosses(username):
+def get_possible_crosses(username, query_params):
     possible_crosses_sql = """SELECT * FROM (
         SELECT  concat(xf.id,'__', pc.male) as id,
             xf.id p1_fam_id,
@@ -45,28 +45,33 @@ def get_possible_crosses(username):
             array_agg(distinct rty.tag) m_tags,
             (SELECT count(*) from family where parent_1 = ANY(array_agg(x.id))) x_crosses,
             (SELECT count(*) from family where parent_2 = ANY(array_agg(y.id))) y_crosses,
-            requested_cross.id is not null as selected,
+            requested_cross.id is not null AND NOT requested_cross.supplementation as refuge,
+            requested_cross.id is not null AND requested_cross.supplementation as supplementation,
             array_remove(array_agg(y_crossed_tag.tag), NULL) as completed_y,
             array_remove(array_agg(x_crossed_tag.tag), NULL) as completed_x,
             pc.f,
             pc.di,
-            (select count(*) from requested_cross WHERE parent_m_fam = pc.male AND parent_f_fam != xf.id) AS selected_male_fam_cnt
-                            FROM possible_cross as pc
-                            JOIN animal as x ON pc.female = x.id
-                            JOIN animal as y ON y.family = pc.male
-                            JOIN family as xf ON x.family = xf.id
-                            JOIN family as yf on yf.id = pc.male
-                            JOIN refuge_tag rtx ON rtx.animal = x.id
-                            JOIN refuge_tag rty on rty.animal = y.id
-                       LEFT JOIN requested_cross ON xf.id = requested_cross.parent_f_fam AND pc.male = requested_cross.parent_m_fam
-                       LEFT JOIN family next_gen_fam ON next_gen_fam.parent_1 = x.id and next_gen_fam.parent_2 = y.id
-                       LEFT JOIN refuge_tag y_crossed_tag ON y_crossed_tag.animal = next_gen_fam.parent_2 AND next_gen_fam.id IS NOT NULL
-                       LEFT JOIN refuge_tag x_crossed_tag ON x_crossed_tag.animal = next_gen_fam.parent_1 AND next_gen_fam.id IS NOT NULL
-                           WHERE x.sex = 'F' AND y.sex = 'M' AND x.alive AND y.alive
-                        GROUP BY xf.group_id, yf.group_id, pc.male, xf.id, requested_cross.id, pc.f, pc.di)q 
-                        ORDER BY selected DESC, y_crosses, x_crosses, f"""
+            (SELECT CASE WHEN pc.male = ANY(select distinct f.family
+                                                         from possible_cross pc
+                                                         join animal f on pc.female = f.id) THEN 1 ELSE 0 END +
+                            count(*) FROM requested_cross WHERE (parent_m_fam = pc.male AND parent_f_fam != xf.id)) AS selected_male_fam_cnt
+                    FROM possible_cross as pc
+                    JOIN animal as x ON pc.female = x.id
+                    JOIN animal as y ON y.family = pc.male
+                    JOIN family as xf ON x.family = xf.id
+                    JOIN family as yf on yf.id = pc.male
+                    JOIN refuge_tag rtx ON rtx.animal = x.id
+                    JOIN refuge_tag rty on rty.animal = y.id
+               LEFT JOIN requested_cross ON xf.id = requested_cross.parent_f_fam AND pc.male = requested_cross.parent_m_fam
+               LEFT JOIN family next_gen_fam ON next_gen_fam.parent_1 = x.id and next_gen_fam.parent_2 = y.id
+               LEFT JOIN refuge_tag y_crossed_tag ON y_crossed_tag.animal = next_gen_fam.parent_2 AND next_gen_fam.id IS NOT NULL
+               LEFT JOIN refuge_tag x_crossed_tag ON x_crossed_tag.animal = next_gen_fam.parent_1 AND next_gen_fam.id IS NOT NULL
+                   WHERE x.sex = 'F' AND y.sex = 'M' AND x.alive AND y.alive
+                GROUP BY xf.group_id, yf.group_id, pc.male, xf.id, requested_cross.id, requested_cross.supplementation, pc.f, pc.di)q
+                ORDER BY refuge DESC, supplementation DESC, y_crosses, x_crosses, f OFFSET :offset LIMIT :limit"""
 
-    possible_crosses = execute_statements(possible_crosses_sql, username).get_as_list_of_dicts()
+    possible_crosses = execute_statements((possible_crosses_sql, query_params), username
+                                          ).get_as_list_of_dicts()
 
     possible_crosses_cnt_sql = """SELECT  count(*) FROM possible_cross"""
     possible_crosses_cnt = execute_statements(possible_crosses_cnt_sql, username).get_single_result()
@@ -79,11 +84,11 @@ def get_count_possible_females(username):
     return execute_statements(possible_females_cnt_sql, username).get_single_result()
 
 
-def add_requested_cross(username, fam_f_id, fam_m_id, f):
+def add_requested_cross(username, fam_f_id, fam_m_id, f, supplementation):
     cross_id = uuid.uuid4()
     insert_requested_sql = f"""
-        INSERT INTO requested_cross (id, parent_f_fam, parent_m_fam, f)
-        VALUES ('{cross_id}','{fam_f_id}', '{fam_m_id}', {f})"""
+        INSERT INTO requested_cross (id, parent_f_fam, parent_m_fam, f, supplementation)
+        VALUES ('{cross_id}','{fam_f_id}', '{fam_m_id}', {f}, {supplementation})"""
     return execute_statements(insert_requested_sql, username, ResultType.RowCount).get_single_result()
 
 
@@ -97,17 +102,26 @@ def remove_requested_cross(username, fam_f_id, fam_m_id):
 def get_requested_crosses_csv(username, csv_file):
     req_crosses = get_requested_crosses(username)
     csv_file.write(
-        f"Female Tags,Female Family,Male Tags,Male Family,Female Family Prev Cross Count,Male Family Prev Cross Count,f\n") # noqa
+        f",Female Tags,Female Family,Male Tags,Male Family,Female Family Prev Cross Count,Male Family Prev Cross Count,f\n") # noqa
     prev_female_group = ""
+    refuge_header = False
+    supplementation_header = False
     for cross in req_crosses:
+        if not refuge_header and not cross['supplementation']:
+            csv_file.write("Refuge Crosses,,,,,,,\n")
+            refuge_header = True
+        if not supplementation_header and cross['supplementation']:
+            csv_file.write("Supplementation Crosses,,,,,,,\n")
+            supplementation_header = True
+            prev_female_group = ""
         if cross['f_group_id'] == prev_female_group:
             cross['f_tags'] = ''
             cross['f_group_id'] = ''
         else:
             prev_female_group = cross['f_group_id']
-        csv_file.write(f"\"{', '.join(cross['f_tags'])}\"{' (pick one)' if len(cross['f_tags']) > 1 else ''},"
+        csv_file.write(f",\"{', '.join(cross['f_tags'])}\"{' (pick one)' if len(cross['f_tags']) > 1 else ''},"
                        f"{cross['f_group_id']},"
-                       f"\"{', '.join(cross['m_tags'])}\"{' (pick one)' if len(cross['m_tags']) > 1 else ''},"
+                       f"\"{'(pick one) ' if len(cross['m_tags']) > 1 else ''}{', '.join(cross['m_tags'])}\","
                        f"{cross['m_group_id']},"
                        f"{cross['x_cross_cnt']},"
                        f"{cross['y_cross_cnt']},"
@@ -123,7 +137,8 @@ def get_requested_crosses(username):
            array(select distinct unnest(array_agg ((select tag from refuge_tag where animal = m_parent.id order by m_parent.id)))) m_tags,
            m_family.group_id m_group_id,
            count(y_crosses) as y_cross_cnt,
-           requested_cross.f
+           requested_cross.f,
+           requested_cross.supplementation
        FROM requested_cross
        JOIN animal f_parent on f_parent.family = parent_f_fam
        JOIN animal m_parent ON m_parent.family = parent_m_fam
@@ -132,7 +147,8 @@ def get_requested_crosses(username):
        LEFT JOIN pedigree y_crosses ON y_crosses.parent = m_parent.id
        LEFT JOIN pedigree x_crosses ON x_crosses.parent = f_parent.id
        WHERE f_parent.id IN (SELECT DISTINCT female from possible_cross)
-       GROUP BY (requested_cross.f, f_family.group_id, m_family.group_id) ORDER BY count(x_crosses), count(y_crosses), requested_cross.f;
+       GROUP BY (requested_cross.f, f_family.group_id, m_family.group_id, requested_cross.supplementation)
+       ORDER BY requested_cross.supplementation, count(x_crosses), count(y_crosses), requested_cross.f;
     """
     return execute_statements(requested_crosses_sql, username).get_as_list_of_dicts()
 

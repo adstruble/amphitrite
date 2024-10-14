@@ -1,4 +1,4 @@
-import {Button, Container, Input, Row} from "reactstrap";
+import {Button, Container, FormGroup, Input, Row} from "reactstrap";
 import {Modal} from "reactstrap";
 import React, {useEffect, useState} from "react";
 import AmphiTable from "../../components/Table/AmphiTable";
@@ -10,6 +10,8 @@ import fetchFile from "../../server/fetchFile";
 import RadioGroup from "../../components/Basic/RadioGroup";
 import AmphiAlert from "../../components/Basic/AmphiAlert";
 import {useOutletContext} from "react-router-dom";
+import ReactDatetime from "react-datetime";
+import moment from "moment";
 
 export default function CrossFish(callback, deps) {
     const {token, setToken, getUsername} = useToken();
@@ -27,7 +29,7 @@ export default function CrossFish(callback, deps) {
     const [fTagAlertText, setFTagAlertText] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [setSpinning] = useOutletContext();
-    const [crossCompletionDate, setCrossCompletionDate] = useState("");
+    const [crossCompletionDate, setCrossCompletionDate] = useState(moment(new Date()).format("DD/MM/YYYY"));
 
     const handleExportCrossesClick = async e => {
         fetchFile("cross_fish/export_selected_crosses", getUsername(),
@@ -43,10 +45,13 @@ export default function CrossFish(callback, deps) {
         console.info("selected crosses exported")
 
     }
-    const handleUseChecked = (e, item)  => {
+
+    const handleUseRefuge = (e, item) =>handleUseCross(e, item, false)
+    const handleUseSupplementation = (e, item) =>handleUseCross(e, item, true)
+    const handleUseCross = (e, item, supplementation)  => {
         if (e.target.checked){
             fetchData("cross_fish/add_selected_cross", getUsername(),
-                {cross_id: item['id'], f: item['f']}, () => {
+                {cross_id: item['id'], f: item['f'], supplementation: supplementation}, () => {
                     setReloadTable(reloadTable => reloadTable + 1)})
         }else{
             fetchData("cross_fish/remove_selected_cross", getUsername(),
@@ -55,12 +60,20 @@ export default function CrossFish(callback, deps) {
         }
     };
 
-    const isSelected = (item) => {
-        return item['selected']
+    const useRefugeSelected = (item) => {
+        return item['refuge']
+    }
+
+    const useSupplementationSelected = (item) => {
+        return item['supplementation']
     }
 
     const cantUse = (item) =>{
-        return item['selected_male_fam_cnt'] > 0;
+        return item['selected_male_fam_cnt'] > 0 || item['supplementation'];
+    }
+
+    const cantUseSupplementation = (item) =>{
+        return item['refuge'];
     }
 
     const isCompleted = (item) => {
@@ -81,8 +94,11 @@ export default function CrossFish(callback, deps) {
                 setRequestedCross(item);
                 setSelectedFemale(item['f_tags'][0])
             }else {
-                fetchData("cross_fish/set_cross_completed", getUsername(),
-                    {f_tag: item['f_tags'][0], m_tag: item['m_tags'][0], f: item['f']},
+                fetchData("cross_fish/set_cross_completed", getUsername(),{
+                    f_tag: item['f_tags'][0],
+                    m_tag: item['m_tags'][0],
+                        f: item['f'],
+          supplementation: item['supplementation']},
                     () => {
                         setReloadTable(reloadTable => reloadTable + 1)},
                     null, null, setAlertLevel, setAlertText
@@ -221,16 +237,20 @@ export default function CrossFish(callback, deps) {
     }
 
     const CROSSES_HEADER = [
-        {name: "Use Cross", key: "selected", visible: true, format_fn:formatCheckbox, format_args:[handleUseChecked, isSelected, cantUse], width:".7fr"},
-        {name: "Cross Completed", key: "", visible: true, format_fn:formatCheckbox, format_args:[handleCompletedChecked,  isCompleted], width:".9fr"},
+        {name: "Refuge Cross", key: "refuge", visible: true, format_fn:formatCheckbox,
+            format_args:[handleUseRefuge, useRefugeSelected, cantUse], width:".7fr"},
+        {name: "Suppl. Cross", key: "supplementation", visible: true, format_fn:formatCheckbox,
+            format_args:[handleUseSupplementation, useSupplementationSelected, cantUseSupplementation], width:".7fr"},
+        {name: "Cross Completed", key: "", visible: true, format_fn:formatCheckbox,
+            format_args:[handleCompletedChecked,  isCompleted], width:".7fr"},
         {name: "F", key: "f", visible: true, format_fn: formatDoubleTo3, width:"1fr"},
-        {name: "DI", key: "di", visible: true, format_fn: formatDoubleTo3, width:".5fr"},
-        {name: "F Fish", key: "f_tags", visible: true, format_fn: formatArrayToStrTags, width:"2.5fr", format_args: '_x'},
-        {name: "F Group ID", key: "x_gid",  visible: true, format_fn: formatStr, width:"1fr"},
-        {name: "F Family Crosses", key: "x_crosses", visible: true, format_fn: formatStr, width:"1fr"},
+        {name: "DI", key: "di", visible: true, format_fn: formatDoubleTo3, width:".7fr"},
+        {name: "F Fish", key: "f_tags", visible: true, format_fn: formatArrayToStrTags, width:"2fr", format_args: '_x'},
+        {name: "F Group ID", key: "x_gid",  visible: true, format_fn: formatStr, width:".9fr"},
+        {name: "F Crosses Completed", key: "x_crosses", visible: true, format_fn: formatStr, width:".7fr"},
         {name: "M Fish", key: "m_tags", visible: true, format_fn: formatArrayToStrTags, width:"2.5fr", format_args:'_y'},
-        {name: "M Group ID", key: "y_gid",  visible: true, format_fn: formatStr, width:"1fr"},
-        {name: "M Family Crosses", key: "y_crosses", visible: true, format_fn: formatStr, width:"1fr"},
+        {name: "M Group ID", key: "y_gid",  visible: true, format_fn: formatStr, width:".9fr"},
+        {name: "M Crosses Completed", key: "y_crosses", visible: true, format_fn: formatStr, width:".7fr"},
         ];
 
     return (
@@ -262,21 +282,34 @@ export default function CrossFish(callback, deps) {
                     <AmphiAlert alertText={alertText} alertLevel={alertLevel} setAlertText={setAlertText}/>
                 </Row>
                 <Row>
-                    <Button className="btn" color="default" type="button" onClick={handleSetAvailableFemalesClick}>
-                        Set Available Females
-                    </Button>
                     <Button className="btn" color="default" type="button" onClick={handleExportCrossesClick}>
                         Export Selected Crosses
                     </Button>
                 </Row>
                 <Row>
-                    <AmphiAlert alertText={fTagAlertText} alertLevel="info"/>
+                    <div>Available female fish for crossing: {availableFTags}
+                        <Button className="btn setting" color="default" type="button"
+                                onClick={handleSetAvailableFemalesClick}>Set</Button>
+                    </div>
+                </Row>
+                <Row>
+                    <div>Cross completion date:</div>
+                    <div className="datepicker-container setting">
+                        <FormGroup className="form-group setting">
+                                <ReactDatetime
+                                    className=" amphi-date"
+                                    value={crossCompletionDate}
+                                    onChange={(date) => setCrossCompletionDate(moment(date).format("MM/DD/YYYY"))}
+                                    dateFormat="MM/DD/YY"
+                                    timeFormat={false}
+                                />
+                            </FormGroup>
+                    </div>
                 </Row>
                 <Row>
                     <AmphiTable tableDataUrl="cross_fish/get_possible_crosses"
                                 headerDataStart={CROSSES_HEADER}
                                 reloadData={reloadTable}
-                                includePagination={false}
                     />
                 </Row>
                 <Modal isOpen={selectFishOpen} modalClassName="modal-black" id="selectCrossedMale">
