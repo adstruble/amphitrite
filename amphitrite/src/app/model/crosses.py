@@ -35,13 +35,21 @@ def get_new_possible_crosses_for_females(username, f_tags):
 
 
 def get_possible_crosses(username, query_params):
-    possible_crosses_sql = """SELECT * FROM (
+
+    filter_str = ""
+    if query_params.get('like_filter'):
+        filter_str = f" AND ("
+        like_filter = "LIKE :like_filter || '%'"
+        filter_str += f"rty.tag {like_filter} OR rtx.tag {like_filter} OR "
+        filter_str += f"xf.group_id::text {like_filter} OR yf.group_id::text {like_filter})"
+
+    columns_sql = """SELECT * FROM (
         SELECT  concat(xf.id,'__', pc.male) as id,
             xf.id p1_fam_id,
             pc.male p2_fam_id,
             xf.group_id x_gid,
             yf.group_id y_gid,
-            array_agg(distinct rtx.tag) f_tags,
+            (select array_agg(tag) from refuge_tag join animal a on animal = a.id and sex = 'F' AND family = xf.id ) f_tags,
             array_agg(distinct rty.tag) m_tags,
             (SELECT count(*) from family where parent_1 = ANY(array_agg(x.id))) x_crosses,
             (SELECT count(*) from family where parent_2 = ANY(array_agg(y.id))) y_crosses,
@@ -51,11 +59,11 @@ def get_possible_crosses(username, query_params):
             array_remove(array_agg(x_crossed_tag.tag), NULL) as completed_x,
             pc.f,
             pc.di,
-            (SELECT CASE WHEN pc.male = ANY(select distinct f.family
-                                                         from possible_cross pc
-                                                         join animal f on pc.female = f.id) THEN 1 ELSE 0 END +
-                            count(*) FROM requested_cross WHERE (parent_m_fam = pc.male AND parent_f_fam != xf.id)) AS selected_male_fam_cnt
-                    FROM possible_cross as pc
+            (SELECT CASE WHEN pc.male = ANY(select distinct f.family from possible_cross pc join animal f on pc.female = f.id) 
+                         THEN 1 ELSE 0 END 
+                         + count(*) FROM requested_cross WHERE (parent_m_fam = pc.male AND parent_f_fam != xf.id)) 
+                         AS selected_male_fam_cnt """
+    records_sql = f"""FROM possible_cross as pc
                     JOIN animal as x ON pc.female = x.id
                     JOIN animal as y ON y.family = pc.male
                     JOIN family as xf ON x.family = xf.id
@@ -64,17 +72,24 @@ def get_possible_crosses(username, query_params):
                     JOIN refuge_tag rty on rty.animal = y.id
                LEFT JOIN requested_cross ON xf.id = requested_cross.parent_f_fam AND pc.male = requested_cross.parent_m_fam
                LEFT JOIN family next_gen_fam ON next_gen_fam.parent_1 = x.id and next_gen_fam.parent_2 = y.id
-               LEFT JOIN refuge_tag y_crossed_tag ON y_crossed_tag.animal = next_gen_fam.parent_2 AND next_gen_fam.id IS NOT NULL
+               LEFT JOIN supplementation_family next_gen_s_fam on next_gen_s_fam.parent_1 = x.id AND next_gen_s_fam.parent_2 = y.id
+               LEFT JOIN refuge_tag y_crossed_tag ON (y_crossed_tag.animal = next_gen_fam.parent_2 AND next_gen_fam.id IS NOT NULL)
+                                                  OR (y_crossed_tag.animal = next_gen_s_fam.parent_2 AND next_gen_s_fam.id IS NOT NULL)
                LEFT JOIN refuge_tag x_crossed_tag ON x_crossed_tag.animal = next_gen_fam.parent_1 AND next_gen_fam.id IS NOT NULL
-                   WHERE x.sex = 'F' AND y.sex = 'M' AND x.alive AND y.alive
-                GROUP BY xf.group_id, yf.group_id, pc.male, xf.id, requested_cross.id, requested_cross.supplementation, pc.f, pc.di)q
-                ORDER BY refuge DESC, supplementation DESC, y_crosses, x_crosses, f OFFSET :offset LIMIT :limit"""
+                                                  OR (x_crossed_tag.animal = next_gen_s_fam.parent_1 AND next_gen_s_fam.id IS NOT NULL)
+                   WHERE x.sex = 'F' AND y.sex = 'M' AND x.alive AND y.alive {filter_str}
+                GROUP BY xf.group_id, yf.group_id, pc.male, xf.id, requested_cross.id, requested_cross.supplementation, pc.f, pc.di"""
 
-    possible_crosses = execute_statements((possible_crosses_sql, query_params), username
-                                          ).get_as_list_of_dicts()
+    order_sql = ")q ORDER BY refuge DESC, supplementation DESC, y_crosses, x_crosses, f OFFSET :offset LIMIT :limit"""
 
-    possible_crosses_cnt_sql = """SELECT  count(*) FROM possible_cross"""
-    possible_crosses_cnt = execute_statements(possible_crosses_cnt_sql, username).get_single_result()
+    possible_crosses = execute_statements((columns_sql + records_sql + order_sql, query_params),
+                                          username).get_as_list_of_dicts()
+
+    cnt_sql = 'SELECT count(1) FROM (SELECT 1 '
+    cnt_sql_end = ")q"
+
+    possible_crosses_cnt = execute_statements((cnt_sql + records_sql + cnt_sql_end, query_params),
+                                              username).get_single_result()
 
     return possible_crosses, possible_crosses_cnt
 
@@ -153,19 +168,19 @@ def get_requested_crosses(username):
     return execute_statements(requested_crosses_sql, username).get_as_list_of_dicts()
 
 
-def add_completed_cross(username, f_tag, m_tag, f):
-    today = datetime.date.today()
+def add_completed_cross(username, f_tag, m_tag, f, cross_date_str, table_name):
+    cross_date = datetime.datetime.strptime(cross_date_str, '%m/%d/%Y')
 
-    group_id_seq = f"""CREATE SEQUENCE IF NOT EXISTS group_id_{today.year}"""
+    group_id_seq = f"""CREATE SEQUENCE IF NOT EXISTS group_id_{cross_date.year}"""
     execute_statements(group_id_seq, username, ResultType.NoResult)
 
     insert_completed_sql = f"""
-        INSERT INTO family (id, parent_1, parent_2, cross_date, group_id, di, f) 
+        INSERT INTO {table_name} (id, parent_1, parent_2, cross_date, group_id, di, f) 
         SELECT '{uuid.uuid4()}',
                 f_tag.animal, 
                 m_tag.animal, 
-                to_date('{today.year}'::varchar, 'yyyy'), 
-                nextval('group_id_{today.year}'),
+                to_date('{cross_date_str}'::varchar, 'MM/DD/YYYY'), 
+                nextval('group_id_{cross_date.year}'),
                 (f_fam.di + m_fam.di) / 2 + 1,
                 {f}
           FROM refuge_tag f_tag 

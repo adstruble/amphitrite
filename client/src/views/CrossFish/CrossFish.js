@@ -2,7 +2,12 @@ import {Button, Container, FormGroup, Input, Row} from "reactstrap";
 import {Modal} from "reactstrap";
 import React, {useEffect, useState} from "react";
 import AmphiTable from "../../components/Table/AmphiTable";
-import {formatStr, formatDoubleTo3, formatArrayToStr, formatCheckbox} from "../../components/Utils/FormatFunctions";
+import {
+    formatStr,
+    formatDoubleTo3,
+    formatArrayToStr,
+    formatCheckbox
+} from "../../components/Utils/FormatFunctions";
 import classnames from "classnames";
 import fetchData from "../../server/fetchData";
 import useToken from "../../components/App/useToken";
@@ -25,26 +30,21 @@ export default function CrossFish(callback, deps) {
     const [alertText, setAlertText] = useState("");
     const [alertLevel, setAlertLevel] = useState("");
     const [userSetFTags, setUserSetFTags] = useState("");
-    const [availableFTags, setAvailableFTags] = useState("");
-    const [fTagAlertText, setFTagAlertText] = useState("");
+    const [availableFTags, setAvailableFTags] = useState("None");
+
     const [isLoading, setIsLoading] = useState(false);
     const [setSpinning] = useOutletContext();
-    const [crossCompletionDate, setCrossCompletionDate] = useState(moment(new Date()).format("DD/MM/YYYY"));
+    const [crossCompletionDate, setCrossCompletionDate] = useState(moment(new Date()).format("MM/DD/YYYY"));
 
     const handleExportCrossesClick = async e => {
         fetchFile("cross_fish/export_selected_crosses", getUsername(),
-            {}, exportSelectionCallback)
+            {}, () =>{})
     };
 
 
     const handleSetAvailableFemalesClick = async e => {
         setSelectFemalesOpen(true);
     };
-
-    const exportSelectionCallback = () => {
-        console.info("selected crosses exported")
-
-    }
 
     const handleUseRefuge = (e, item) =>handleUseCross(e, item, false)
     const handleUseSupplementation = (e, item) =>handleUseCross(e, item, true)
@@ -69,15 +69,20 @@ export default function CrossFish(callback, deps) {
     }
 
     const cantUse = (item) =>{
-        return item['selected_male_fam_cnt'] > 0 || item['supplementation'];
+        return item['selected_male_fam_cnt'] > 0 || item['supplementation'] ||
+            (item['completed_x'].length > 0 && item['completed_x'][0] != null);
     }
 
     const cantUseSupplementation = (item) =>{
-        return item['refuge'];
+        return item['refuge'] || (item['completed_x'].length > 0 && item['completed_x'][0] != null);
+    }
+
+    const cantComplete = (item) => {
+        return !(item['refuge']) && !(item['supplementation'])
     }
 
     const isCompleted = (item) => {
-        return item['completed_x'].length > 0 && item['completed_x'][0] != null
+        return item['completed_x'].length > 0 && item['completed_x'][0] != null;
     }
 
     const handleCompletedChecked = (e, item)  => {
@@ -98,7 +103,8 @@ export default function CrossFish(callback, deps) {
                     f_tag: item['f_tags'][0],
                     m_tag: item['m_tags'][0],
                         f: item['f'],
-          supplementation: item['supplementation']},
+          supplementation: item['supplementation'],
+     cross_completed_date: crossCompletionDate},
                     () => {
                         setReloadTable(reloadTable => reloadTable + 1)},
                     null, null, setAlertLevel, setAlertText
@@ -127,7 +133,11 @@ export default function CrossFish(callback, deps) {
 
 
         fetchData("cross_fish/set_cross_completed", getUsername(),
-            {f_tag: selectedFemale, m_tag: selectedMaleVar, f: requestedCross['f']},
+            {f_tag: selectedFemale,
+                     m_tag: selectedMaleVar,
+                         f: requestedCross['f'],
+           supplementation: requestedCross['supplementation'],
+      cross_completed_date: crossCompletionDate},
             () => {
                 setReloadTable(reloadTable => reloadTable + 1)
             }
@@ -138,7 +148,7 @@ export default function CrossFish(callback, deps) {
     const getAvailableFTags = React.useCallback(async () => {
             fetchData("cross_fish/get_available_f_tags", getUsername(),
                 {}, (success) => {
-                setAvailableFTags(success['f_tags']);
+                setAvailableFTags(success['f_tags'].length > 0 ? success['f_tags'] : "None");
             });
         }, [fetchData]);
 
@@ -147,15 +157,6 @@ export default function CrossFish(callback, deps) {
         getAvailableFTags().then(()=> setUserSetFTags(availableFTags))
     }, []);
 
-    // If the actual available ftags change, update the message of what the available crosses
-    // table is for.
-    React.useEffect( () => {
-        setFTagAlertText("Available female fish for crossing: " +
-            (availableFTags.length === 0 ? "None set." : availableFTags) +
-        "<br>" +
-            "Cross completion date: " + (crossCompletionDate.length === 0 ? "Not set." : crossCompletionDate)
-        );
-    }, [availableFTags]);
 
     React.useEffect(() =>{
         if (isLoading){
@@ -182,7 +183,7 @@ export default function CrossFish(callback, deps) {
 
     const onSetAvailableFemalesOpened = () => {
         const input = document.getElementById("selectFemalesFormArea");
-        input.value = userSetFTags
+        input.value = userSetFTags !== "None" ? userSetFTags : "";
     }
 
     const setAvailableCallback = (data) => {
@@ -242,7 +243,7 @@ export default function CrossFish(callback, deps) {
         {name: "Suppl. Cross", key: "supplementation", visible: true, format_fn:formatCheckbox,
             format_args:[handleUseSupplementation, useSupplementationSelected, cantUseSupplementation], width:".7fr"},
         {name: "Cross Completed", key: "", visible: true, format_fn:formatCheckbox,
-            format_args:[handleCompletedChecked,  isCompleted], width:".7fr"},
+            format_args:[handleCompletedChecked,  isCompleted, cantComplete], width:".7fr"},
         {name: "F", key: "f", visible: true, format_fn: formatDoubleTo3, width:"1fr"},
         {name: "DI", key: "di", visible: true, format_fn: formatDoubleTo3, width:".7fr"},
         {name: "F Fish", key: "f_tags", visible: true, format_fn: formatArrayToStrTags, width:"2fr", format_args: '_x'},
@@ -299,8 +300,17 @@ export default function CrossFish(callback, deps) {
                                 <ReactDatetime
                                     className=" amphi-date"
                                     value={crossCompletionDate}
-                                    onChange={(date) => setCrossCompletionDate(moment(date).format("MM/DD/YYYY"))}
-                                    dateFormat="MM/DD/YY"
+                                    onChange={(date) => {
+                                        if (date instanceof String){
+                                            setAlertLevel('danger');
+                                            setAlertText("'" + date +
+                                                "' is not a valid date. Cross completion date must be a valid date.");
+                                        }else {
+                                            setCrossCompletionDate(moment(date).format("MM/DD/YYYY"));
+                                        }
+                                    }}
+                                    inputProps={ {readOnly:true} }
+                                    dateFormat="MM/DD/YYYY"
                                     timeFormat={false}
                                 />
                             </FormGroup>

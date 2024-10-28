@@ -15,7 +15,7 @@ import useToken from "../App/useToken";
 import {useTheme} from "@table-library/react-table-library/theme";
 import {getTheme} from "@table-library/react-table-library/baseline";
 import PropTypes from "prop-types";
-import {Input, InputGroup, InputGroupText} from "reactstrap";
+import {Input, InputGroup, InputGroupText, UncontrolledTooltip} from "reactstrap";
 import AmphiHeaderCell from "./AmphiHeaderCell";
 import classnames from "classnames";
 import AmphiPagination from "./AmphiPagination";
@@ -31,8 +31,8 @@ export default function AmphiTable({tableDataUrl,
                                        includePagination=true}){
     const {token, setToken, getUsername} = useToken();
     const [headerData, setHeaderData] = useState(headerDataStart);
-    const [filterFocus, setFilterFocus] = useState(false);
-    const [filter, setFilter] = useState("");
+    const [searchFocus, setSearchFocus] = useState(false);
+    const [search, setSearch] = useState("");
     const [tableSize, setTableSize] = useState(0);
     const [currElementCnt, setCurrElementCnt] = useState(0);
     const [currPage, setCurrPage] = useState(0)
@@ -109,9 +109,9 @@ export default function AmphiTable({tableDataUrl,
             limit: LIMIT,
             order_by: newOrderBy,
             return_size: true,
-            filter: filter
+            like_filter: search,
         }, setTableData);
-    }, [fetchData, filter, currPage]);
+    }, [fetchData, search, currPage]);
 
     const setTableData = (tableData, params) => {
         setTableNodes({nodes: tableData['data']});
@@ -164,7 +164,7 @@ export default function AmphiTable({tableDataUrl,
             <div className='amphi-table-header'>
                ` <InputGroup
                 className={classnames({
-                    "input-group-focus": filterFocus
+                    "input-group-focus": searchFocus
                 })}
             >
                 <div className="input-group-prepend">
@@ -173,11 +173,11 @@ export default function AmphiTable({tableDataUrl,
                     </InputGroupText>
                 </div>
                 <Input
-                    placeholder="Filter"
+                    placeholder="Search"
                     type="text"
-                    onFocus={() => setFilterFocus(true)}
-                    onBlur={() => setFilterFocus(false)}
-                    onChange={e => setFilter(e.target.value)}
+                    onFocus={() => setSearchFocus(true)}
+                    onBlur={() => setSearchFocus(false)}
+                    onChange={e => setSearch(e.target.value)}
                     onKeyUp={e => {
                         maybeFilterTable(e)
                     }}
@@ -231,37 +231,47 @@ export default function AmphiTable({tableDataUrl,
                     </Table>
                 </div>
                 <div className='amphi-table-contents'>
-                        <Table data={tableNodes} theme={theme}>
-                        {(tableList) => (
-                            <>
-                                <Header>
-                                    <HeaderRow style={{display:'none'}}>
-                                        {headerData.map(() => {return <HeaderCell/>})}
-                                    </HeaderRow>
-                                </Header>
+                    <Table data={tableNodes} theme={theme}>
+                    {(tableList) => (
+                        <>
+                            <Header>
+                                <HeaderRow style={{display:'none'}}>
+                                    {headerData.map(() => {return <HeaderCell/>})}
+                                </HeaderRow>
+                            </Header>
 
-                                <Body>
-                                    {tableList.map((item, index) => (
+                            <Body>
+                                {tableList.map((item, index) => (
 
-                                        <React.Fragment key={item.id}>
-                                            <Row className={classnames({'expanded': ids.includes(item.id) }, 'table-row')}
-                                                 key={item.id} item={item} onClick={handleExpand}>
-                                                {headerData.map((header) => {
-                                                    let txt = () => {return(header['format_fn'](item[header.key], item, header.format_args))};
-                                                    return (
-                                                    <Cell key={item.id + header.key}>{txt()}</Cell>);})
-                                                }
-                                            </Row>
-                                            {ids.includes(item.id) && (getExpandedRow(item.id))}
-                                        </React.Fragment>
-                                    ))}
-                                    <Row key='bottom' item={null}>
-                                        <Cell key='bottom-cell' className='table-bottom' gridColumnStart={1} gridColumnEnd={headerData.length + 1}>&nbsp;</Cell>
-                                    </Row>
-                                </Body>
-                            </>
-                        )}
-                    </Table>
+                                    <React.Fragment key={item.id}>
+                                        <Row className={classnames({'expanded': ids.includes(item.id) }, 'table-row')}
+                                             key={item.id} item={item} onClick={handleExpand}>
+                                            {headerData.map((header) => {
+                                                let txt = () => {return(header['format_fn'](item[header.key], item, header.format_args))};
+                                                return (
+                                                    <Cell id={'id' + item.id + header.key}
+                                                          key={item.id + header.key}>
+                                                        {<UncontrolledTooltip
+                                                            placement={"top-start"}
+                                                            target={'id' + item.id + header.key}>
+                                                            {txt()}
+                                                        </UncontrolledTooltip>}
+                                                        {txt()}
+
+                                                    </Cell>
+                                                   );})
+                                            }
+                                        </Row>
+                                        {ids.includes(item.id) && (getExpandedRow(item.id))}
+                                    </React.Fragment>
+                                ))}
+                                <Row key='bottom' item={null}>
+                                    <Cell key='bottom-cell' className='table-bottom' gridColumnStart={1} gridColumnEnd={headerData.length + 1}>&nbsp;</Cell>
+                                </Row>
+                            </Body>
+                        </>
+                    )}
+                </Table>
                 </div>
             </div>
         </div>

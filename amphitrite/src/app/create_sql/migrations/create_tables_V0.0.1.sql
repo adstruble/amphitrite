@@ -318,11 +318,10 @@ CREATE TRIGGER history_trigger_stm AFTER TRUNCATE ON family FOR EACH STATEMENT E
 CREATE OR REPLACE TRIGGER element_pre_insert_t BEFORE INSERT ON family FOR EACH ROW EXECUTE PROCEDURE element_pre_insert();
 CREATE OR REPLACE TRIGGER element_pre_update_t BEFORE UPDATE ON family FOR EACH ROW EXECUTE PROCEDURE element_pre_update();
 
-CREATE TABLE supplementation_family
-() INHERITS (family);
-ALTER TABLE supplementation_family ADD CONSTRAINT unique_parents UNIQUE (parent_1, parent_2, cross_year);
+CREATE TABLE supplementation_family (LIKE family INCLUDING ALL);
+ALTER TABLE supplementation_family ADD CONSTRAINT unique_parents_supplementation_family UNIQUE (parent_1, parent_2, cross_year);
 ALTER TABLE supplementation_family
-    ADD CONSTRAINT different_parents CHECK (not (parent_1 = parent_2));
+    ADD CONSTRAINT different_parents_supplementation_family CHECK (not (parent_1 = parent_2));
 CREATE TRIGGER history_trigger_row AFTER INSERT OR DELETE OR UPDATE ON supplementation_family FOR EACH ROW EXECUTE FUNCTION history.if_modified_func('false');
 CREATE TRIGGER history_trigger_stm AFTER TRUNCATE ON supplementation_family FOR EACH STATEMENT EXECUTE FUNCTION history.if_modified_func('false');
 CREATE OR REPLACE TRIGGER element_pre_insert_t BEFORE INSERT ON supplementation_family FOR EACH ROW EXECUTE PROCEDURE element_pre_insert();

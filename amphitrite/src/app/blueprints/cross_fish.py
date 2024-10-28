@@ -34,6 +34,7 @@ def get_possible_crosses_api():
         return username_or_err
 
     query_params = request.get_json()
+
     possible_crosses, possible_crosses_cnt = get_possible_crosses(username_or_err, query_params)
     return {"success": {'data': possible_crosses, 'size': possible_crosses_cnt}}
 
@@ -90,7 +91,8 @@ def set_cross_completed():
     request_params = request.get_json()
 
     success = add_completed_cross(username_or_err, request_params['f_tag'], request_params['m_tag'],
-                                  request_params['f'])
+                                  request_params['f'], request_params['cross_completed_date'],
+                                  'supplementation_family' if request_params['supplementation'] else 'family')
     return {"success": success, "data": []}
 
 

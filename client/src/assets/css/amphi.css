@@ -151,3 +151,20 @@ ul.pagination .item-count{
 .setting .amphi-date {
     width: 82px;
 }
+.amphi-date .form-control[readonly] {
+    background-color: transparent;
+    color: rgba(255, 255, 255, 0.8);
+    cursor: inherit;
+}
+
+
+/* Not using these but keeping around in case I decide to because took a while to figure out how to do this.
+/* .form-check.tristate input:checked + .form-check-sign::after {*/
+/*    content: "\ea47";*/
+/*    padding-bottom: 2px;*/
+/*}*/
+
+/*.form-check.tristate input:checked + .form-check-sign::after {*/
+/*    content: "\ea46";*/
+/*    padding-bottom: 2px;*/
+/*}*/

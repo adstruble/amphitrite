@@ -39,7 +39,6 @@ def determine_parents_backup_tanks(recommended_crosses_file, tank_count):
     While those are the expected columns, only the contents of the Male_Sibling_Group, Female_Sibling_Group
     and MFG are used.
 
-    \f
     :param recommended_crosses_file
     :param tank_count Number of tanks to include as backups
     :return:
@@ -89,19 +88,20 @@ def add_sibling_group(tanks, tank_keys, tanks_included, sibling_groups_included,
                       results_file: TextIO):
 
     for i in range(len(tank_keys)):
-        if len(tanks_included) == tank_results.desired_tank_count:
+        if len(tanks_included) == tank_results.desired_tank_count - 1:
             tank_results.num_combinations = tank_results.num_combinations + 1
             if tank_results.num_combinations % 1000000 == 0:
                 results_file.write(f"Completed {tank_results.num_combinations}\n")
+                results_file.flush()
             tank_set = {tank_keys[i]}
             sibling_group = tanks[tank_keys[i]]
             next_sibling_groups_included = sibling_groups_included.union(sibling_group)
             next_tanks_included = tanks_included.union(tank_set)
-            if len(next_sibling_groups_included) > len(tank_results.sibling_group_included_final):
+            if len(sibling_groups_included) > len(tank_results.sibling_group_included_final):
                 tank_results.sibling_group_included_final = next_sibling_groups_included
                 tank_results.tanks_included_final = next_tanks_included
                 results_file.writelines([
-                    f"New sibling group found with sibling count = {len(next_sibling_groups_included)}\n",
+                    f"New sibling group found with sibling count = {len(sibling_groups_included)}\n",
                     f"Tanks to include: {tank_results.tanks_included_final}\n",
                     f"Completed {tank_results.num_combinations}\n"])
                 results_file.flush()

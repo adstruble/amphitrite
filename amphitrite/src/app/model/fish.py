@@ -22,9 +22,8 @@ def get_fishes_from_db(username: str, query_params: dict, order_by_clause: str):
     :return: a tuple of size containing, fish and count of fish without limit
     """
     filter_str = " WHERE NOT wt"
-    filter_val = query_params.get('filter')
-    if filter_val:
-        like_filter = "LIKE :filter || '%'"
+    if query_params.get('like_filter'):
+        like_filter = "LIKE :like_filter || '%'"
         filter_str = f" {filter_str} AND (box::text {like_filter} " \
                      f"OR group_id::text {like_filter} " \
                      f"OR (group_id < 0 AND 'UNKNOWN' {like_filter}) " \

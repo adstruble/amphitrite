@@ -1,4 +1,5 @@
 import {FormGroup, Input, Label} from "reactstrap";
+import classnames from "classnames";
 
 export const formatDate = (date) => {
     date = new Date(date);
@@ -29,7 +30,7 @@ export const formatCheckbox = (checked, item, format_args) => {
     if (format_args.length > 2){
         disabled = format_args[2](item)
     }
-    return (<FormGroup check disabled={disabled} className="no-label">
+    return (<FormGroup check disabled={disabled} className={classnames("no-label")}>
                 <Label check>
                     <Input defaultChecked={selected} type="checkbox"
                            onChange={(e) => rowCheckedCallback(e, item)}
