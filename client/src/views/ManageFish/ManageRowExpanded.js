@@ -2,10 +2,10 @@ import PropTypes from "prop-types";
 import {Button} from "reactstrap";
 import React from "react";
 
-export default function ManageRowExpanded({fishId}) {
+export default function ManageRowExpanded({item}) {
 
     const handleCrossFishClick = () => {
-        console.info("Request to cross: " + fishId)
+        console.info("Request to cross: " + item.id)
     }
 
     return (

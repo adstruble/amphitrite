@@ -1,4 +1,5 @@
 import PropTypes from "prop-types";
+import classnames from "classnames";
 
 export default function AmphiHeaderCell({header, updateOrderBy}) {
     const showOrderedDesc = header. order_direction ? header.order_direction === "DESC" : header.order_by != null;
@@ -9,9 +10,9 @@ export default function AmphiHeaderCell({header, updateOrderBy}) {
     };
 
     return(
-        <th role="columnheader" className="th"> {/* I don't know why class of th is necessary, but layout doesn't work properly without it*/}
-            <div>
-                <div style={{float: 'right', lineHeight: '10px'}}>
+        <th role="columnheader" className={classnames("th",header.className && header.className)}> {/* I don't know why class of th is necessary, but layout doesn't work properly without it*/}
+            <div style={{height:"100%"}}>
+                <div style={{float: 'right', lineHeight: '10px', height:"100%"}}>
                     <i onClick={updateOrderByHeader}
                        className="tim-icons  icon-minimal-up order-by"
                        style={{display: showOrderedAsc ? 'block' : 'none', cursor: showOrderedAsc ? 'pointer' : 'inherit' }}

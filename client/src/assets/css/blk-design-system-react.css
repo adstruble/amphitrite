@@ -16711,12 +16711,12 @@ hr {
   width: 60px;
 }
 
-.table .form-check {
-  margin: 0;
-  margin-top: 5px;
+.table .form-check-table {
+  margin: 5px 0 0;
 }
-.table .form-check label .form-check-sign::before,
-.table .form-check label .form-check-sign::after {
+
+.table .form-check-table label .form-check-sign-table::before,
+.table .form-check-table label .form-check-sign-table::after {
   top: -17px;
   left: 4px;
 }

@@ -32,3 +32,8 @@ def remove_family_by_tags(username, f_tag, m_tag):
         LOGGER.error(f"Expected to delete 1 family record. Deleted {deleted_record_cnt}")
 
     return deleted_record_cnt
+
+
+def set_family_mfg(username, params):
+    sql = "UPDATE family set mfg = :mfg where id = :fam_id"
+    execute_statements((sql, params), username, ResultType.NoResult)

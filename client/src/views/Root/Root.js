@@ -1,4 +1,4 @@
-import AmphiNavbar from "../../components/AmphiNavbar/AmphiNavbar";
+import TopNavbar from "../../components/Navigation/TopNavbar";
 import BkgrdPath from "../../assets/img/path1.png";
 import React, {useState} from "react";
 import {Outlet} from "react-router-dom";
@@ -9,7 +9,7 @@ export default function Root(){
 
     return (
         <div className="App index-page">
-            <AmphiNavbar/>
+            <TopNavbar/>
 
             {/*<Squares classToggle="index-page" setSquares7and8={() => {}}/>*/}
             <div className="main">

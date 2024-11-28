@@ -8,8 +8,10 @@ from blueprints.utils import maybe_get_username, validate_and_create_upload_job,
 from importer.import_crosses import import_crosses
 from model.crosses import add_requested_cross, remove_requested_cross, get_requested_crosses_csv, \
     add_completed_cross, get_possible_crosses, get_count_possible_females, \
-    select_available_female_tags, determine_and_insert_possible_crosses
-from model.family import remove_family_by_tags
+    select_available_female_tags, determine_and_insert_possible_crosses, get_completed_crosses, set_cross_failed, \
+    set_use_for_supplementation
+from model.family import remove_family_by_tags, set_family_mfg
+from utils.data import validate_order_by
 
 cross_fish = Blueprint('cross_fish', __name__)
 
@@ -155,10 +157,73 @@ def set_available_females():
 def get_available_f_tags():
     LOGGER.info("Get Available Female Tags")
 
-    username_or_err = maybe_get_username(request.headers, "adding completed cross")
+    username_or_err = maybe_get_username(request.headers, "getting available ftags")
     if isinstance (username_or_err, dict): # noqa
         return username_or_err
 
     f_tags = select_available_female_tags(username_or_err)
 
     return {'success': {'f_tags': f_tags}}
+
+
+@cross_fish.route('/cross_fish/get_completed_crosses', methods=(['POST']))
+def get_completed_crosses_api():
+    LOGGER.info("Get Completed Crosses")
+
+    username_or_err = maybe_get_username(request.headers, "getting completed crosses")
+    if isinstance (username_or_err, dict): # noqa
+        return username_or_err
+
+    query_params = request.get_json()
+
+    order_by_clause = validate_order_by(query_params['order_by'],
+                                        ['mfg', 'group_id', 'f', 'di', 'f_tag', 'm_tag',
+                                         'xf.group_id', 'yf.group_id', 'cross_date', 'x_crosses', 'y_crosses'],
+                                        'cross_date')
+
+    completed_crosses, completed_crosses_cnt = get_completed_crosses(username_or_err, query_params, order_by_clause)
+    return {"success": {'data': completed_crosses, 'size': completed_crosses_cnt}}
+
+
+@cross_fish.route('/cross_fish/set_mfg', methods=(['POST']))
+def set_family_mfg_api():
+    LOGGER.info("Setting family MFG")
+
+    username_or_err = maybe_get_username(request.headers, "getting completed crosses")
+    if isinstance (username_or_err, dict): # noqa
+        return username_or_err
+
+    params= request.get_json()
+    try:
+        mfg = int(params.get('mfg'))
+    except: # noqa
+        return {"error": "MFG must be an integer"}
+
+    set_family_mfg(username_or_err, params)
+    return {"success": mfg}
+
+
+@cross_fish.route('/cross_fish/set_cross_failed', methods=(['POST']))
+def set_cross_failed_api():
+    LOGGER.info("Set cross failed")
+
+    username_or_err = maybe_get_username(request.headers, "setting cross failed")
+    if isinstance (username_or_err, dict): # noqa
+        return username_or_err
+
+    params = request.get_json()
+    set_cross_failed(username_or_err, params)
+    return {"success": "Cross failed set"}
+
+
+@cross_fish.route('/cross_fish/set_use_for_supplementation', methods=(['POST']))
+def set_use_for_supplementation_api():
+    LOGGER.info("Set use for supplementation")
+
+    username_or_err = maybe_get_username(request.headers, "setting used for supplementation")
+    if isinstance (username_or_err, dict): # noqa
+        return username_or_err
+
+    params = request.get_json()
+    set_use_for_supplementation(username_or_err, params)
+    return {"success": "Cross failed set"}

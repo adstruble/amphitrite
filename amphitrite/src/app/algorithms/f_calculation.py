@@ -8,7 +8,7 @@ import networkx as nx
 
 from amphi_logging.logger import get_logger
 from model.family import get_family_pedigree
-from utils.data_conversions import get_group_id_from_parent
+from utils.data import get_group_id_from_parent
 
 LOGGER = get_logger('cross-selection')
 

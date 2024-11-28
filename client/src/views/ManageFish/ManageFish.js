@@ -14,7 +14,9 @@ export default function ManageFish() {
     const [setSpinning] = useOutletContext();
 
 
-    const FISH_HEADER = [
+    const FISH_HEADER = {
+        rows: {},
+        cols:[
         {name: "Family ID", key: "group_id", order_by: "group_id", visible: true, order_direction: "ASC", order: 1,
             format_fn: formatStr},
         {name: "Parent Cross Date", key: "cross_date", order_by: "cross_date", visible: true, order_direction: "", order: 2,
@@ -29,7 +31,7 @@ export default function ManageFish() {
             format_fn: formatStr},
         {name: "Box", key: "box", order_by: "box", visible: true, order_direction: "", order: 2,
             format_fn: formatStr}
-    ];
+    ]};
 
     const handleFishUploadedCallback = () => {
         setReloadTable(reloadTable + 1);

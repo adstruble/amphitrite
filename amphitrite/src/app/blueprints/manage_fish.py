@@ -3,7 +3,8 @@ import threading
 from flask import Blueprint, request
 
 from amphi_logging.logger import get_logger
-from blueprints.utils import validate_order_by, maybe_get_username, validate_and_create_upload_job
+from blueprints.utils import maybe_get_username, validate_and_create_upload_job
+from utils.data import validate_order_by
 from importer.import_master import import_master_data
 from model.fish import get_fishes_from_db
 

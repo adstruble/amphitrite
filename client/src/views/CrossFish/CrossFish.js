@@ -1,4 +1,4 @@
-import {Button, Container, FormGroup, Input, Row} from "reactstrap";
+import {Button, Container, FormGroup, Input, Row, Col} from "reactstrap";
 import {Modal} from "reactstrap";
 import React, {useEffect, useState} from "react";
 import AmphiTable from "../../components/Table/AmphiTable";
@@ -6,7 +6,7 @@ import {
     formatStr,
     formatDoubleTo3,
     formatArrayToStr,
-    formatCheckbox
+    formatCheckbox, formatArrayToStrTags
 } from "../../components/Utils/FormatFunctions";
 import classnames from "classnames";
 import fetchData from "../../server/fetchData";
@@ -17,6 +17,7 @@ import AmphiAlert from "../../components/Basic/AmphiAlert";
 import {useOutletContext} from "react-router-dom";
 import ReactDatetime from "react-datetime";
 import moment from "moment";
+import SideNav from "../../components/Navigation/SideNav";
 
 export default function CrossFish(callback, deps) {
     const {token, setToken, getUsername} = useToken();
@@ -46,7 +47,7 @@ export default function CrossFish(callback, deps) {
         setSelectFemalesOpen(true);
     };
 
-    const handleUseRefuge = (e, item) =>handleUseCross(e, item, false)
+    const handleUseRefuge = (e, item) => handleUseCross(e, item, false)
     const handleUseSupplementation = (e, item) =>handleUseCross(e, item, true)
     const handleUseCross = (e, item, supplementation)  => {
         if (e.target.checked){
@@ -212,33 +213,10 @@ export default function CrossFish(callback, deps) {
         document.getElementById(requestedCross['id'] + 'handleCompletedChecked').checked = false;
         setSelectFishOpen(false);
     }
-    // Highlight the tag that was used in the completed cross if there was one.
-    const formatArrayToStrTags = (tags, requested_cross, m_f) => {
-        tags.sort(function (a, b){return sort_by_completed(a, b, requested_cross['completed' + m_f][0])});
-        if (requested_cross['completed' + m_f].length > 0 && requested_cross['completed' + m_f][0] != null){
-            return (tags.map((tag, index) => {
-                let comma = index < tags.length - 1 ? ", " : ""
-                if (tag === requested_cross['completed' + m_f][0]) {
-                    return(<span className='text-primary'>{tag}{comma}</span>);
-                }
-                return(<span className='text-muted'>{tag}{comma}</span>)
 
-            }
-         ));
-        }else{
-            return formatArrayToStr(tags)
-        }
-    }
-
-    const sort_by_completed = (item_1, item_2, completed_tag) =>{
-        if (item_1 === completed_tag){
-            return -1;
-        }
-        return 0
-    }
-
-    const CROSSES_HEADER = [
-        {name: "Refuge Cross", key: "refuge", visible: true, format_fn:formatCheckbox,
+    const CROSSES_HEADER = {
+        rows:{},
+        cols:[{name: "Refuge Cross", key: "refuge", visible: true, format_fn:formatCheckbox,
             format_args:[handleUseRefuge, useRefugeSelected, cantUse], width:".7fr"},
         {name: "Suppl. Cross", key: "supplementation", visible: true, format_fn:formatCheckbox,
             format_args:[handleUseSupplementation, useSupplementationSelected, cantUseSupplementation], width:".7fr"},
@@ -246,13 +224,15 @@ export default function CrossFish(callback, deps) {
             format_args:[handleCompletedChecked,  isCompleted, cantComplete], width:".7fr"},
         {name: "F", key: "f", visible: true, format_fn: formatDoubleTo3, width:"1fr"},
         {name: "DI", key: "di", visible: true, format_fn: formatDoubleTo3, width:".7fr"},
-        {name: "F Fish", key: "f_tags", visible: true, format_fn: formatArrayToStrTags, width:"2fr", format_args: '_x'},
+        {name: "F Fish", key: "f_tags", visible: true, format_fn: formatArrayToStrTags,
+            width:"2fr", format_args: '_x', tooltip: true},
         {name: "F Group ID", key: "x_gid",  visible: true, format_fn: formatStr, width:".9fr"},
         {name: "F Crosses Completed", key: "x_crosses", visible: true, format_fn: formatStr, width:".7fr"},
-        {name: "M Fish", key: "m_tags", visible: true, format_fn: formatArrayToStrTags, width:"2.5fr", format_args:'_y'},
+        {name: "M Fish", key: "m_tags", visible: true, format_fn: formatArrayToStrTags, width:"2.5fr",
+            format_args:'_y', tooltip: true},
         {name: "M Group ID", key: "y_gid",  visible: true, format_fn: formatStr, width:".9fr"},
         {name: "M Crosses Completed", key: "y_crosses", visible: true, format_fn: formatStr, width:".7fr"},
-        ];
+        ]};
 
     return (
         <div className={classnames('wrapper', 'cross-fish', isLoading ? 'disabled' : '')}>
@@ -278,51 +258,67 @@ export default function CrossFish(callback, deps) {
                     <Button color="success" type="button" onClick={selectFemales}>Select</Button>
                 </div>
             </Modal>
+            {/* <Container style={{marginLeft: 0}}>
+                <Row>
+                    { <Col >
+                        <SideNav/>
+                    </Col>
+                    <Col md="auto">*/}
             <Container>
                 <Row>
                     <AmphiAlert alertText={alertText} alertLevel={alertLevel} setAlertText={setAlertText}/>
                 </Row>
+
                 <Row>
-                    <Button className="btn" color="default" type="button" onClick={handleExportCrossesClick}>
-                        Export Selected Crosses
-                    </Button>
+                    <Col>
+                        <Row>
+                            <div>Available female fish for crossing: {availableFTags}
+                                <Button className="btn setting" color="default" type="button"
+                                        onClick={handleSetAvailableFemalesClick}>Set</Button>
+                            </div>
+                        </Row>
+                        <Row>
+                            <Col style={{padding:0, flexBasis:"fit-content", flexGrow:"0"}}>
+                                <span>Cross completion date:</span>
+                            </Col>
+                            <Col style={{padding:0, flexGrow:"1", flexBasis:"fit-content"}}>
+                                <div className="datepicker-container setting">
+                                    <FormGroup className="form-group setting">
+                                            <ReactDatetime
+                                                className=" amphi-date"
+                                                value={crossCompletionDate}
+                                                onChange={(date) => {
+                                                    if (date instanceof String){
+                                                        setAlertLevel('danger');
+                                                        setAlertText("'" + date +
+                                                            "' is not a valid date. Cross completion date must be a valid date.");
+                                                    }else {
+                                                        setCrossCompletionDate(moment(date).format("MM/DD/YYYY"));
+                                                    }
+                                                }}
+                                                inputProps={ {readOnly:true} }
+                                                dateFormat="MM/DD/YYYY"
+                                                timeFormat={false}
+                                            />
+                                        </FormGroup>
+                                </div>
+                            </Col>
+                        </Row>
+                    </Col>
+                    <Col style={{padding:0, textAlign:"right", flexGrow:"0", flexBasis:"fit-content"}}>
+                        <Button className="btn" color="default" type="button" onClick={handleExportCrossesClick}>
+                            Export Selected Crosses
+                        </Button>
+                    </Col>
                 </Row>
                 <Row>
-                    <div>Available female fish for crossing: {availableFTags}
-                        <Button className="btn setting" color="default" type="button"
-                                onClick={handleSetAvailableFemalesClick}>Set</Button>
-                    </div>
-                </Row>
-                <Row>
-                    <div>Cross completion date:</div>
-                    <div className="datepicker-container setting">
-                        <FormGroup className="form-group setting">
-                                <ReactDatetime
-                                    className=" amphi-date"
-                                    value={crossCompletionDate}
-                                    onChange={(date) => {
-                                        if (date instanceof String){
-                                            setAlertLevel('danger');
-                                            setAlertText("'" + date +
-                                                "' is not a valid date. Cross completion date must be a valid date.");
-                                        }else {
-                                            setCrossCompletionDate(moment(date).format("MM/DD/YYYY"));
-                                        }
-                                    }}
-                                    inputProps={ {readOnly:true} }
-                                    dateFormat="MM/DD/YYYY"
-                                    timeFormat={false}
-                                />
-                            </FormGroup>
-                    </div>
-                </Row>
-                <Row>
-                    <AmphiTable tableDataUrl="cross_fish/get_possible_crosses"
-                                headerDataStart={CROSSES_HEADER}
-                                reloadData={reloadTable}
-                    />
-                </Row>
-                <Modal isOpen={selectFishOpen} modalClassName="modal-black" id="selectCrossedMale">
+            <AmphiTable tableDataUrl="cross_fish/get_possible_crosses"
+                        headerDataStart={CROSSES_HEADER}
+                        reloadData={reloadTable}
+            />
+        </Row>
+            </Container>
+        <Modal isOpen={selectFishOpen} modalClassName="modal-black" id="selectCrossedMale">
                     <div className="modal-header justify-content-center">
                         <button className="btn-close" onClick={() => closeSelectFish()}>
                             <i className="tim-icons icon-simple-remove text-white"/>
@@ -345,7 +341,10 @@ export default function CrossFish(callback, deps) {
                                 onClick={selectFish}>Select</Button>
                     </div>
                 </Modal>
-            </Container>
+            {/*
+                    </Col>
+                </Row>
+            </Container> */}
 
         </div>
     )

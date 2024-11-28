@@ -12,6 +12,7 @@ import BkgrdPath from "./assets/img/path1.png";
 import ErrorPage from "./error-page";
 import Root from "./views/Root/Root";
 import CrossFish from "./views/CrossFish/CrossFish";
+import ViewCrosses from "./views/CrossFish/ViewCrosses";
 
 const router = createBrowserRouter([
     {
@@ -19,6 +20,10 @@ const router = createBrowserRouter([
         element: <Root/>,
         errorElement: <ErrorPage/>,
         children: [
+            {
+                path: "/viewcrosses",
+                element: <ViewCrosses/>,
+            },
             {
                 path: "/crossfish",
                 element: <CrossFish/>,

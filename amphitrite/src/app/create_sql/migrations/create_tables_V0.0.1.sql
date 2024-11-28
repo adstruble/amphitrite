@@ -295,10 +295,12 @@ CREATE TABLE family
     di           float              DEFAULT -1,                                      -- This can be calculated, but probably want to store it. (value = 1 for wildtype)
     f            float              DEFAULT -1,                                      -- This can be calculated, almost assuredly want to store it (value = 0 for wildtype)
     do_not_cross bool      NOT NULL DEFAULT FALSE,                                   -- This is to be indicated manually by crosser,
+    cross_failed bool      NOT NULL DEFAULT FALSE,                                   -- This is to be indicated manually by crosser, that female didn't become pregnant
     parent_1     uuid REFERENCES animal (id) DEFERRABLE,
     parent_2     uuid REFERENCES animal (id) DEFERRABLE,
     cross_date   timestamp NOT NULL,                                                 -- exact date the parents were crossed
     cross_year   numeric GENERATED ALWAYS AS (extract(year from cross_date)) STORED, -- The year the parent's were crossed
+    mfg          int,                                                                -- The multi-family-group AKA tank id
     PRIMARY KEY (id)
 ) INHERITS (element);
 -- group ids aren't unique per year. Example 2010: 300252/300251 -> GroupID 25 for children 401271 401492 400962

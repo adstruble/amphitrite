@@ -11,7 +11,7 @@ from db_utils.db_connection import get_connection, DEFAULT_DB_PARAMS, make_conne
 from db_utils.insert import insert_table_data
 from exceptions.exceptions import WildTypeCrossedWithRefugeInWild
 
-from utils.data_conversions import get_group_id_from_parent
+from utils.data import get_group_id_from_parent
 
 
 class PedigreeDataCols(Enum):

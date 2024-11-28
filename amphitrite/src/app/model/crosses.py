@@ -29,7 +29,7 @@ def get_new_possible_crosses_for_females(username, f_tags):
            LEFT JOIN family next_gen_fam ON next_gen_fam.parent_1 = x.id and next_gen_fam.parent_2 = y.id
            LEFT JOIN refuge_tag y_crossed_tag ON y_crossed_tag.animal = next_gen_fam.parent_2 AND next_gen_fam.id IS NOT NULL
                WHERE x.sex = 'F' AND y.sex = 'M' AND pc.id is NULL AND rtx.tag = ANY (:f_tags)
-            GROUP BY rtx.tag, xf.group_id, x.id, yf.id, xf.id)q"""
+            GROUP BY rtx.tag, x.id, yf.id, xf.id)q"""
     return execute_statements([(new_possible_crosses_sql, {'f_tags': list(f_tags)})],
                               username).get_as_list_of_dicts()
 
@@ -49,7 +49,9 @@ def get_possible_crosses(username, query_params):
             pc.male p2_fam_id,
             xf.group_id x_gid,
             yf.group_id y_gid,
-            (select array_agg(tag) from refuge_tag join animal a on animal = a.id and sex = 'F' AND family = xf.id ) f_tags,
+            (select array_agg(distinct tag) FROM refuge_tag
+                                   JOIN animal a ON animal = a.id AND sex = 'F' AND family = xf.id
+                                   JOIN possible_cross ON female = a.id) f_tags,
             array_agg(distinct rty.tag) m_tags,
             (SELECT count(*) from family where parent_1 = ANY(array_agg(x.id))) x_crosses,
             (SELECT count(*) from family where parent_2 = ANY(array_agg(y.id))) y_crosses,
@@ -248,3 +250,72 @@ def determine_and_insert_possible_crosses(username_or_err, cleaned_f_tags):
         insert_cnt = 0
 
     return insert_cnt
+
+
+def get_completed_crosses(username, query_params, order_by_clause):
+    filter_str = ""
+    if query_params.get('like_filter'):
+        filter_str = f" AND ("
+        like_filter = "LIKE :like_filter || '%'"
+        filter_str += f"rty.tag {like_filter} OR rtx.tag {like_filter} OR "
+        filter_str += f"xf.group_id::text {like_filter} OR yf.group_id::text {like_filter})"
+
+    columns_sql = f"""
+        SELECT completed_cross.id as id,
+            completed_cross.group_id as group_id,
+            completed_cross.mfg as mfg,
+            xf.id p1_fam_id,
+            yf.id p2_fam_id,
+            CASE WHEN xf.group_id < 0 THEN 'WT' ELSE xf.group_id::text END x_gid,
+            CASE WHEN yf.group_id < 0 THEN 'WT' ELSE yf.group_id::text END y_gid,
+            rtx.tag f_tag,
+            rty.tag as m_tag,
+            (SELECT count(1) FROM family next_gen_fam_f WHERE next_gen_fam_f.parent_1 = x.id AND NOT next_gen_fam_f.cross_failed) as x_crosses,
+            (SELECT count(1) FROM family next_gen_fam_f WHERE next_gen_fam_f.parent_2 = y.id AND NOT next_gen_fam_f.cross_failed) as y_crosses,
+            completed_cross.f,
+            completed_cross.di,
+            completed_cross.cross_date,
+            completed_cross.cross_failed,
+            (SELECT count(1) FROM supplementation_family sf WHERE sf.parent_1 = x.id AND sf.parent_2 = y.id) as supplementation
+            """
+
+    family_table = 'family' if query_params['refuge'] else 'supplementation_family'
+    records_sql = f""" FROM {family_table} as completed_cross
+                    JOIN animal as x ON x.id = completed_cross.parent_1
+                    JOIN animal as y ON y.id = completed_cross.parent_2
+                    JOIN family as xf ON x.family = xf.id
+                    JOIN family as yf on yf.id = y.family
+               LEFT JOIN refuge_tag rtx ON rtx.animal = x.id
+               LEFT JOIN refuge_tag rty on rty.animal = y.id
+                WHERE completed_cross.cross_year=:year {filter_str}"""
+
+    order_by = f" {order_by_clause} OFFSET :offset LIMIT :limit"""
+
+    completed_crosses = execute_statements((columns_sql + records_sql + order_by, query_params),
+                                           username).get_as_list_of_dicts()
+
+    cnt_sql = 'SELECT count(*) '
+
+    completed_crosses_cnt = execute_statements((cnt_sql + records_sql, query_params),
+                                               username).get_single_result()
+
+    return completed_crosses, completed_crosses_cnt
+
+
+def set_cross_failed(username, params):
+    sql = "UPDATE family set cross_failed = :cross_failed WHERE id = :fam_id"
+    execute_statements((sql, params), username, ResultType.NoResult)
+
+
+def set_use_for_supplementation(username, params):
+    if params['use_for_supplementation']:
+        sql = f"""INSERT INTO supplementation_family (id, parent_1, parent_2, cross_date, group_id, di, f)
+                SELECT '{uuid.uuid4()}', parent_1, parent_2, cross_date, group_id, di, f
+            FROM family where id = :fam_id"""
+    else:
+        sql = f"""DELETE FROM supplementation_family sf USING family f
+                        WHERE f.id = :fam_id
+                          AND sf.parent_1 = f.parent_1
+                          AND sf.parent_2 = f.parent_2"""
+
+    execute_statements((sql, params), username, ResultType.NoResult)

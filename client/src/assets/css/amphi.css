@@ -30,8 +30,14 @@ body{
     display: flex;
     flex-direction: column;
     position: absolute;
-    inset: 45px 0 0 0;
+    inset: 41px 0 0 0;
     margin-bottom: 120px;
+}
+.cross-fish .amphi-table-contents{
+    inset: 34px 0 0 0 ;
+}
+.view-fish .amphi-table-contents{
+    inset: 63px 0 0 0 ;
 }
 .table-row.tr-header {
     background-color: #2b3858!important;
@@ -72,6 +78,9 @@ td.table-bottom{
     border-radius: 0 0 .2143rem .2143rem;
     background-color: #2b3858;
 }
+.numberCell{
+    text-align:right;
+}
 .cross-fish .table > thead > tr > th {
     padding-bottom: 3px;
     padding-top: 5px;
@@ -82,6 +91,7 @@ th {
 i.order-by{
     font-size:9px;
     padding-right: 5px;
+    padding-left: 5px;
 }
 ul.pagination {
     padding-top:20px;
@@ -157,7 +167,27 @@ ul.pagination .item-count{
     cursor: inherit;
 }
 
+tr.row-line-through td {
+    text-decoration: line-through;
+}
 
+.dropdown-menu{
+    max-height:240px;
+    overflow-y: scroll;
+
+}
+::-webkit-scrollbar {
+    -webkit-appearance: none;
+    width: 10px;
+    background-color: rgb(43, 56,88);
+}
+
+::-webkit-scrollbar-thumb {
+    border-radius: 4px;
+    background-color: rgba(100, 100, 100, .5);
+    box-shadow: 0 0 1px rgba(255, 255, 255, .5);
+    background-color:rgb(172,178,194)
+}
 /* Not using these but keeping around in case I decide to because took a while to figure out how to do this.
 /* .form-check.tristate input:checked + .form-check-sign::after {*/
 /*    content: "\ea47";*/

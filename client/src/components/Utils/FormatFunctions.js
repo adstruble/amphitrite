@@ -1,5 +1,6 @@
 import {FormGroup, Input, Label} from "reactstrap";
 import classnames from "classnames";
+import React from "react";
 
 export const formatDate = (date) => {
     date = new Date(date);
@@ -30,13 +31,13 @@ export const formatCheckbox = (checked, item, format_args) => {
     if (format_args.length > 2){
         disabled = format_args[2](item)
     }
-    return (<FormGroup check disabled={disabled} className={classnames("no-label")}>
+    return (<FormGroup check disabled={disabled} className={classnames("no-label", "form-check-table")}>
                 <Label check>
                     <Input defaultChecked={selected} type="checkbox"
                            onChange={(e) => rowCheckedCallback(e, item)}
                             id={item['id'] + rowCheckedCallback.name}
                     />
-                    <span className="form-check-sign" />
+                    <span className={classnames("form-check-sign", "form-check-sign-table")} />
                 </Label>
             </FormGroup>);
 }
@@ -65,4 +66,32 @@ const formatDoubleToN = (dbl, n) =>{
         dbl = dbl * -1;
     }
     return dbl;
+}
+
+// Highlight the tag that was used in the completed cross if there was one.
+export const formatArrayToStrTags = (tags, requested_cross, m_f) => {
+    if (tags == null){
+        return "";
+    }
+    tags.sort(function (a, b){return sort_by_completed(a, b, requested_cross['completed' + m_f][0])});
+    if (requested_cross['completed' + m_f].length > 0 && requested_cross['completed' + m_f][0] != null){
+        return (tags.map((tag, index) => {
+                let comma = index < tags.length - 1 ? ", " : ""
+                if (tag === requested_cross['completed' + m_f][0]) {
+                    return(<span className='text-primary'>{tag}{comma}</span>);
+                }
+                return(<span className='text-muted'>{tag}{comma}</span>)
+
+            }
+        ));
+    }else{
+        return formatArrayToStr(tags)
+    }
+}
+
+const sort_by_completed = (item_1, item_2, completed_tag) =>{
+    if (item_1 === completed_tag){
+        return -1;
+    }
+    return 0
 }

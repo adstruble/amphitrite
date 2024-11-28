@@ -14,13 +14,13 @@ import fetchData from "../../server/fetchData";
 import useToken from "../App/useToken";
 import {useTheme} from "@table-library/react-table-library/theme";
 import {getTheme} from "@table-library/react-table-library/baseline";
-import PropTypes from "prop-types";
+import PropTypes, {string} from "prop-types";
 import {Input, InputGroup, InputGroupText, UncontrolledTooltip} from "reactstrap";
 import AmphiHeaderCell from "./AmphiHeaderCell";
 import classnames from "classnames";
 import AmphiPagination from "./AmphiPagination";
 
-const getExpandedDefault = () => {
+export const getExpandedDefault = () => {
     return (<tr className='expanded-row-contents'><td style={{display:"none"}}/></tr>);
 }
 
@@ -28,9 +28,11 @@ export default function AmphiTable({tableDataUrl,
                                        reloadData,
                                        headerDataStart,
                                        getExpandedRow=getExpandedDefault,
-                                       includePagination=true}){
+                                       includePagination=true,
+                                       fetchParams}){
     const {token, setToken, getUsername} = useToken();
-    const [headerData, setHeaderData] = useState(headerDataStart);
+    const [headerCols, setHeaderCols] = useState(headerDataStart.cols);
+    const [headerRows, setHeaderRows] = useState(headerDataStart.rows);
     const [searchFocus, setSearchFocus] = useState(false);
     const [search, setSearch] = useState("");
     const [tableSize, setTableSize] = useState(0);
@@ -63,7 +65,7 @@ export default function AmphiTable({tableDataUrl,
 
     function updateOrderBy(clickedHeader){
         const newHeaders =
-        headerData.map((header) => {
+        headerCols.map((header) => {
             if (header.key === clickedHeader.key){
                 if(header.order_direction === "ASC"){
                     header.order_direction = "DESC";
@@ -79,7 +81,7 @@ export default function AmphiTable({tableDataUrl,
                 return header;
             }
         });
-        setHeaderData(newHeaders);
+        setHeaderCols(newHeaders);
         setCurrPage(0)
         doGetTableData().then();
     }
@@ -87,7 +89,7 @@ export default function AmphiTable({tableDataUrl,
     const determineOrderBy = () => {
         // Clone the headerData so we don't change the order of the columns in the rendered table,
         // Shouldn't need to do a deep copy because we're not changing data on the headers themselves
-        const headerDataClone = headerData.slice(0);
+        const headerDataClone = headerCols.slice(0);
         const sortedHeaders = (headerDataClone.sort((a, b) => {
             return a.order < b.order ? -1 : a.order === b.order ? 0 : 1;
         }));
@@ -104,14 +106,15 @@ export default function AmphiTable({tableDataUrl,
 
     const doGetTableData = React.useCallback(async () => {
         const newOrderBy = determineOrderBy()
-        fetchData(tableDataUrl, getUsername(),  {
-            offset: currPage * LIMIT,
-            limit: LIMIT,
-            order_by: newOrderBy,
-            return_size: true,
-            like_filter: search,
-        }, setTableData);
-    }, [fetchData, search, currPage]);
+        let params = {...fetchParams, ...{
+                offset: currPage * LIMIT,
+                limit: LIMIT,
+                order_by: newOrderBy,
+                return_size: true,
+                like_filter: search,
+            }};
+        fetchData(tableDataUrl, getUsername(), params, setTableData);
+    }, [fetchData, search, currPage, fetchParams]);
 
     const setTableData = (tableData, params) => {
         setTableNodes({nodes: tableData['data']});
@@ -128,6 +131,11 @@ export default function AmphiTable({tableDataUrl,
         doGetTableData().then();
     }, [doGetTableData, reloadData]);
 
+    React.useEffect(() =>{
+        setHeaderCols(headerDataStart.cols);
+        setHeaderRows(headerDataStart.rows);
+    }, [headerDataStart])
+
     const  maybeFilterTable = (e) => {
         setCurrPage(0)
         if (e.key !== 'Enter'){
@@ -142,7 +150,7 @@ export default function AmphiTable({tableDataUrl,
             background-color: (0,0,0,0);
         }
       `, Table: `--data-table-library_grid-template-columns: `
-             + headerData.map((header) => {
+             + headerCols.map((header) => {
                  if (header.width) {
                      return "minmax(0px, " + header.width + ")";
                  }else {
@@ -162,36 +170,32 @@ export default function AmphiTable({tableDataUrl,
     return (
         <div className='amphi-table-container'>
             <div className='amphi-table-header'>
-               ` <InputGroup
-                className={classnames({
-                    "input-group-focus": searchFocus
-                })}
-            >
-                <div className="input-group-prepend">
-                    <InputGroupText>
-                        <i className="tim-icons icon-zoom-split"/>
-                    </InputGroupText>
-                </div>
-                <Input
-                    placeholder="Search"
-                    type="text"
-                    onFocus={() => setSearchFocus(true)}
-                    onBlur={() => setSearchFocus(false)}
-                    onChange={e => setSearch(e.target.value)}
-                    onKeyUp={e => {
-                        maybeFilterTable(e)
-                    }}
-                    id={tableDataUrl + "_amphiTable"}
-                />
+                <InputGroup className={classnames({"input-group-focus": searchFocus})}>
+                    <div className="input-group-prepend">
+                        <InputGroupText>
+                            <i className="tim-icons icon-zoom-split"/>
+                        </InputGroupText>
+                    </div>
+                    <Input
+                        placeholder="Search"
+                        type="text"
+                        onFocus={() => setSearchFocus(true)}
+                        onBlur={() => setSearchFocus(false)}
+                        onChange={e => setSearch(e.target.value)}
+                        onKeyUp={e => {
+                            maybeFilterTable(e)
+                        }}
+                        id={tableDataUrl + "_amphiTable"}
+                    />
 {/*                <div className="input-group-append">
                     <InputGroupText>
                         <i className="amphi-icon icon-filter"/>
                     </InputGroupText>
                 </div>*/}
-            </InputGroup>
+                </InputGroup>
                 {includePagination &&
-                    <AmphiPagination LIMIT={LIMIT} tableNodes={tableNodes} onPaginationChange={onPaginationChange}
-                                     tableSize={tableSize} currPage={currPage} currElementCnt={currElementCnt}/>}
+                <AmphiPagination LIMIT={LIMIT} tableNodes={tableNodes} onPaginationChange={onPaginationChange}
+                                 tableSize={tableSize} currPage={currPage} currElementCnt={currElementCnt}/>}
             </div>
             <div
                 style={{
@@ -215,7 +219,7 @@ export default function AmphiTable({tableDataUrl,
                         bottom: "0",
                     }}
                 >
-                    <Table data={{nodes: headerData}} style={{marginBottom: "0px"}}  theme={theme} >
+                    <Table data={{nodes: headerCols}} style={{marginBottom: "0px"}} theme={theme} >
                         {(headerData) => (
                             <>
                                 <Header>
@@ -236,7 +240,7 @@ export default function AmphiTable({tableDataUrl,
                         <>
                             <Header>
                                 <HeaderRow style={{display:'none'}}>
-                                    {headerData.map(() => {return <HeaderCell/>})}
+                                    {headerCols.map(() => {return <HeaderCell/>})}
                                 </HeaderRow>
                             </Header>
 
@@ -244,14 +248,17 @@ export default function AmphiTable({tableDataUrl,
                                 {tableList.map((item, index) => (
 
                                     <React.Fragment key={item.id}>
-                                        <Row className={classnames({'expanded': ids.includes(item.id) }, 'table-row')}
+                                        <Row className={
+                                            classnames({'expanded': ids.includes(item.id) },
+                                            'table-row', (headerRows.getRowClass) && headerRows.getRowClass(item))}
                                              key={item.id} item={item} onClick={handleExpand}>
-                                            {headerData.map((header) => {
+                                            {headerCols.map((header) => {
                                                 let txt = () => {return(header['format_fn'](item[header.key], item, header.format_args))};
                                                 return (
                                                     <Cell id={'id' + item.id + header.key}
-                                                          key={item.id + header.key}>
-                                                        {<UncontrolledTooltip
+                                                          key={item.id + header.key}
+                                                          className={header.className && header.className}>
+                                                        {header.tooltip && <UncontrolledTooltip
                                                             placement={"top-start"}
                                                             target={'id' + item.id + header.key}>
                                                             {txt()}
@@ -262,11 +269,11 @@ export default function AmphiTable({tableDataUrl,
                                                    );})
                                             }
                                         </Row>
-                                        {ids.includes(item.id) && (getExpandedRow(item.id))}
+                                        {ids.includes(item.id) && (getExpandedRow(item))}
                                     </React.Fragment>
                                 ))}
                                 <Row key='bottom' item={null}>
-                                    <Cell key='bottom-cell' className='table-bottom' gridColumnStart={1} gridColumnEnd={headerData.length + 1}>&nbsp;</Cell>
+                                    <Cell key='bottom-cell' className='table-bottom' gridColumnStart={1} gridColumnEnd={headerCols.length + 1}>&nbsp;</Cell>
                                 </Row>
                             </Body>
                         </>
@@ -282,7 +289,8 @@ export default function AmphiTable({tableDataUrl,
 AmphiTable.propTypes = {
     tableDataUrl: PropTypes.string.isRequired,
     reloadData: PropTypes.any,
-    headerDataStart:PropTypes.array.isRequired,
+    headerDataStart:PropTypes.objectOf(PropTypes.any).isRequired,
     getExpandedRow: PropTypes.func,
-    includePagination: PropTypes.bool
+    includePagination: PropTypes.bool,
+    fetchParams: PropTypes.objectOf(PropTypes.any)
 }
