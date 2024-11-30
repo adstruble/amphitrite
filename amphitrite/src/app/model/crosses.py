@@ -274,7 +274,7 @@ def get_completed_crosses(username, query_params, order_by_clause):
             (SELECT count(1) FROM family next_gen_fam_f WHERE next_gen_fam_f.parent_2 = y.id AND NOT next_gen_fam_f.cross_failed) as y_crosses,
             completed_cross.f,
             completed_cross.di,
-            completed_cross.cross_date,
+            completed_cross.cross_date::date,
             completed_cross.cross_failed,
             (SELECT count(1) FROM supplementation_family sf WHERE sf.parent_1 = x.id AND sf.parent_2 = y.id) as supplementation
             """
@@ -289,7 +289,7 @@ def get_completed_crosses(username, query_params, order_by_clause):
                LEFT JOIN refuge_tag rty on rty.animal = y.id
                 WHERE completed_cross.cross_year=:year {filter_str}"""
 
-    order_by = f" {order_by_clause} OFFSET :offset LIMIT :limit"""
+    order_by = f" {order_by_clause} OFFSET :offset {'LIMIT :limit' if 'limit' in query_params else ''}"""
 
     completed_crosses = execute_statements((columns_sql + records_sql + order_by, query_params),
                                            username).get_as_list_of_dicts()
@@ -319,3 +319,27 @@ def set_use_for_supplementation(username, params):
                           AND sf.parent_2 = f.parent_2"""
 
     execute_statements((sql, params), username, ResultType.NoResult)
+
+
+def get_exported_crosses_csv(username, params, csv_file):
+    crosses, _ = get_completed_crosses(username, params, "ORDER BY cross_date, group_id")
+    csv_file.write(
+        f"Date,Male,Male Family,Female,Female Family,Group ID,{'MFG,' if params['refuge'] else ''}Notes\n")
+    for cross in crosses:
+        cross_notes = ""
+        if cross['supplementation'] and params['refuge']:
+            cross_notes += "Cross also used for supplementation."
+        if cross['cross_failed']:
+            cross_notes += "Cross failed."
+        mfg = ""
+        if params['refuge']:
+            f"{'Unknown' if not cross['mfg'] else cross['mfg']},"
+        csv_file.write(f"{cross['cross_date']},"
+                       f"{cross['m_tag']},"
+                       f"{cross['y_gid']},"
+                       f"{cross['f_tag']},"
+                       f"{cross['x_gid']},"
+                       f"{cross['group_id']},"
+                       f"{mfg}"
+                       f"{cross_notes}\n")
+    return

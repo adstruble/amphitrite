@@ -18,6 +18,8 @@ import {
     formatStr
 } from "../../components/Utils/FormatFunctions";
 import ViewCrossesExpanded from "./ViewCrossesExpanded";
+import fetchFile from "../../server/fetchFile";
+import useToken from "../../components/App/useToken";
 
 export default function ViewCrosses(){
     const BOTH_CROSSES_COLS =
@@ -66,13 +68,19 @@ export default function ViewCrosses(){
     const [currentHeaders, setCurrentHeaders] = useState(REFUGE_CROSSES_HEADER);
     const [tableFetchParams, setTableFetchParams] = useState(
         {'year':completedCrossesYear, 'refuge':viewingRefugeCrosses})
+    const {_, __, getUsername} = useToken();
 
     const toggle = () => setCrossYearDropdownOpen((prevState) => !prevState);
     const toggleCrossType = () => setCrossTypeDropdownOpen(prevState => !prevState)
 
-    function handleExportCrossesClick() {
-
-    }
+    const handleExportCrossesClick = async e => {
+        let fileName = 'supplementation_crosses.csv';
+        if (viewingRefugeCrosses){
+            fileName = 'refuge_crosses.csv'
+        }
+        fetchFile("cross_fish/export_crosses", fileName, getUsername(),
+            {...tableFetchParams, ...{offset: 0}}, () =>{})
+    };
 
     function changeCrossUse (refuge){
         setViewingRefugeCrosses(refuge);

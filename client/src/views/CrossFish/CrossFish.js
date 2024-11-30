@@ -38,7 +38,7 @@ export default function CrossFish(callback, deps) {
     const [crossCompletionDate, setCrossCompletionDate] = useState(moment(new Date()).format("MM/DD/YYYY"));
 
     const handleExportCrossesClick = async e => {
-        fetchFile("cross_fish/export_selected_crosses", getUsername(),
+        fetchFile("cross_fish/export_selected_crosses", 'request_crosses.csv', getUsername(),
             {}, () =>{})
     };
 

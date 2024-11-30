@@ -1,6 +1,6 @@
 import PropTypes from "prop-types";
 
-export default function fetchFile(fetchUrl, username, params,fetchCallback, fetchException=null) {
+export default function fetchFile(fetchUrl, fileName, username, params, fetchCallback, fetchException=null) {
     fetch("/amphitrite/" + fetchUrl, {
         method: "POST",
         headers: {
@@ -14,7 +14,7 @@ export default function fetchFile(fetchUrl, username, params,fetchCallback, fetc
                 let url = window.URL.createObjectURL(blob);
                 let a = document.createElement('a');
                 a.href = url;
-                a.download = 'request_crosses.csv';
+                a.download = fileName;
                 a.click();
             })
                 .catch((err) => {
@@ -30,6 +30,7 @@ export default function fetchFile(fetchUrl, username, params,fetchCallback, fetc
 
 fetchFile.propTypes = {
     fetchUrl: PropTypes.string.isRequired,
+    fileName: PropTypes.string.isRequired,
     params: PropTypes.objectOf(PropTypes.string).isRequired,
     fetchCallback: PropTypes.func.isRequired,
     fetchException: PropTypes.func
