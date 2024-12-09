@@ -13,16 +13,49 @@ body{
 .cross-fish .amphi-table-container{
     height: calc(100vh - 80px);
 }
-.amphi-table-header {
+.inner-amphi-table .amphi-table-container{
+    height: 100%;
+    display: block;
+    position: relative;
+}
+.amphi-table-inner {
+    width: 100%;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    position:relative;
+}
+.inner-amphi-table .amphi-table-inner{
+    display: block;
+}
+.amphi-table-header{
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+}
+.inner-amphi-table .amphi-table-header{
+    display: block;
+    padding-left: 40px;
+    padding-right: 40px;
+}
+.amphi-table-search {
     display: flex;
     width: 100%;
 }
-.amphi-table-header .input-group {
+.inner-amphi-table .amphi-table-search{
+    display: none;
+}
+.amphi-table-search .input-group {
     margin-top: 10px;
     margin-bottom: 10px;
     margin-right: 75px;
 }
-.amphi-table-header .input-group-text{
+.amphi-table-search .input-group-text{
     height: calc(2.25rem + 2px);
 }
 .amphi-table-contents {
@@ -38,6 +71,23 @@ body{
 }
 .view-fish .amphi-table-contents{
     inset: 63px 0 0 0 ;
+}
+.inner-amphi-table .amphi-table-contents {
+    display:block;
+    position: relative;
+    margin-bottom: 40px;
+    padding-left:40px;
+    padding-right:40px;
+    inset: 22px 0 0 0;
+}
+.inner-amphi-table h6{
+    padding-left: 40px;
+    padding-right: 40px;
+}
+.inner-amphi-table  tbody > tr > td{
+    padding-top:6px;
+    padding-bottom: 6px;
+    font-size: 14px;
 }
 .table-row.tr-header {
     background-color: #2b3858!important;
@@ -73,6 +123,9 @@ td.table-bottom{
     padding-left:0!important;
     padding-right: 0!important;
     padding-bottom: 0!important;
+}
+.inner-amphi-table td.table-bottom{
+    padding-top:0;
 }
 .table-bottom>div{
     border-radius: 0 0 .2143rem .2143rem;

@@ -23,11 +23,11 @@ import useToken from "../../components/App/useToken";
 
 export default function ViewCrosses(){
     const BOTH_CROSSES_COLS =
-        [{name: "Female Group ID", key: "x_gid",  visible: true, format_fn: formatStr, width:".8fr", className:"numberCell",
+        [{name: "Female PC/FSG", key: "x_gid",  visible: true, format_fn: formatStr, width:".8fr", className:"numberCell",
             order:2, order_direction: "", order_by: "xf.group_id"},
         {name: "Female Fish", key: "f_tag", visible: true, format_fn: formatStr, width:".8fr", format_args: '_x',
             order:2, order_direction: "", order_by: "f_tag"},
-        {name: "Male Group ID", key: "y_gid",  visible: true, format_fn: formatStr, width:".8fr", className:"numberCell",
+        {name: "Male PC/FSG", key: "y_gid",  visible: true, format_fn: formatStr, width:".8fr", className:"numberCell",
             order:2, order_direction: "", order_by: "yf.group_id"},
         {name: "Male Fish", key: "m_tag", visible: true, format_fn: formatStr, width:".8fr", format_args:'_y',
             order:2, order_direction: "", order_by: "m_tag"},
@@ -37,15 +37,18 @@ export default function ViewCrosses(){
             order:2, order_direction: "", order_by: "f"},
         {name: "DI", key: "di", visible: true, format_fn: formatDoubleTo3, width:".9fr", className:"numberCell",
             order:2, order_direction: "", order_by: "di"},
-        {name: "Female Group Crosses Completed", key: "x_crosses", visible: true, format_fn: formatStr, width:".9fr",
+        {name: "Female PC/FSG Crosses Completed", key: "x_crosses", visible: true, format_fn: formatStr, width:".9fr",
             className:"numberCell", order:2, order_direction: "", order_by: "x_crosses"},
-        {name: "Male Group Crosses Completed", key: "y_crosses", visible: true, format_fn: formatStr, width:".9fr",
+        {name: "Male PC/FSG Crosses Completed", key: "y_crosses", visible: true, format_fn: formatStr, width:".9fr",
             className:"numberCell", order:2, order_direction: "", order_by: "y_crosses"},
     ];
-    const REFUGE_CROSSES_COLS = [{name: "Group ID", key: "group_id",  visible: true, format_fn: formatStr, width:".65fr",
+    const REFUGE_CROSSES_COLS = [{name: "PC/FSG", key: "group_id",  visible: true, format_fn: formatStr, width:".65fr",
         className:"numberCell", order_direction: "ASC", order:1, order_by: "group_id"},
         {name: "MFG", key: "mfg",  visible: true, format_fn: formatStr, width:".55fr", className:"numberCell",
-            order:2, order_direction: "", order_by: "mfg"},].concat(BOTH_CROSSES_COLS);
+            order:2, order_direction: "", order_by: "mfg"}].concat(BOTH_CROSSES_COLS);
+
+    const SUPPLEMENTATION_CROSSES_COLS = [{name: "Tank", key: "mfg",  visible: true, format_fn: formatStr,
+        width:".55fr", className:"numberCell", order:1, order_direction: "DESC", order_by: "mfg"}].concat(BOTH_CROSSES_COLS);
 
     const REFUGE_CROSSES_HEADER = {
         rows:{"getRowClass": getRowClass},
@@ -53,7 +56,7 @@ export default function ViewCrosses(){
     };
     const SUPPLEMENTATION_CROSSES_HEADER = {
         rows:{"getRowClass": getRowClass},
-        cols: BOTH_CROSSES_COLS
+        cols: SUPPLEMENTATION_CROSSES_COLS
     }
     const [isLoading, setIsLoading] = useState(false);
     const [alertText, setAlertText] = useState("");
@@ -108,7 +111,8 @@ export default function ViewCrosses(){
 
     const getExpandedRow = (item) => {
         return (<ViewCrossesExpanded item={item}
-                                     reloadTable={updateReloadTable}/>)
+                                     reloadTable={updateReloadTable}
+                                     refugeCrosses={viewingRefugeCrosses}/>)
     }
 
     function getCrossTypeDropdownLabel(){
@@ -194,7 +198,7 @@ export default function ViewCrosses(){
                                 headerDataStart={currentHeaders}
                                 fetchParams={tableFetchParams}
                                 reloadData={reloadTable}
-                                getExpandedRow={viewingRefugeCrosses ? getExpandedRow : getExpandedDefault}
+                                getExpandedRow={getExpandedRow}
                     />
                 </Row>
             </Container>

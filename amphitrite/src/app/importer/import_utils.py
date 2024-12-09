@@ -25,22 +25,23 @@ def maybe_correct_for_2_year_olds(sibling_birth_year_int, refuge_tag, csv_fam_id
     :param csv_fam_id:
     :return:
     """
+
+    # First update the refuge tag to remove the ending _1 or _2 because that can change (indicator of if it's M or F)
+    refuge_tag = refuge_tag.split('_')[0]
+
     sibling_birth_year = date(sibling_birth_year_int, 1, 1)
     if refuge_tag[0] == '2':
         LOGGER.warning(f"Correcting for 2 year old:{refuge_tag} {sibling_birth_year_int} {csv_fam_id}")
         sibling_birth_year = date(sibling_birth_year_int - 1, 1, 1)  # This is a 2-year-old
-        refuge_tag = refuge_tag[1:]
-        if refuge_tag[0] == '_':
-            refuge_tag = refuge_tag[1:]  # Sometimes 2 year refuge tags start with 2_ sometimes just 2
-        # MasterDataCols.Family_Id is sometimes prepended with 2_ when it's a previous years animal
+        # Sometimes 2 year refuge tags start with 2_ sometimes just 2, normalize to 2
+        if refuge_tag[1] == '_':
+            refuge_tag = '2' + refuge_tag[2:]
+        # MasterDataCols.Family_Id is sometimes prepended with 2_ when it's a previous years animal, remove it
         csv_fam_id = csv_fam_id[2:] if csv_fam_id.startswith('2_') else csv_fam_id
 
     try:
         csv_fam_id = int(csv_fam_id)
     except ValueError:
         csv_fam_id = -1
-
-    # We also want to update the refuge tag to remove the _1 or _2 because that can change
-    refuge_tag = refuge_tag.split('_')[0]
 
     return sibling_birth_year, refuge_tag, csv_fam_id

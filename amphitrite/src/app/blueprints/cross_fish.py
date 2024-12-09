@@ -9,7 +9,7 @@ from importer.import_crosses import import_crosses
 from model.crosses import add_requested_cross, remove_requested_cross, get_requested_crosses_csv, \
     add_completed_cross, get_possible_crosses, get_count_possible_females, \
     select_available_female_tags, determine_and_insert_possible_crosses, get_completed_crosses, set_cross_failed, \
-    set_use_for_supplementation, get_exported_crosses_csv
+    set_use_for_supplementation, get_exported_crosses_csv, get_completed_crosses_by_family
 from model.family import remove_family_by_tags, set_family_mfg
 from utils.data import validate_order_by
 
@@ -181,7 +181,22 @@ def get_completed_crosses_api():
                                          'xf.group_id', 'yf.group_id', 'cross_date', 'x_crosses', 'y_crosses'],
                                         'cross_date')
 
-    completed_crosses, completed_crosses_cnt = get_completed_crosses(username_or_err, query_params, order_by_clause)
+    completed_crosses, completed_crosses_cnt = get_completed_crosses(username_or_err, query_params, order_by_clause,
+                                                                     filter_str='completed_cross.cross_year=:year')
+    return {"success": {'data': completed_crosses, 'size': completed_crosses_cnt}}
+
+
+@cross_fish.route('/cross_fish/get_completed_crosses_by_family', methods=(['POST']))
+def get_completed_crosses_by_family_api():
+    LOGGER.info("Get Completed Crosses by family")
+
+    username_or_err = maybe_get_username(request.headers, "getting completed crosses by family")
+    if isinstance (username_or_err, dict): # noqa
+        return username_or_err
+
+    query_params = request.get_json()
+
+    completed_crosses, completed_crosses_cnt = get_completed_crosses_by_family(username_or_err, query_params)
     return {"success": {'data': completed_crosses, 'size': completed_crosses_cnt}}
 
 
@@ -226,7 +241,7 @@ def set_use_for_supplementation_api():
 
     params = request.get_json()
     set_use_for_supplementation(username_or_err, params)
-    return {"success": "Cross failed set"}
+    return {"success": "Set used for supplementation"}
 
 
 @cross_fish.route('/cross_fish/export_crosses', methods=(['POST']))

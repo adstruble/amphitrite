@@ -1,11 +1,10 @@
 import {Button, Container, FormGroup, Input, Row, Col} from "reactstrap";
 import {Modal} from "reactstrap";
-import React, {useEffect, useState} from "react";
+import React, {useState} from "react";
 import AmphiTable from "../../components/Table/AmphiTable";
 import {
     formatStr,
     formatDoubleTo3,
-    formatArrayToStr,
     formatCheckbox, formatArrayToStrTags
 } from "../../components/Utils/FormatFunctions";
 import classnames from "classnames";
@@ -17,10 +16,10 @@ import AmphiAlert from "../../components/Basic/AmphiAlert";
 import {useOutletContext} from "react-router-dom";
 import ReactDatetime from "react-datetime";
 import moment from "moment";
-import SideNav from "../../components/Navigation/SideNav";
+import CrossFishExpanded from "./CrossFishExpanded";
 
-export default function CrossFish(callback, deps) {
-    const {token, setToken, getUsername} = useToken();
+export default function CrossFish() {
+    const {getUsername} = useToken();
     const [reloadTable, setReloadTable] = useState(0);
     const [selectFishOpen, setSelectFishOpen] = useState(false);
     const [possibleFishColumn, setPossibleFishColumn] = useState("");
@@ -37,13 +36,13 @@ export default function CrossFish(callback, deps) {
     const [setSpinning] = useOutletContext();
     const [crossCompletionDate, setCrossCompletionDate] = useState(moment(new Date()).format("MM/DD/YYYY"));
 
-    const handleExportCrossesClick = async e => {
+    const handleExportCrossesClick = async _ => {
         fetchFile("cross_fish/export_selected_crosses", 'request_crosses.csv', getUsername(),
             {}, () =>{})
     };
 
 
-    const handleSetAvailableFemalesClick = async e => {
+    const handleSetAvailableFemalesClick = async _ => {
         setSelectFemalesOpen(true);
     };
 
@@ -214,6 +213,10 @@ export default function CrossFish(callback, deps) {
         setSelectFishOpen(false);
     }
 
+    const getExpandedRow = (item) => {
+        return (<CrossFishExpanded item={item}/>)
+    }
+
     const CROSSES_HEADER = {
         rows:{},
         cols:[{name: "Refuge Cross", key: "refuge", visible: true, format_fn:formatCheckbox,
@@ -226,11 +229,11 @@ export default function CrossFish(callback, deps) {
         {name: "DI", key: "di", visible: true, format_fn: formatDoubleTo3, width:".7fr"},
         {name: "F Fish", key: "f_tags", visible: true, format_fn: formatArrayToStrTags,
             width:"2fr", format_args: '_x', tooltip: true},
-        {name: "F Group ID", key: "x_gid",  visible: true, format_fn: formatStr, width:".9fr"},
+        {name: "F PC/FSG", key: "x_gid",  visible: true, format_fn: formatStr, width:".9fr"},
         {name: "F Crosses Completed", key: "x_crosses", visible: true, format_fn: formatStr, width:".7fr"},
         {name: "M Fish", key: "m_tags", visible: true, format_fn: formatArrayToStrTags, width:"2.5fr",
             format_args:'_y', tooltip: true},
-        {name: "M Group ID", key: "y_gid",  visible: true, format_fn: formatStr, width:".9fr"},
+        {name: "M PC/FSG", key: "y_gid",  visible: true, format_fn: formatStr, width:".9fr"},
         {name: "M Crosses Completed", key: "y_crosses", visible: true, format_fn: formatStr, width:".7fr"},
         ]};
 
@@ -279,7 +282,7 @@ export default function CrossFish(callback, deps) {
                         </Row>
                         <Row>
                             <Col style={{padding:0, flexBasis:"fit-content", flexGrow:"0"}}>
-                                <span>Cross completion date:</span>
+                                <span>Date cross made:</span>
                             </Col>
                             <Col style={{padding:0, flexGrow:"1", flexBasis:"fit-content"}}>
                                 <div className="datepicker-container setting">
@@ -315,6 +318,7 @@ export default function CrossFish(callback, deps) {
             <AmphiTable tableDataUrl="cross_fish/get_possible_crosses"
                         headerDataStart={CROSSES_HEADER}
                         reloadData={reloadTable}
+                        getExpandedRow={getExpandedRow}
             />
         </Row>
             </Container>

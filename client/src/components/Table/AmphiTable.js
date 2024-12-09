@@ -29,8 +29,9 @@ export default function AmphiTable({tableDataUrl,
                                        headerDataStart,
                                        getExpandedRow=getExpandedDefault,
                                        includePagination=true,
-                                       fetchParams}){
-    const {token, setToken, getUsername} = useToken();
+                                       fetchParams,
+                                       includeSearch=true}){
+    const {getUsername} = useToken();
     const [headerCols, setHeaderCols] = useState(headerDataStart.cols);
     const [headerRows, setHeaderRows] = useState(headerDataStart.rows);
     const [searchFocus, setSearchFocus] = useState(false);
@@ -46,7 +47,16 @@ export default function AmphiTable({tableDataUrl,
 
     const [ids, setIds] = React.useState([]);
 
-    const handleExpand = (item) => {
+    React.useEffect(() => {
+        setHeaderCols(headerDataStart.cols);
+        setHeaderRows(headerDataStart.rows);
+        doGetTableData().then();
+    }, [headerDataStart]);
+
+    const handleExpand = (item, event) => {
+        if (event.target.classList.contains('form-check-sign')){
+            return;
+        }
         if (ids.includes(item.id)) {
             setIds(ids.filter((id) => id !== item.id));
         } else {
@@ -83,7 +93,6 @@ export default function AmphiTable({tableDataUrl,
         });
         setHeaderCols(newHeaders);
         setCurrPage(0)
-        doGetTableData().then();
     }
 
     const determineOrderBy = () => {
@@ -114,7 +123,7 @@ export default function AmphiTable({tableDataUrl,
                 like_filter: search,
             }};
         fetchData(tableDataUrl, getUsername(), params, setTableData);
-    }, [fetchData, search, currPage, fetchParams]);
+    }, [fetchData, search, currPage, fetchParams, headerCols]);
 
     const setTableData = (tableData, params) => {
         setTableNodes({nodes: tableData['data']});
@@ -169,8 +178,8 @@ export default function AmphiTable({tableDataUrl,
 
     return (
         <div className='amphi-table-container'>
-            <div className='amphi-table-header'>
-                <InputGroup className={classnames({"input-group-focus": searchFocus})}>
+            <div className='amphi-table-search'>
+                {includeSearch && <InputGroup className={classnames({"input-group-focus": searchFocus})}>
                     <div className="input-group-prepend">
                         <InputGroupText>
                             <i className="tim-icons icon-zoom-split"/>
@@ -192,33 +201,13 @@ export default function AmphiTable({tableDataUrl,
                         <i className="amphi-icon icon-filter"/>
                     </InputGroupText>
                 </div>*/}
-                </InputGroup>
+                </InputGroup>}
                 {includePagination &&
                 <AmphiPagination LIMIT={LIMIT} tableNodes={tableNodes} onPaginationChange={onPaginationChange}
                                  tableSize={tableSize} currPage={currPage} currElementCnt={currElementCnt}/>}
             </div>
-            <div
-                style={{
-                    height: "100vh",
-                    width: "100%",
-                    flex: "1",
-                    display: "flex",
-                    flexDirection: "column",
-                    position: "relative"
-                }}
-            >
-                <div
-                    style={{
-                        flex: "1",
-                        display: "flex",
-                        flexDirection: "column",
-                        position: "absolute",
-                        top: "0",
-                        left: "0",
-                        right: "0",
-                        bottom: "0",
-                    }}
-                >
+            <div className='amphi-table-inner'>
+                <div className='amphi-table-header'>
                     <Table data={{nodes: headerCols}} style={{marginBottom: "0px"}} theme={theme} >
                         {(headerData) => (
                             <>
@@ -235,7 +224,7 @@ export default function AmphiTable({tableDataUrl,
                     </Table>
                 </div>
                 <div className='amphi-table-contents'>
-                    <Table data={tableNodes} theme={theme}>
+                    <Table data={tableNodes} theme={theme} >
                     {(tableList) => (
                         <>
                             <Header>

@@ -30,6 +30,7 @@ export const formatCheckbox = (checked, item, format_args) => {
     let disabled = false;
     if (format_args.length > 2){
         disabled = format_args[2](item)
+        disabled = format_args[2](item)
     }
     return (<FormGroup check disabled={disabled} className={classnames("no-label", "form-check-table")}>
                 <Label check>

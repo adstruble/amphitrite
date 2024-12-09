@@ -4,7 +4,7 @@ import PropTypes from "prop-types";
 
 export default function RadioGroup({items, radioSelectedCallback, selectedItem}) {
     return(
-        items.map((item_name) => {
+        items.map(item_name => {
                 return(<FormGroup check className="form-check-radio">
                     <Label check>
                         <Input
@@ -20,8 +20,6 @@ export default function RadioGroup({items, radioSelectedCallback, selectedItem})
                     </Label>
                 </FormGroup>);
             })
-
-
     )
 }
 RadioGroup.propTypes = {

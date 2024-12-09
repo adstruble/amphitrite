@@ -35,5 +35,6 @@ def remove_family_by_tags(username, f_tag, m_tag):
 
 
 def set_family_mfg(username, params):
-    sql = "UPDATE family set mfg = :mfg where id = :fam_id"
+    table = 'family' if params['refuge_crosses'] else 'supplementation_family'
+    sql = f"UPDATE {table} set mfg = :mfg where id = :fam_id"
     execute_statements((sql, params), username, ResultType.NoResult)
