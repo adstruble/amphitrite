@@ -8,6 +8,7 @@ from blueprints import login
 from blueprints.common import common
 from blueprints.manage_fish import manage_fish
 from blueprints.cross_fish import cross_fish
+from blueprints.users import users
 from exceptions.exceptions import AmphitriteEnvironmentError
 
 app = Flask(__name__)
@@ -22,6 +23,7 @@ app.register_blueprint(login.login)
 app.register_blueprint(manage_fish)
 app.register_blueprint(common)
 app.register_blueprint(cross_fish)
+app.register_blueprint(users)
 
 if app.config['DEBUG']:
     APPLICATION_ROOT = '/amphitrite'

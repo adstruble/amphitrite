@@ -4,10 +4,12 @@ import React, {useState} from "react";
 import fetchData from "../../server/fetchData";
 import useToken from "../../components/App/useToken";
 import {onKeyupWithDelay} from "../../components/Utils/General";
+import classnames from "classnames";
 
 export default function ViewCrossesExpanded({item, reloadTable, refugeCrosses}) {
     const [mfgIsValid, setMfgValid] = useState(true);
     const [mfg, setMfg] = useState(item['mfg'])
+    const [mfgFocus, setMFGFocus] = useState(false);
     const {getUsername} = useToken();
 
     const maybeSetMfg = (newMFG) => {
@@ -43,9 +45,11 @@ export default function ViewCrossesExpanded({item, reloadTable, refugeCrosses}) 
         row_contents =
             <Row>
                 <Col xs="3">
-                    <FormGroup>
+                    <FormGroup className={classnames({"input-group-focus": mfgFocus})}>
                         <label>MFG</label>
                         <Input
+                            onFocus={() => setMFGFocus(true)}
+                            onBlur={() => setMFGFocus(false)}
                             defaultValue={item['mfg']}
                             type="text"
                             onKeyUp={onKeyupWithDelay((e) => maybeSetMfg(e.target.value),

@@ -34,6 +34,7 @@ export default function Login({setToken}) {
     const [nameFocus, setNameFocus] = useState(false);
     const [passwordFocus, setPasswordFocus] = useState(false);
     const [squares7and8, setSquares7and8] = React.useState("");
+    const [passwordInputType, setPasswordInputType] = React.useState("password");
 
     const handleBreedClick = async e => {
         e.preventDefault();
@@ -83,6 +84,7 @@ export default function Login({setToken}) {
                                                     </InputGroupText>
                                                 </div>
                                                 <Input
+                                                    id="amphi-username"
                                                     placeholder="Username"
                                                     type="text"
                                                     onFocus={() => setNameFocus(true)}
@@ -97,16 +99,27 @@ export default function Login({setToken}) {
                                             >
                                                 <div className="input-group-prepend">
                                                     <InputGroupText>
-                                                        <i className="tim-icons icon-lock-circle" />
+                                                        <i className="tim-icons icon-lock-circle"/>
                                                     </InputGroupText>
                                                 </div>
                                                 <Input
+                                                    id="amphi-password"
                                                     placeholder="Password"
-                                                    type="text"
+                                                    type={passwordInputType}
                                                     onFocus={() => setPasswordFocus(true)}
                                                     onBlur={() => setPasswordFocus(false)}
                                                     onChange={e => setPassword(e.target.value)}
                                                 />
+
+                                                <div className="input-group-append">
+                                                    <InputGroupText>
+                                                        <i className={classnames('input-group-append', 'tim-icons',
+                                                            passwordInputType === 'password' ? 'icon-hide' : 'icon-view')}
+                                                           style={{paddingLeft:'5px'}}
+                                                           onClick={() => setPasswordInputType(
+                                                               passwordInputType === 'password' ? 'text' : 'password')}/>
+                                                    </InputGroupText>
+                                                </div>
                                             </InputGroup>
                                         </Form>
                                     </CardBody>

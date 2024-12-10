@@ -29,42 +29,52 @@ export default function TopNavbar() {
     <Navbar className={"fixed-top " + color} color-on-scroll="100" expand="lg">
         <Container>
             <div className="navbar-translate">
-                <NavbarBrand to="/" id="navbar-brand">
-                    Amphitrite
-                </NavbarBrand>
+                <Nav navbar>
+                    <NavItem>
+                        <NavLink tag={Link} to="/managefish">
+                            <span className="nav-link">Manage Fish</span>
+                        </NavLink>
+                    </NavItem>
+                    <NavItem>
+                        <UncontrolledDropdown>
+                            <DropdownToggle
+                                aria-expanded={false}
+                                aria-haspopup={true}
+                                caret
+                                color="default"
+                                data-toggle="dropdown"
+                                id="crossesDropdownMenuLink"
+                                nav
+                            >
+                                <span >Manage Crosses</span>
+                            </DropdownToggle>
+                            <DropdownMenu aria-labelledby="navbarDropdownMenuLink">
+                                <DropdownItem
+                                    tag={Link} to="/crossfish"
+                                >
+                                    Recommend Crosses
+                                </DropdownItem>
+                                <DropdownItem
+                                    tag={Link} to="/viewcrosses"
+                                >
+                                    Completed Crosses
+                                </DropdownItem>
+                            </DropdownMenu>
+                        </UncontrolledDropdown>
+                    </NavItem>
+                    <NavItem>
+                        <NavLink tag={Link} to="/manageusers">
+                            <span className="nav-link">Manage Users</span>
+                        </NavLink>
+                    </NavItem>
+                </Nav>
             </div>
-            <Nav navbar>
+            <Nav>
+
                 <NavItem>
-                    <NavLink tag={Link} to="/managefish">
-                        <span className="nav-link">Manage Fish</span>
+                    <NavLink to={Link} to="/usersettings">
+                        <i className="tim-icons icon-settings-gear-63"/>
                     </NavLink>
-                </NavItem>
-                <NavItem>
-                    <UncontrolledDropdown>
-                        <DropdownToggle
-                            aria-expanded={false}
-                            aria-haspopup={true}
-                            caret
-                            color="default"
-                            data-toggle="dropdown"
-                            id="crossesDropdownMenuLink"
-                            nav
-                        >
-                            <span >Manage Crosses</span>
-                        </DropdownToggle>
-                        <DropdownMenu aria-labelledby="navbarDropdownMenuLink">
-                            <DropdownItem
-                                tag={Link} to="/crossfish"
-                            >
-                                Recommend Crosses
-                            </DropdownItem>
-                            <DropdownItem
-                                tag={Link} to="/viewcrosses"
-                            >
-                                Completed Crosses
-                            </DropdownItem>
-                        </DropdownMenu>
-                    </UncontrolledDropdown>
                 </NavItem>
                 <NavItem>
                     <Button className="nav-link d-none d-lg-block"
@@ -76,6 +86,7 @@ export default function TopNavbar() {
                         </div>
                     </Button>
                 </NavItem>
+
             </Nav>
         </Container>
     </Navbar>

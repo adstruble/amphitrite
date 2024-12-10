@@ -4,7 +4,7 @@ import {
     RouterProvider,
 } from "react-router-dom";
 import './App.css';
-import Login from './views/Login/Login.js'
+import Login from './views/User/Login.js'
 import useToken from "./components/App/useToken";
 import Squares from "./components/Styles/Squares";
 import ManageFish from "./views/ManageFish/ManageFish";
@@ -13,6 +13,7 @@ import ErrorPage from "./error-page";
 import Root from "./views/Root/Root";
 import CrossFish from "./views/CrossFish/CrossFish";
 import ViewCrosses from "./views/CrossFish/ViewCrosses";
+import UserSettings from "./views/User/UserSettings";
 
 const router = createBrowserRouter([
     {
@@ -20,6 +21,10 @@ const router = createBrowserRouter([
         element: <Root/>,
         errorElement: <ErrorPage/>,
         children: [
+            {
+                path: "/usersettings",
+                element: <UserSettings/>
+            },
             {
                 path: "/viewcrosses",
                 element: <ViewCrosses/>,

@@ -3,7 +3,7 @@ import logging
 
 import jwt
 
-from db_utils.core import execute_statements
+from db_utils.core import execute_statements, ResultType
 
 
 def encode_auth_token(username, secret_key):
@@ -36,3 +36,13 @@ def maybe_authenticate_user(username, p):
                                   username=username).get_single_result():
             return username
     return None
+
+
+def save_users_password(username, params: dict):
+    params.update({'username': username})
+    if (execute_statements(("UPDATE amphi_user set password = :password where username = :username",
+                            params),
+                           username=username, result_type=ResultType.RowCount).get_total_row_cnt() == 1):
+        return {"success": 'Password updated'}
+    else:
+        return {"error": 'Password not updated'}
