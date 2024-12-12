@@ -44,5 +44,44 @@ def save_users_password(username, params: dict):
                             params),
                            username=username, result_type=ResultType.RowCount).get_total_row_cnt() == 1):
         return {"success": 'Password updated'}
-    else:
-        return {"error": 'Password not updated'}
+
+    return {"error": 'Password not updated'}
+
+
+def disable_user_db(username, params: dict):
+    if (execute_statements(
+            ("UPDATE amphi_user set enabled = :enable where username = :username", params),
+            username=username, result_type=ResultType.RowCount).get_total_row_cnt() == 1):
+        return {"success": 'User disabled'}
+
+    return {"error": 'Failed user disable'}
+
+
+def add_user_to_db(username, params: dict):
+    if (execute_statements((
+            "INSERT into amphi_user (id, username, password, enabled) VALUES (gen_random_uuid(), :username, 'pass', true)", # noqa
+                            params),
+                           username=username, result_type=ResultType.RowCount).get_total_row_cnt() == 1):
+        return {"success": 'User added'}
+
+    return {"error": 'User not added'}
+
+
+def delete_user_from_db(username, params: dict):
+    if (execute_statements((
+            "DELETE FROM amphi_user WHERE username =  :username", params),
+            username=username, result_type=ResultType.RowCount).get_total_row_cnt() == 1):
+        return {"success": 'User deleted'}
+    return {"error": 'User not deleted'}
+
+
+def get_user_rows(username, params: dict):
+
+    users = execute_statements((
+        "SELECT username, enabled FROM amphi_user ORDER BY username LIMIT :limit OFFSET :offset", params),
+        username).get_as_list_of_dicts()
+
+    user_cnt = execute_statements(("SELECT COUNT(*) FROM amphi_user LIMIT :limit", params),
+                                  username).get_single_result()
+
+    return users, user_cnt

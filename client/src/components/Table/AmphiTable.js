@@ -179,31 +179,33 @@ export default function AmphiTable({tableDataUrl,
     return (
         <div className='amphi-table-container'>
             <div className='amphi-table-search'>
-                {includeSearch && <InputGroup className={classnames({"input-group-focus": searchFocus})}>
-                    <div className="input-group-prepend">
-                        <InputGroupText>
-                            <i className="tim-icons icon-zoom-split"/>
-                        </InputGroupText>
-                    </div>
-                    <Input
-                        placeholder="Search"
-                        type="text"
-                        onFocus={() => setSearchFocus(true)}
-                        onBlur={() => setSearchFocus(false)}
-                        onChange={e => setSearch(e.target.value)}
-                        onKeyUp={e => {
-                            maybeFilterTable(e)
-                        }}
-                        id={tableDataUrl + "_amphiTable"}
-                    />
+                {includeSearch &&
+                    <InputGroup className={classnames({"input-group-focus": searchFocus})}>
+                        <div className="input-group-prepend">
+                            <InputGroupText>
+                                <i className="tim-icons icon-zoom-split"/>
+                            </InputGroupText>
+                        </div>
+                        <Input
+                            placeholder="Search"
+                            type="text"
+                            onFocus={() => setSearchFocus(true)}
+                            onBlur={() => setSearchFocus(false)}
+                            onChange={e => setSearch(e.target.value)}
+                            onKeyUp={e => {
+                                maybeFilterTable(e)
+                            }}
+                            id={tableDataUrl + "_amphiTable"}
+                        />
 {/*                <div className="input-group-append">
                     <InputGroupText>
                         <i className="amphi-icon icon-filter"/>
                     </InputGroupText>
                 </div>*/}
-                </InputGroup>}
+                    </InputGroup>
+                }
                 {includePagination &&
-                <AmphiPagination LIMIT={LIMIT} tableNodes={tableNodes} onPaginationChange={onPaginationChange}
+                <AmphiPagination className={classnames(includeSearch ? "" : "no-search")} LIMIT={LIMIT} tableNodes={tableNodes} onPaginationChange={onPaginationChange}
                                  tableSize={tableSize} currPage={currPage} currElementCnt={currElementCnt}/>}
             </div>
             <div className='amphi-table-inner'>

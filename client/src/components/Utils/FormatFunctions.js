@@ -1,6 +1,7 @@
 import {FormGroup, Input, Label} from "reactstrap";
 import classnames from "classnames";
 import React from "react";
+import {Link} from "react-router-dom";
 
 export const formatDate = (date) => {
     date = new Date(date);
@@ -24,18 +25,32 @@ export const formatArrayToStr = (array) => {
     return array.join(", ");
 }
 
+export const formatIcon = (_, format_args) => {
+    return (<i className={classnames('tim-icons', format_args[1])}
+               onClick={format_args[0]}/>
+    );
+}
+
+export const formatDelete = (_, item, format_args) => {
+    const deleteFn = format_args[0];
+    const disabled = format_args[1](item);
+    return (<Label className={classnames('has-danger', 'amphi-cell', disabled ? 'disabled' : '')}
+                   onClick={() =>deleteFn(item)}/>
+    );
+}
+
 export const formatCheckbox = (checked, item, format_args) => {
     let rowCheckedCallback = format_args[0]
     let selected = format_args[1](item);
     let disabled = false;
-    if (format_args.length > 2){
+    if (format_args.length > 2) {
         disabled = format_args[2](item)
         disabled = format_args[2](item)
     }
     return (<FormGroup check disabled={disabled} className={classnames("no-label", "form-check-table")}>
-                <Label check>
-                    <Input defaultChecked={selected} type="checkbox"
-                           onChange={(e) => rowCheckedCallback(e, item)}
+        <Label check>
+            <Input defaultChecked={selected} type="checkbox"
+                   onChange={(e) => rowCheckedCallback(e, item)}
                             id={item['id'] + rowCheckedCallback.name}
                     />
                     <span className={classnames("form-check-sign", "form-check-sign-table")} />

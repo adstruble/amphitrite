@@ -14,6 +14,7 @@ import Root from "./views/Root/Root";
 import CrossFish from "./views/CrossFish/CrossFish";
 import ViewCrosses from "./views/CrossFish/ViewCrosses";
 import UserSettings from "./views/User/UserSettings";
+import ManageUsers from "./views/User/ManageUsers";
 
 const router = createBrowserRouter([
     {
@@ -36,6 +37,10 @@ const router = createBrowserRouter([
             {
                 path: "/managefish",
                 element: <ManageFish/>,
+            },
+            {
+                path: "/manageusers",
+                element: <ManageUsers/>,
             },
             {
                 path: "",

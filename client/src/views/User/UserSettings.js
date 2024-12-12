@@ -1,9 +1,10 @@
 import classNames from "classnames";
-import {Button, Col, Container, FormGroup, Input, InputGroup, InputGroupText, Row, UncontrolledAlert} from "reactstrap";
+import {Button, Col, Container, FormGroup, Input, InputGroup, InputGroupText, Row} from "reactstrap";
 import classnames from "classnames";
 import React, {useState} from "react";
 import fetchData from "../../server/fetchData";
 import useToken from "../../components/App/useToken";
+import AmphiAlert from "../../components/Basic/AmphiAlert";
 
 
 export default function UserSettings(){
@@ -27,9 +28,7 @@ export default function UserSettings(){
         <div className={classNames("wrapper")}>
             <Container>
                 <Row>
-                    <UncontrolledAlert className="alert-with-icon" isOpen={alertText.length > 0} color={alertLevel}>
-                        {alertLevel === "danger" && <strong>Error: </strong>} {alertText}
-                    </UncontrolledAlert>
+                    <AmphiAlert alertText={alertText} alertLevel={alertLevel} setAlertText={setAlertText}/>
                 </Row>
                 <h1>User Settings</h1>
                 <Row>

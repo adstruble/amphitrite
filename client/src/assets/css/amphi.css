@@ -73,13 +73,19 @@ body{
 .amphi-table-search .input-group-text{
     height: calc(2.25rem + 2px);
 }
+.amphi-table-search .no-search{
+    margin-left: auto;
+}
 .amphi-table-contents {
     flex: 1;
     display: flex;
     flex-direction: column;
     position: absolute;
-    inset: 41px 0 0 0;
+    inset: 42px 0 0 0;
     margin-bottom: 120px;
+}
+.manage-users .amphi-table-contents{
+    inset: 38px 0 0 0 ;
 }
 .cross-fish .amphi-table-contents{
     inset: 34px 0 0 0 ;
@@ -94,6 +100,9 @@ body{
     padding-left:40px;
     padding-right:40px;
     inset: 22px 0 0 0;
+}
+.amphi-table-contents > table {
+    overflow-x: hidden;
 }
 .inner-amphi-table h6{
     padding-left: 40px;
@@ -146,8 +155,28 @@ td.table-bottom{
     border-radius: 0 0 .2143rem .2143rem;
     background-color: #2b3858;
 }
+.amphi-cell.has-danger:after{
+    right:0;
+    font-size:20px;
+    font-weight:800;
+    cursor:pointer;
+    position:static;
+}
+.amphi-cell.disabled.has-danger:after{
+    cursor: not-allowed;
+}
 .numberCell{
     text-align:right;
+}
+.centerCell{
+    text-align:center;
+}
+td.centerCell:last-child div{
+    position: relative;
+   /* inset: 0 10px 0; We only want this if table has scrollbar */
+}
+label.amphi-cell{
+    margin-bottom: 0;
 }
 .cross-fish .table > thead > tr > th {
     padding-bottom: 3px;
@@ -196,7 +225,9 @@ ul.pagination .item-count{
 .loadingSpinner.off {
     display: None;
 }
-
+.centerCell .form-check {
+    display: inline-block;
+}
 .form-check.no-label {
     width:20px;
 }
