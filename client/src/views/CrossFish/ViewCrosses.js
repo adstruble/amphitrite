@@ -10,8 +10,7 @@ import {
 } from "reactstrap";
 import AmphiAlert from "../../components/Basic/AmphiAlert";
 import React,{useState} from "react";
-import {range} from "../../components/Utils/General";
-import AmphiTable, {getExpandedDefault} from "../../components/Table/AmphiTable";
+import AmphiTable from "../../components/Table/AmphiTable";
 import {
     formatDate,
     formatDoubleTo3,
@@ -20,6 +19,8 @@ import {
 import ViewCrossesExpanded from "./ViewCrossesExpanded";
 import fetchFile from "../../server/fetchFile";
 import useToken from "../../components/App/useToken";
+import {CrossYearDropdown} from "../../components/Basic/CrossYearDropdown";
+
 
 export default function ViewCrosses(){
     const BOTH_CROSSES_COLS =
@@ -61,11 +62,8 @@ export default function ViewCrosses(){
     const [isLoading, setIsLoading] = useState(false);
     const [alertText, setAlertText] = useState("");
     const [alertLevel, setAlertLevel] = useState("");
-    const currentYear = new Date().getFullYear();
-    const [completedCrossesYear, setCompletedCrossesYear] = useState(currentYear);
-    const years = range(currentYear, 2007);
+    const [completedCrossesYear, setCompletedCrossesYear] = useState(new Date().getFullYear());
     const [reloadTable, setReloadTable] = useState(0);
-    const [crossYearDropdownOpen, setCrossYearDropdownOpen] = useState(false);
     const [crossTypeDropdownOpen, setCrossTypeDropdownOpen] = useState(false);
     const [viewingRefugeCrosses, setViewingRefugeCrosses] = useState(true);
     const [currentHeaders, setCurrentHeaders] = useState(REFUGE_CROSSES_HEADER);
@@ -73,7 +71,6 @@ export default function ViewCrosses(){
         {'year':completedCrossesYear, 'refuge':viewingRefugeCrosses})
     const {_, __, getUsername} = useToken();
 
-    const toggle = () => setCrossYearDropdownOpen((prevState) => !prevState);
     const toggleCrossType = () => setCrossTypeDropdownOpen(prevState => !prevState)
 
     const handleExportCrossesClick = async e => {
@@ -130,13 +127,14 @@ export default function ViewCrosses(){
                 </Row>
                 <Row>
                     <Col>
+                    <Col>
                         <Row>
-                            <Col style={{padding:0, flexBasis:"fit-content", flexGrow:"0"}}>
+                            <Col style={{padding: 0, flexBasis: "fit-content", flexGrow: "0"}}>
                                 <span>Cross Use:</span>
                             </Col>
                             <Col>
                                 <Dropdown label="Refuge" toggle={toggleCrossType} isOpen={crossTypeDropdownOpen}>
-                                    <DropdownToggle style={{paddingTop:0, paddingLeft:0}}
+                                    <DropdownToggle style={{paddingTop: 0, paddingLeft: 0}}
                                                     aria-expanded={false}
                                                     aria-haspopup={true}
                                                     caret
@@ -149,7 +147,7 @@ export default function ViewCrosses(){
                                     </DropdownToggle>
                                     <DropdownMenu aria-labelledby="navbarDropdownMenuLink">
                                         <DropdownItem onClick={() => changeCrossUse(true)}>
-                                                Refuge
+                                            Refuge
                                         </DropdownItem>
                                         <DropdownItem onClick={() => changeCrossUse(false)}>
                                             Supplementation
@@ -159,35 +157,19 @@ export default function ViewCrosses(){
                             </Col>
                         </Row>
                         <Row>
-                            <Col style={{padding:0, flexBasis:"fit-content", flexGrow:"0"}}>
+                            <Col style={{padding: 0, flexBasis: "fit-content", flexGrow: "0"}}>
                                 <span>Cross completion year:</span>
                             </Col>
                             <Col>
-                                <Dropdown label={completedCrossesYear} toggle={toggle} isOpen={crossYearDropdownOpen}>
-                                    <DropdownToggle style={{paddingTop:0, paddingLeft:0}}
-                                        aria-expanded={false}
-                                        aria-haspopup={true}
-                                        caret
-                                        color="default"
-                                        data-toggle="dropdown"
-                                        id="crossesDropdownMenuLink"
-                                        nav
-                                    >
-                                        <span id="completedCrossesYear">{completedCrossesYear}</span>
-                                    </DropdownToggle>
-                                    <DropdownMenu aria-labelledby="navbarDropdownMenuLink">
-                                        {years.map((year) => {
-                                            return(<DropdownItem onClick={() => setCompletedCrossesYearWrapper(year)}>
-                                                {year}
-                                            </DropdownItem>)
-                                        })}
-                                    </DropdownMenu>
-                                </Dropdown>
+                                <CrossYearDropdown yearSelectedCallback={setCompletedCrossesYearWrapper}/>
                             </Col>
                         </Row>
                     </Col>
-                    <Col style={{padding:0, textAlign:"right", flexGrow:"0", flexBasis:"fit-content",
-                        justifyContent:"flex-end"}}>
+                    </Col>
+                    <Col style={{
+                        padding: 0, textAlign: "right", flexGrow: "0", flexBasis: "fit-content",
+                        justifyContent: "flex-end"
+                    }}>
                         <Button className="btn" color="default" type="button" onClick={handleExportCrossesClick}>
                             Export Crosses
                         </Button>

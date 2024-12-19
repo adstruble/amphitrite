@@ -49,16 +49,12 @@ def get_possible_crosses(username, query_params):
             pc.male p2_fam_id,
             xf.group_id x_gid,
             yf.group_id y_gid,
-            (select array_agg(distinct tag) FROM refuge_tag
-                                   JOIN animal a ON animal = a.id AND sex = 'F' AND family = xf.id
-                                   JOIN possible_cross ON female = a.id) f_tags,
+            array_agg(distinct rtx.tag) f_tags,
             array_agg(distinct rty.tag) m_tags,
             (SELECT count(*) FROM family new JOIN animal a ON a.id = new.parent_2 OR a.id = new.parent_1 WHERE a.family = xf.id) AS x_crosses,
             (SELECT count(*) FROM family new JOIN animal a ON a.id = new.parent_2 OR a.id = new.parent_1 WHERE a.family = pc.male) AS y_crosses,
             requested_cross.id is not null AND NOT requested_cross.supplementation as refuge,
             requested_cross.id is not null AND requested_cross.supplementation as supplementation,
-            array_remove(array_agg(y_crossed_tag.tag), NULL) as completed_y,
-            array_remove(array_agg(x_crossed_tag.tag), NULL) as completed_x,
             pc.f,
             pc.di,
             (SELECT CASE WHEN pc.male = ANY(select distinct f.family from possible_cross pc join animal f on pc.female = f.id) 
@@ -66,7 +62,16 @@ def get_possible_crosses(username, query_params):
                          + count(*) FROM requested_cross WHERE (parent_m_fam = pc.male AND parent_f_fam != xf.id)) 
                          AS selected_male_fam_cnt,              
            xf.cross_year as x_cross_year,
-           yf.cross_year as y_cross_year """
+           yf.cross_year as y_cross_year,
+            (SELECT rt.tag from family ngf 
+            JOIN animal m on ngf.parent_2 = m.id and m.family = pc.male 
+            JOIN animal f ON ngf.parent_1 = f.id and f.family = xf.id
+            JOIN refuge_tag rt ON rt.animal = m.id limit 1) as completed_y,
+             (SELECT rt.tag from family ngf 
+            JOIN animal m on ngf.parent_2 = m.id and m.family = pc.male 
+            JOIN animal f ON ngf.parent_1 = f.id and f.family = xf.id
+            JOIN refuge_tag rt ON rt.animal = f.id limit 1) as completed_x
+            """
     records_sql = f"""FROM possible_cross as pc
                     JOIN animal as x ON pc.female = x.id
                     JOIN animal as y ON y.family = pc.male
@@ -75,16 +80,14 @@ def get_possible_crosses(username, query_params):
                     JOIN refuge_tag rtx ON rtx.animal = x.id
                     JOIN refuge_tag rty on rty.animal = y.id
                LEFT JOIN requested_cross ON xf.id = requested_cross.parent_f_fam AND pc.male = requested_cross.parent_m_fam
-               LEFT JOIN family next_gen_fam ON next_gen_fam.parent_1 = x.id and next_gen_fam.parent_2 = y.id
-               LEFT JOIN supplementation_family next_gen_s_fam on next_gen_s_fam.parent_1 = x.id AND next_gen_s_fam.parent_2 = y.id
-               LEFT JOIN refuge_tag y_crossed_tag ON (y_crossed_tag.animal = next_gen_fam.parent_2 AND next_gen_fam.id IS NOT NULL)
-                                                  OR (y_crossed_tag.animal = next_gen_s_fam.parent_2 AND next_gen_s_fam.id IS NOT NULL)
-               LEFT JOIN refuge_tag x_crossed_tag ON x_crossed_tag.animal = next_gen_fam.parent_1 AND next_gen_fam.id IS NOT NULL
-                                                  OR (x_crossed_tag.animal = next_gen_s_fam.parent_1 AND next_gen_s_fam.id IS NOT NULL)
                    WHERE x.sex = 'F' AND y.sex = 'M' AND x.alive AND y.alive {filter_str}
                 GROUP BY xf.group_id, yf.group_id, pc.male, xf.id, xf.cross_year, yf.cross_year, requested_cross.id, requested_cross.supplementation, pc.f, pc.di"""
 
-    order_sql = ")q ORDER BY refuge DESC, supplementation DESC, y_crosses, x_crosses, f OFFSET :offset LIMIT :limit"""
+    order_sql = """ ORDER BY (requested_cross.id is not null and not requested_cross.supplementation)DESC, 
+                 (requested_cross.id is not null and requested_cross.supplementation)DESC,
+                 (SELECT count(*) FROM family new JOIN animal a ON a.id = new.parent_2 OR a.id = new.parent_1 WHERE a.family = pc.male),
+                 (SELECT count(*) FROM family new JOIN animal a ON a.id = new.parent_2 OR a.id = new.parent_1 WHERE a.family = xf.id), f
+                 )q OFFSET :offset LIMIT :limit"""
 
     possible_crosses = execute_statements((columns_sql + records_sql + order_sql, query_params),
                                           username).get_as_list_of_dicts()
@@ -233,7 +236,7 @@ def select_available_female_tags(username):
                                  username).row_results
     f_tags = [row[0] for row in results]
 
-    return ",".join(f_tags)
+    return ", ".join(f_tags)
 
 
 def determine_and_insert_possible_crosses(username_or_err, cleaned_f_tags):

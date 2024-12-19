@@ -100,7 +100,7 @@ def set_cross_completed():
 
 @cross_fish.route('/cross_fish/remove_completed_cross', methods=(['POST']))
 def remove_completed_cross():
-    LOGGER.info("Adding completed cross")
+    LOGGER.info("Removing completed cross")
     username_or_err = maybe_get_username(request.headers, "adding completed cross")
     if isinstance (username_or_err, dict): # noqa
         return username_or_err

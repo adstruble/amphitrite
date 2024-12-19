@@ -70,11 +70,11 @@ export default function CrossFish() {
 
     const cantUse = (item) =>{
         return item['selected_male_fam_cnt'] > 0 || item['supplementation'] ||
-            (item['completed_x'].length > 0 && item['completed_x'][0] != null);
+            (item['completed_x'] !== null);
     }
 
     const cantUseSupplementation = (item) =>{
-        return item['refuge'] || (item['completed_x'].length > 0 && item['completed_x'][0] != null);
+        return item['refuge'] || (item['completed_x'] != null);
     }
 
     const cantComplete = (item) => {
@@ -82,7 +82,7 @@ export default function CrossFish() {
     }
 
     const isCompleted = (item) => {
-        return item['completed_x'].length > 0 && item['completed_x'][0] != null;
+        return item['completed_x']!= null;
     }
 
     const handleCompletedChecked = (e, item)  => {
@@ -112,7 +112,7 @@ export default function CrossFish() {
             }
         }else{
             fetchData("cross_fish/remove_completed_cross", getUsername(),
-                {f_tag: item['completed_x'][0], m_tag: item['completed_y'][0]},
+                {f_tag: item['completed_x'], m_tag: item['completed_y']},
                 () => setReloadTable(reloadTable => reloadTable + 1),
                 null, null, setAlertLevel, setAlertText)
         }
@@ -273,83 +273,83 @@ export default function CrossFish() {
                 </Row>
 
                 <Row>
-                    <Col>
+                    <Col className="input-area">
                         <Row>
-                            <div>Available female fish for crossing: {availableFTags}
-                                <Button className="btn setting" color="default" type="button"
-                                        onClick={handleSetAvailableFemalesClick}>Set</Button>
-                            </div>
+                            <Col>
+                                <span>Available female fish for crossing:</span>
+                            </Col>
+                            <Col>
+                                <span>{availableFTags}
+                                    <Button style={{marginLeft:"20px"}} className="btn setting" color="default" type="button"
+                                            onClick={handleSetAvailableFemalesClick}>Set Available Females</Button>
+                                </span>
+                            </Col>
                         </Row>
                         <Row>
-                            <Col style={{padding:0, flexBasis:"fit-content", flexGrow:"0"}}>
+                            <Col>
                                 <span>Date cross made:</span>
                             </Col>
-                            <Col style={{padding:0, flexGrow:"1", flexBasis:"fit-content"}}>
-                                <div className="datepicker-container setting">
+                            <Col>
+                                <div className="setting">
                                     <FormGroup className="form-group setting">
-                                            <ReactDatetime
-                                                className=" amphi-date"
-                                                value={crossCompletionDate}
-                                                onChange={(date) => {
-                                                    if (date instanceof String){
-                                                        setAlertLevel('danger');
-                                                        setAlertText("'" + date +
-                                                            "' is not a valid date. Cross completion date must be a valid date.");
-                                                    }else {
-                                                        setCrossCompletionDate(moment(date).format("MM/DD/YYYY"));
-                                                    }
-                                                }}
-                                                inputProps={ {readOnly:true} }
-                                                dateFormat="MM/DD/YYYY"
-                                                timeFormat={false}
-                                            />
-                                        </FormGroup>
+                                        <ReactDatetime
+                                            className=" amphi-date"
+                                            value={crossCompletionDate}
+                                            onChange={(date) => {
+                                                if (date instanceof String) {
+                                                    setAlertLevel('danger');
+                                                    setAlertText("'" + date +
+                                                        "' is not a valid date. Cross completion date must be a valid date.");
+                                                } else {
+                                                    setCrossCompletionDate(moment(date).format("MM/DD/YYYY"));
+                                                }
+                                            }}
+                                            inputProps={{readOnly: true}}
+                                            dateFormat="MM/DD/YYYY"
+                                            timeFormat={false}
+                                        />
+                                    </FormGroup>
                                 </div>
                             </Col>
                         </Row>
                     </Col>
-                    <Col style={{padding:0, textAlign:"right", flexGrow:"0", flexBasis:"fit-content"}}>
+                    <Col style={{padding: 0, textAlign: "right", flexGrow: "0", flexBasis: "fit-content"}}>
                         <Button className="btn" color="default" type="button" onClick={handleExportCrossesClick}>
                             Export Selected Crosses
                         </Button>
                     </Col>
                 </Row>
                 <Row>
-            <AmphiTable tableDataUrl="cross_fish/get_possible_crosses"
-                        headerDataStart={CROSSES_HEADER}
-                        reloadData={reloadTable}
-                        getExpandedRow={getExpandedRow}
-            />
-        </Row>
-            </Container>
-        <Modal isOpen={selectFishOpen} modalClassName="modal-black" id="selectCrossedMale">
-                    <div className="modal-header justify-content-center">
-                        <button className="btn-close" onClick={() => closeSelectFish()}>
-                            <i className="tim-icons icon-simple-remove text-white"/>
-                        </button>
-                        <div className="text-muted text-center ml-auto mr-auto">
-                            <h3 className="mb-0">Select Crossed {(possibleFishColumn === 'm_tags') ? 'Male' : 'Female'}</h3>
-                        </div>
-                    </div>
-                    <div className="modal-body">
-                        <div>
-                            <RadioGroup items={requestedCross[possibleFishColumn]} radioSelectedCallback={onFishSelected}
-                            selectedItem={(possibleFishColumn === 'm_tags') ? selectedMale : selectedFemale}></RadioGroup>
-                        </div>
-                    </div>
-                    <div className="modal-footer">
-                        <Button color="default" className="btn" type="button"
-                                onClick={() => closeSelectFish()}>Cancel</Button>
-                        <Button disabled={(possibleFishColumn === "m_tags" && selectedMale === "") ||
-                            (possibleFishColumn === "f_tags" && selectedFemale === "")} color="success" type="button"
-                                onClick={selectFish}>Select</Button>
-                    </div>
-                </Modal>
-            {/*
-                    </Col>
+                    <AmphiTable tableDataUrl="cross_fish/get_possible_crosses"
+                                headerDataStart={CROSSES_HEADER}
+                                reloadData={reloadTable}
+                                getExpandedRow={getExpandedRow}
+                    />
                 </Row>
-            </Container> */}
-
+            </Container>
+            <Modal isOpen={selectFishOpen} modalClassName="modal-black" id="selectCrossedMale">
+                <div className="modal-header justify-content-center">
+                    <button className="btn-close" onClick={() => closeSelectFish()}>
+                        <i className="tim-icons icon-simple-remove text-white"/>
+                    </button>
+                    <div className="text-muted text-center ml-auto mr-auto">
+                    <h3 className="mb-0">Select Crossed {(possibleFishColumn === 'm_tags') ? 'Male' : 'Female'}</h3>
+                    </div>
+                </div>
+                <div className="modal-body">
+                    <div>
+                        <RadioGroup items={requestedCross[possibleFishColumn]} radioSelectedCallback={onFishSelected}
+                        selectedItem={(possibleFishColumn === 'm_tags') ? selectedMale : selectedFemale}></RadioGroup>
+                    </div>
+                </div>
+                <div className="modal-footer">
+                    <Button color="default" className="btn" type="button"
+                            onClick={() => closeSelectFish()}>Cancel</Button>
+                    <Button disabled={(possibleFishColumn === "m_tags" && selectedMale === "") ||
+                        (possibleFishColumn === "f_tags" && selectedFemale === "")} color="success" type="button"
+                            onClick={selectFish}>Select</Button>
+                </div>
+            </Modal>
         </div>
     )
 }

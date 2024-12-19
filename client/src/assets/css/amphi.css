@@ -1,5 +1,6 @@
 body{
     overflow-y:hidden;
+    color: hsla(0, 0%, 100%, .6);
 }
 .navbar-nav{
     align-items: center;
@@ -58,23 +59,78 @@ body{
     padding-left: 40px;
     padding-right: 40px;
 }
-.amphi-table-search {
+.amphi-table-search-paginate {
     display: flex;
     width: 100%;
 }
-.inner-amphi-table .amphi-table-search{
+.inner-amphi-table .amphi-table-search-paginate{
     display: none;
 }
-.amphi-table-search .input-group {
+.amphi-table-search-paginate .input-group {
     margin-top: 10px;
     margin-bottom: 10px;
-    margin-right: 75px;
 }
-.amphi-table-search .input-group-text{
+.amphi-table-search-paginate .input-group-text{
     height: calc(2.25rem + 2px);
 }
-.amphi-table-search .no-search{
-    margin-left: auto;
+.amphi-table-search{
+    flex-grow:1;
+    padding-right: 35px;
+}
+.input-area{
+    display: flex;
+    flex-direction: column;
+}
+.input-area > div {
+    justify-content: center;
+    margin: 0;
+    flex-wrap: nowrap;
+}
+.input-area > div > div{
+    flex-grow: 0;
+    flex-basis: max-content;
+}
+.input-area > div > div:last-child{
+    margin-right: auto;
+}
+.input-area > div > div:first-child{
+    flex-basis: max-content;
+    display: flex;
+    justify-content: right;
+    padding-right: 0;
+    padding-left: 0;
+}
+div.input-area{
+    line-height: 29px;
+}
+
+.cross-fish .input-area > div > div:first-child {
+    flex-basis: 210px;
+    flex-shrink: 0;
+}
+.setting:has(div.amphi-date){
+    vertical-align: middle;
+    display:inline-block;
+}
+.filter .input-area > div > div:first-child {
+    flex-basis: 170px;
+}
+.filter{
+    position:fixed;
+    margin-top:-10px;
+    z-index: 1000;
+    padding-right: 35px;
+    background-clip:content-box;
+    background-color: rgb(23, 25, 65);
+}
+div.row.input-area {
+    padding-top: 20px;
+    padding-left: 35px;
+}
+.filter div.row > div.col > div.row > .dropdown > a,
+.filter div.row > div.col > div.row > input{
+    line-height: 29px;
+    height: 29px;
 }
 .amphi-table-contents {
     flex: 1;
@@ -190,8 +246,12 @@ i.order-by{
     padding-right: 5px;
     padding-left: 5px;
 }
+nav.pagination{
+    display: flex;
+    margin-left: auto;
+}
 ul.pagination {
-    padding-top:20px;
+    margin-top: auto;
     margin-bottom: 0;
     justify-content: right;
 }
@@ -254,9 +314,6 @@ ul.pagination .item-count{
     padding: 0 10px;
     height:24px;
 }
-.datepicker-container.setting{
-    margin-left: 10px;
-}
 .setting .amphi-date {
     width: 82px;
 }
@@ -271,9 +328,10 @@ tr.row-line-through td {
 }
 
 .dropdown-menu{
-    max-height:240px;
-    overflow-y: scroll;
-
+    height: auto;
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 0.5rem 1rem;
 }
 ::-webkit-scrollbar {
     -webkit-appearance: none;

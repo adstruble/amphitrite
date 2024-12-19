@@ -19,18 +19,13 @@ export default function ManageFish() {
         cols:[
         {name: "Family ID", key: "group_id", order_by: "group_id", visible: true, order_direction: "ASC", order: 1,
             format_fn: formatStr},
-        {name: "Parent Cross Date", key: "cross_date", order_by: "cross_date", visible: true, order_direction: "", order: 2,
+        {name: "Birth Year", key: "cross_date", order_by: "cross_date", visible: true, order_direction: "", order: 2,
             format_fn: formatDate},
-        {name: "F", key: "f", order_by: "f", visible: true, order_direction: "", order: 2,
-            format_fn: formatDoubleTo3},
-        {name: "DI", key: "di", order_by: "di", visible: true, order_direction: "", order: 2,
-            format_fn: formatDoubleTo3},
-        {name: "Sex", key: "sex", order_by: "sex", visible: true, order_direction: "", order: 2,
-            format_fn: formatStr},
-        {name: "Refuge Tag", key: "tag", order_by: "tag", visible: true, order_direction: "", order: 2,
-            format_fn: formatStr},
-        {name: "Box", key: "box", order_by: "box", visible: true, order_direction: "", order: 2,
-            format_fn: formatStr}
+        {name: "F", key: "f", order_by: "f", visible: true, order_direction: "", order: 2, format_fn: formatDoubleTo3},
+        {name: "DI", key: "di", order_by: "di", visible: true, order_direction: "", order: 2, format_fn: formatDoubleTo3},
+        {name: "Sex", key: "sex", order_by: "sex", visible: true, order_direction: "", order: 2, format_fn: formatStr},
+        {name: "Refuge Tag", key: "tag", order_by: "tag", visible: true, order_direction: "", order: 2, format_fn: formatStr},
+        {name: "Box", key: "box", order_by: "box", visible: true, order_direction: "", order: 2, format_fn: formatStr}
     ]};
 
     const handleFishUploadedCallback = () => {

@@ -30,6 +30,11 @@ def get_fishes_from_db(username: str, query_params: dict, order_by_clause: str):
                      f"OR tag {like_filter} " \
                      f"OR sex::text {like_filter} " \
                      f"OR date(cross_date)::text {like_filter})"
+    exact_filter = query_params.get('exact_filters')
+    if exact_filter:
+        exact_filters = [f"{key} = :{key}" for key in exact_filter]
+        filter_str = f" {filter_str} AND ({' AND '.join(exact_filters)})"
+        query_params.update(query_params.get('exact_filters'))
 
     LOGGER.info(f"Query params: {query_params}")
     fish = execute_statements((

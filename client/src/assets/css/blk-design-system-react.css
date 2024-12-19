@@ -4006,7 +4006,7 @@ input[type="button"].btn-block {
 .input-group > .input-group-prepend:not(:first-child) > .btn,
 .input-group > .input-group-prepend:not(:first-child) > .input-group-text,
 .input-group > .input-group-prepend:first-child > .btn:not(:first-child),
-.input-group
+.input-©
   > .input-group-prepend:first-child
   > .input-group-text:not(:first-child) {
   border-top-left-radius: 0;
@@ -18345,7 +18345,7 @@ code {
 
 .input-group .form-control:not(:first-child):not(:last-child),
 .input-group-btn:not(:first-child):not(:last-child) {
-  border-radius: 0.4285rem;
+  /*border-radius: 0.4285rem; It seems f it's not the first child and not the last child, the border radius shoudl be 9*/
   border-top-left-radius: 0;
   border-bottom-left-radius: 0;
   border-left: 0 none;
@@ -24072,7 +24072,8 @@ td.rdtYear:hover {
 .form-control:focus + .input-group-prepend .input-group-text,
 .form-control:focus ~ .input-group-prepend .input-group-text,
 .input-group-focus .input-group-prepend .input-group-text,
-.input-group-focus .input-group-append .input-group-text {
+.input-group-focus .input-group-append .input-group-text,
+.input-group-focus .input-group-text{
   border-color: #1d8cf8;
 }
 

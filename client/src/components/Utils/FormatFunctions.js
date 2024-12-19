@@ -89,11 +89,11 @@ export const formatArrayToStrTags = (tags, requested_cross, m_f) => {
     if (tags == null){
         return "";
     }
-    tags.sort(function (a, b){return sort_by_completed(a, b, requested_cross['completed' + m_f][0])});
-    if (requested_cross['completed' + m_f].length > 0 && requested_cross['completed' + m_f][0] != null){
+    tags.sort(function (a, b){return sort_by_completed(a, b, requested_cross['completed' + m_f])});
+    if (requested_cross['completed' + m_f] != null){
         return (tags.map((tag, index) => {
                 let comma = index < tags.length - 1 ? ", " : ""
-                if (tag === requested_cross['completed' + m_f][0]) {
+                if (tag === requested_cross['completed' + m_f]) {
                     return(<span className='text-primary'>{tag}{comma}</span>);
                 }
                 return(<span className='text-muted'>{tag}{comma}</span>)

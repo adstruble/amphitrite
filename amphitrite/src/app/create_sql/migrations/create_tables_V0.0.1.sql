@@ -312,6 +312,9 @@ CREATE TABLE family
 -- Therefore we need to include cross_year in the constraint on unique parents
 -- Here is the SQL to find them:
 -- select array_agg(f1.gen_id) as children_first_cross, family.group_id,family.cross_year, array_agg(f2.gen_id) as children_second_cross, family_2.group_id,family_2.cross_year from family join family as family_2 on family.parent_1 = family_2.parent_1 and family.id != family_2.id AND family.parent_2 = family_2.parent_2 join animal f1 on f1.family = family.id join animal f2 on f2.family = family_2.id where family.cross_year < family_2.cross_year group by family.group_id, family.cross_year, family_2.group_id, family_2.cross_year;
+CREATE INDEX family_parent_1_idx on family(parent_1);
+CREATE INDEX family_parent_2_idx on family(parent_2);
+
 ALTER TABLE family ADD CONSTRAINT unique_parents UNIQUE (parent_1, parent_2, cross_year);
 ALTER TABLE family
     ADD CONSTRAINT different_parents CHECK (not (parent_1 = parent_2));
@@ -361,6 +364,7 @@ CREATE TRIGGER history_trigger_row AFTER INSERT OR DELETE OR UPDATE ON requested
 CREATE TRIGGER history_trigger_stm AFTER TRUNCATE ON requested_cross FOR EACH STATEMENT EXECUTE FUNCTION history.if_modified_func('false');
 CREATE OR REPLACE TRIGGER element_pre_insert_t BEFORE INSERT ON requested_cross FOR EACH ROW EXECUTE PROCEDURE element_pre_insert();
 CREATE OR REPLACE TRIGGER element_pre_update_t BEFORE UPDATE ON requested_cross FOR EACH ROW EXECUTE PROCEDURE element_pre_update();
+CREATE INDEX rc_parent_fams_idx ON requested_cross(parent_f_fam, parent_m_fam);
 
 CREATE TABLE possible_cross
 (

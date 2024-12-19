@@ -19,6 +19,7 @@ import {Input, InputGroup, InputGroupText, UncontrolledTooltip} from "reactstrap
 import AmphiHeaderCell from "./AmphiHeaderCell";
 import classnames from "classnames";
 import AmphiPagination from "./AmphiPagination";
+import {FilterOptions} from "./FilterOptions";
 
 export const getExpandedDefault = () => {
     return (<tr className='expanded-row-contents'><td style={{display:"none"}}/></tr>);
@@ -35,10 +36,12 @@ export default function AmphiTable({tableDataUrl,
     const [headerCols, setHeaderCols] = useState(headerDataStart.cols);
     const [headerRows, setHeaderRows] = useState(headerDataStart.rows);
     const [searchFocus, setSearchFocus] = useState(false);
+    const [showFilterOptions, setShowFilterOptions] = useState(false);
     const [search, setSearch] = useState("");
     const [tableSize, setTableSize] = useState(0);
     const [currElementCnt, setCurrElementCnt] = useState(0);
-    const [currPage, setCurrPage] = useState(0)
+    const [currPage, setCurrPage] = useState(0);
+    const [exactFilter, setExactFilter] = useState(null);
     const LIMIT = 30;
 
     const [tableNodes, setTableNodes] = useState({
@@ -50,7 +53,6 @@ export default function AmphiTable({tableDataUrl,
     React.useEffect(() => {
         setHeaderCols(headerDataStart.cols);
         setHeaderRows(headerDataStart.rows);
-        doGetTableData().then();
     }, [headerDataStart]);
 
     const handleExpand = (item, event) => {
@@ -121,9 +123,10 @@ export default function AmphiTable({tableDataUrl,
                 order_by: newOrderBy,
                 return_size: true,
                 like_filter: search,
+                exact_filters: exactFilter
             }};
         fetchData(tableDataUrl, getUsername(), params, setTableData);
-    }, [fetchData, search, currPage, fetchParams, headerCols]);
+    }, [fetchData, search, currPage, fetchParams, headerCols, exactFilter]);
 
     const setTableData = (tableData, params) => {
         setTableNodes({nodes: tableData['data']});
@@ -143,15 +146,16 @@ export default function AmphiTable({tableDataUrl,
     React.useEffect(() =>{
         setHeaderCols(headerDataStart.cols);
         setHeaderRows(headerDataStart.rows);
-    }, [headerDataStart])
+    }, [headerDataStart]);
 
-    const  maybeFilterTable = (e) => {
+    const  maybeSearchTable = (e) => {
         setCurrPage(0)
         if (e.key !== 'Enter'){
             return;
         }
         doGetTableData().then();
     }
+
 
     const THEME = {
         Row: `
@@ -175,12 +179,24 @@ export default function AmphiTable({tableDataUrl,
         doGetTableData().then();
     }
 
+    function onApplyFilter(filterState){
+        console.info("filter closed");
+        setSearchFocus(searchFocus)
+        setShowFilterOptions(false);
+        if (!filterState) {
+            return;
+        }
+        setExactFilter(filterState)
+    }
 
     return (
         <div className='amphi-table-container'>
-            <div className='amphi-table-search'>
+
+            <div className='amphi-table-search-paginate' id="amphiTableSearchPaginate">
+                <div className='amphi-table-search' id="amphiTableSearch">
                 {includeSearch &&
-                    <InputGroup className={classnames({"input-group-focus": searchFocus})}>
+                    <InputGroup onBlur={() => setSearchFocus(showFilterOptions)}
+                                className={classnames({"input-group-focus": searchFocus})}>
                         <div className="input-group-prepend">
                             <InputGroupText>
                                 <i className="tim-icons icon-zoom-split"/>
@@ -191,23 +207,34 @@ export default function AmphiTable({tableDataUrl,
                             type="text"
                             onFocus={() => setSearchFocus(true)}
                             onBlur={() => setSearchFocus(false)}
+                            className={classnames({"input-group-focus": searchFocus})}
                             onChange={e => setSearch(e.target.value)}
                             onKeyUp={e => {
-                                maybeFilterTable(e)
+                                maybeSearchTable(e)
                             }}
                             id={tableDataUrl + "_amphiTable"}
                         />
-{/*                <div className="input-group-append">
-                    <InputGroupText>
-                        <i className="amphi-icon icon-filter"/>
-                    </InputGroupText>
-                </div>*/}
-                    </InputGroup>
-                }
+                        <div className="input-group-append">
+                            <InputGroupText>
+                                <i className="amphi-icon icon-filter"
+                                   style={showFilterOptions ? {display: "none"} : {}}
+                                   onClick={() => {
+                                       setShowFilterOptions(!showFilterOptions);
+                                   }}/>
+                            </InputGroupText>
+                        </div>
+                    </InputGroup>}
+
+                    <FilterOptions applyFilterCallback={onApplyFilter} matchWidthElementId="amphiTableSearch"
+                        showFilter={showFilterOptions}/>
+                </div>
+
+
                 {includePagination &&
-                <AmphiPagination className={classnames(includeSearch ? "" : "no-search")} LIMIT={LIMIT} tableNodes={tableNodes} onPaginationChange={onPaginationChange}
+                <AmphiPagination className={classnames('pagination')} LIMIT={LIMIT} tableNodes={tableNodes} onPaginationChange={onPaginationChange}
                                  tableSize={tableSize} currPage={currPage} currElementCnt={currElementCnt}/>}
             </div>
+
             <div className='amphi-table-inner'>
                 <div className='amphi-table-header'>
                     <Table data={{nodes: headerCols}} style={{marginBottom: "0px"}} theme={theme} >

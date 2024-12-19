@@ -22,7 +22,7 @@ export default function CrossFishExpanded({item}) {
 
     function getRowContents(){
         if(item['x_crosses'] + item['y_crosses'] === 0){
-            return <><span>No other crosses have been made with either group {item['x_gid']} of year {item['x_cross_year']} or group {item['x_gid']} of year {item['y_cross_year']}</span></>
+            return <><span>No other crosses have been made with either group {item['x_gid']} of year {item['x_cross_year']} or group {item['y_gid']} of year {item['y_cross_year']}</span></>
         }
 
         if (item['x_crosses'] > 0 && item['y_crosses'] === 0) {
