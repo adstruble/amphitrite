@@ -28,10 +28,20 @@ def get_new_possible_crosses_for_females(username, f_tags):
            LEFT JOIN possible_cross pc ON pc.female = rtx.animal
            LEFT JOIN family next_gen_fam ON next_gen_fam.parent_1 = x.id and next_gen_fam.parent_2 = y.id
            LEFT JOIN refuge_tag y_crossed_tag ON y_crossed_tag.animal = next_gen_fam.parent_2 AND next_gen_fam.id IS NOT NULL
-               WHERE x.sex = 'F' AND y.sex = 'M' AND pc.id is NULL AND rtx.tag = ANY (:f_tags)
+               WHERE x.sex = 'F' AND y.sex = 'M' AND x.alive AND y.alive AND pc.id is NULL AND rtx.tag = ANY (:f_tags)
             GROUP BY rtx.tag, x.id, yf.id, xf.id)q"""
     return execute_statements([(new_possible_crosses_sql, {'f_tags': list(f_tags)})],
                               username).get_as_list_of_dicts()
+
+
+def get_num_fam_crosses_completed (this_fam_id):
+    return f"""(SELECT count(distinct rc.id) FROM requested_cross rc
+    WHERE rc.parent_m_fam = {this_fam_id} OR rc.parent_f_fam = {this_fam_id} AND NOT rc.supplementation) +
+        (SELECT count(*) FROM family newf
+                         JOIN animal a ON a.id = newf.parent_2 OR a.id = newf.parent_1
+                    LEFT JOIN requested_cross rc on rc.parent_m = newf.parent_2 and rc.parent_f = newf.parent_1
+                         AND NOT rc.supplementation
+         WHERE a.family = {this_fam_id} and rc.id is null)"""
 
 
 def get_possible_crosses(username, query_params):
@@ -42,8 +52,10 @@ def get_possible_crosses(username, query_params):
         like_filter = "LIKE :like_filter || '%'"
         filter_str += f"rty.tag {like_filter} OR rtx.tag {like_filter} OR "
         filter_str += f"xf.group_id::text {like_filter} OR yf.group_id::text {like_filter})"
+    y_crosses_sql = get_num_fam_crosses_completed('pc.male')
+    x_crosses_sql = get_num_fam_crosses_completed('xf.id')
 
-    columns_sql = """SELECT * FROM (
+    columns_sql = f"""SELECT * FROM (
         SELECT  concat(xf.id,'__', pc.male) as id,
             xf.id p1_fam_id,
             pc.male p2_fam_id,
@@ -51,8 +63,9 @@ def get_possible_crosses(username, query_params):
             yf.group_id y_gid,
             array_agg(distinct rtx.tag) f_tags,
             array_agg(distinct rty.tag) m_tags,
-            (SELECT count(*) FROM family new JOIN animal a ON a.id = new.parent_2 OR a.id = new.parent_1 WHERE a.family = xf.id) AS x_crosses,
-            (SELECT count(*) FROM family new JOIN animal a ON a.id = new.parent_2 OR a.id = new.parent_1 WHERE a.family = pc.male) AS y_crosses,
+            {x_crosses_sql} x_crosses,
+            {y_crosses_sql} AS y_crosses,
+
             requested_cross.id is not null AND NOT requested_cross.supplementation as refuge,
             requested_cross.id is not null AND requested_cross.supplementation as supplementation,
             pc.f,
@@ -83,10 +96,10 @@ def get_possible_crosses(username, query_params):
                    WHERE x.sex = 'F' AND y.sex = 'M' AND x.alive AND y.alive {filter_str}
                 GROUP BY xf.group_id, yf.group_id, pc.male, xf.id, xf.cross_year, yf.cross_year, requested_cross.id, requested_cross.supplementation, pc.f, pc.di"""
 
-    order_sql = """ ORDER BY (requested_cross.id is not null and not requested_cross.supplementation)DESC, 
+    order_sql = f""" ORDER BY (requested_cross.id is not null and not requested_cross.supplementation)DESC, 
                  (requested_cross.id is not null and requested_cross.supplementation)DESC,
-                 (SELECT count(*) FROM family new JOIN animal a ON a.id = new.parent_2 OR a.id = new.parent_1 WHERE a.family = pc.male),
-                 (SELECT count(*) FROM family new JOIN animal a ON a.id = new.parent_2 OR a.id = new.parent_1 WHERE a.family = xf.id), f
+                 {y_crosses_sql},
+                 {x_crosses_sql}, f
                  )q OFFSET :offset LIMIT :limit"""
 
     possible_crosses = execute_statements((columns_sql + records_sql + order_sql, query_params),
@@ -141,7 +154,7 @@ def get_requested_crosses_csv(username, csv_file):
             cross['f_group_id'] = ''
         else:
             prev_female_group = cross['f_group_id']
-        csv_file.write(f",\"{', '.join(cross['f_tags'])}\"{' (pick one)' if len(cross['f_tags']) > 1 else ''},"
+        csv_file.write(f",\"{'(pick one) ' if len(cross['f_tags']) > 1 else ''}{', '.join(cross['f_tags'])}\","
                        f"{cross['f_group_id']},"
                        f"\"{'(pick one) ' if len(cross['m_tags']) > 1 else ''}{', '.join(cross['m_tags'])}\","
                        f"{cross['m_group_id']},"
@@ -175,12 +188,13 @@ def get_requested_crosses(username):
     return execute_statements(requested_crosses_sql, username).get_as_list_of_dicts()
 
 
-def add_completed_cross(username, f_tag, m_tag, f, cross_date_str, table_name):
+def add_completed_cross(username, f_tag, m_tag, f, cross_date_str, table_name, requested_cross):
     cross_date = datetime.datetime.strptime(cross_date_str, '%m/%d/%Y')
 
     group_id_seq = f"""CREATE SEQUENCE IF NOT EXISTS group_id_{cross_date.year}"""
     execute_statements(group_id_seq, username, ResultType.NoResult)
 
+    fam_ids = requested_cross.split('__')
     insert_completed_sql = f"""
         INSERT INTO {table_name} (id, parent_1, parent_2, cross_date, group_id, di, f) 
         SELECT '{uuid.uuid4()}',
@@ -196,8 +210,20 @@ def add_completed_cross(username, f_tag, m_tag, f, cross_date_str, table_name):
           JOIN animal ma ON ma.id = m_tag.animal
           JOIN family f_fam ON f_fam.id = fa.family
           JOIN family m_fam ON m_fam.id = ma.family
-         WHERE m_tag.tag = \'{m_tag}' AND f_tag.tag = \'{f_tag}\'"""
-    if execute_statements(insert_completed_sql, username, ResultType.RowCount).row_cnts[0] < 1:
+         WHERE m_tag.tag = \'{m_tag}' AND f_tag.tag = \'{f_tag}\' 
+           AND f_fam.id = '{fam_ids[0]}' AND m_fam.id = '{fam_ids[1]}'"""
+
+    # Also update requested_cross table to say what male and female we've used as it makes determining crosses count
+    # for Possible Crosses table much eaiser
+    update_req_cross_sql = f"""
+        UPDATE requested_cross SET (parent_f, parent_m) = (fa.id, ma.id) 
+            FROM refuge_tag rtf
+            JOIN refuge_tag rtm ON TRUE
+            JOIN animal fa ON fa.id = rtf.animal
+            JOIN animal ma ON ma.id = rtm.animal
+           WHERE rtm.tag = \'{m_tag}' AND rtf.tag = \'{f_tag}\'"""
+
+    if execute_statements([insert_completed_sql, update_req_cross_sql], username, ResultType.RowCount).row_cnts[0] < 1:
         LOGGER.error(f"Family record was not added for parents: {f_tag} and {m_tag}")
         return False
 
@@ -237,6 +263,41 @@ def select_available_female_tags(username):
     f_tags = [row[0] for row in results]
 
     return ", ".join(f_tags)
+
+
+def set_available_females(username:str, females: list):
+    """
+    Possible crosses along with their f values will be determined for the given available females.
+    These available females will replace any previous.
+    :param username: user who is setting the available females
+    :param females: The females to be set as available.
+    :return: result of the operation, either success with the list of available females, or error if
+    unable to set. A warning will also be included if the list included tags that weren't included in the set
+    of available females
+    """
+    try:
+        insert_cnt = determine_and_insert_possible_crosses(username, females)
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+    return_val = {'success': True}
+    if insert_cnt < len(females):
+        possible_females_cnt = get_count_possible_females(username)
+        if len(females) > possible_females_cnt:
+            f_tags_len = len(females)
+            return_val['warning'] = \
+                f"{'' if possible_females_cnt == 0 else 'Only '}{possible_females_cnt} female fish are available for " \
+                f"crossing, however you supplied a list of {f_tags_len} female tag{'' if f_tags_len == 1 else 's'}. " \
+                "Confirm all tags were specified correctly and all the fish for the entered tags have previously " \
+                "been uploaded and are present in the Manage Fish UI. "
+            if possible_females_cnt == 0:
+                return_val['success'] = False
+                return_val['error'] = return_val['warning']
+                return_val.pop('warning')
+                return return_val
+
+    return_val['data'] = select_available_female_tags(username)
+    return return_val
 
 
 def determine_and_insert_possible_crosses(username_or_err, cleaned_f_tags):

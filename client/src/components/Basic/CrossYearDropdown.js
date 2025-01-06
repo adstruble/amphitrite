@@ -3,10 +3,14 @@ import * as PropTypes from "prop-types";
 import React, {useState} from "react";
 import {range} from "../Utils/General";
 
-export function CrossYearDropdown({yearSelectedCallback, includeAllYears=false}) {
+export function CrossYearDropdown({yearSelectedCallback, includeAllYears=false,
+                                  includeThisYear=true}) {
 
     const [crossYearDropdownOpen, setCrossYearDropdownOpen] = useState(false);
-    const currentYear = new Date().getFullYear();
+    let currentYear = new Date().getFullYear();
+    if (!includeThisYear){
+        currentYear = currentYear - 1;
+    }
     const years = range(currentYear, 2007);
     const [dropdownSelection, setDropdownSelection] = useState(includeAllYears ? 'All' : currentYear)
 
@@ -44,5 +48,6 @@ export function CrossYearDropdown({yearSelectedCallback, includeAllYears=false})
 
 CrossYearDropdown.propTypes = {
     yearSelectedCallback: PropTypes.func.isRequired,
-    includeAllYears: PropTypes.bool
+    includeAllYears: PropTypes.bool,
+    includeThisYear: PropTypes.bool
 };

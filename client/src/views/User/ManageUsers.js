@@ -3,14 +3,11 @@ import AmphiTable from "../../components/Table/AmphiTable";
 import React, {useState} from "react";
 import useToken from "../../components/App/useToken";
 import {
-    formatAction,
     formatCheckbox,
     formatDelete,
-    formatDoubleTo3,
     formatStr
 } from "../../components/Utils/FormatFunctions";
 import classnames from "classnames";
-import {onKeyupWithDelay} from "../../components/Utils/General";
 import fetchData from "../../server/fetchData";
 import AmphiAlert from "../../components/Basic/AmphiAlert";
 

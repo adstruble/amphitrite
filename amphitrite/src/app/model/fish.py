@@ -1,5 +1,5 @@
 from amphi_logging.logger import get_logger
-from db_utils.core import execute_statements
+from db_utils.core import execute_statements, ResultType
 
 LOGGER = get_logger('model')
 
@@ -74,6 +74,7 @@ def get_fish_available_for_crossing(sex,  username):
 
 def get_fish_f_values(fish_ids: list, username):
     """
+    :param username
     :param fish_ids: list of fish ids to get f values for
     :return: the f values for the given fish
     """
@@ -85,3 +86,8 @@ def get_fish_f_values(fish_ids: list, username):
                 FROM animal 
                 JOIN family ON animal.family = family.id
                 WHERE animal.id in ({ids_str})""", username).get_as_list_of_dicts()
+
+
+def mark_all_fish_dead(username):
+    return execute_statements("UPDATE animal set alive = false", username, # noqa
+                             result_type=ResultType.NoResult)

@@ -13,7 +13,11 @@ from db_utils.db_connection import get_engine_user_postgres, get_connection, AMP
     make_connection_kwargs
 from amphi_logging.logger import get_logger
 from exceptions.exceptions import DBConnectionError
+from importer.import_crosses import import_crosses
+from importer.import_master import import_master_data
 from importer.import_pedigree import import_pedigree
+from importer.import_utils import get_import_resources_dir
+from model.fish import mark_all_fish_dead
 
 # Configurations
 bind = ['0.0.0.0:5001']
@@ -81,8 +85,14 @@ def on_starting(server: Arbiter) -> None:
             logger.info(f"Applied sql migration: {migration_version}")
             version = migration_version
 
-        except Exception as e:
+        except Exception: # noqa
             logger.exception("Exception applying SQL migration. Aborting SQL Migration.")
             return
 
-    import_pedigree()
+    if import_pedigree():
+        # Import master data sheet used in 2024 (Master tab from Final_BY2023_Mastersheet_MF)
+        import_master_data(get_import_resources_dir(), 'amphiadmin', 'master_data_2023BY.csv', 2024)
+        # Import the crosses made in 2024 (Recommended Crosses tab from Final_BY2023_Mastersheet_MF)
+        crosses_path = os.path.join(get_import_resources_dir(), "bulk_upload_crosses_2024.csv")
+        import_crosses(crosses_path, 'amphiadmin')
+        mark_all_fish_dead('amphiadmin')

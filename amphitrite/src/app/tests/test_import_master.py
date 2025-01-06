@@ -10,7 +10,7 @@ def test_import_masterdata():
 
     # SQL for finding fish with null family: select sibling_birth_year_temp, group_id_temp,box from animal_insert where
     # family is null order by sibling_birth_year_temp asc;
-    import_master_data(MockTempDir(), 'amphiadmin', 'master_2024', 'bulk_upload_master_2024')
+    import_master_data(MockTempDir().name, 'amphiadmin', 'master_2024', 'bulk_upload_master_2024')
 
     assert 9968 == execute_statements("SELECT COUNT(*) FROM animal", 'amphiadmin').get_single_result()
 

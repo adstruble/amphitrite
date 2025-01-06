@@ -16,7 +16,9 @@ class InsertTableData:
         self.data = data
         self.insert_condition = None
         self.temp_table_updates = []
-        self.columns = data[0].keys()
+        self.columns = []
+        if data:
+            self.columns = data[0].keys()
 
     def set_insert_condition(self, constraint_action):
         self.insert_condition = constraint_action
@@ -42,11 +44,13 @@ def batch_insert_master_data(table_data: list[InsertTableData], username):
         with get_connection(**make_connection_kwargs(DEFAULT_DB_PARAMS, username)) as conn:
             with conn.connection.cursor() as cursor:
                 for table in table_data:
+                    if not table.data:
+                        continue
                     cursor.execute(f"SELECT COUNT(*) FROM {table.name}")
                     start_cnt = cursor.fetchone()[0]
                     table_for_error = table
                     custom_alters = [
-                        f"ALTER TABLE {table.name}_insert ADD COLUMN IF NOT EXISTS sibling_birth_year_temp timestamp",
+                        f"ALTER TABLE {table.name}_insert ADD COLUMN IF NOT EXISTS sibling_birth_year_temp numeric",
                         f"ALTER TABLE {table.name}_insert ADD COLUMN IF NOT EXISTS group_id_temp int NOT NULL"]
                     custom_alters.extend(table.temp_table_updates)
                     prepare_copy_table_for_bulk_insert(table, cursor, custom_alters)
@@ -113,35 +117,6 @@ def batch_insert_cross_data(table: InsertTableData, username):
                 cursor.execute(set_animal_id_update_template.format(parent='parent_1'))
                 cursor.execute(set_animal_id_update_template.format(parent='parent_2'))
 
-                insert_missing_animal_family_template = """
-                INSERT INTO family (id, group_id, cross_date)
-                    SELECT gen_random_uuid(), -1, (({parent}_birth_year_temp::text) || '-01-01')::timestamp
-                    FROM family_insert
-                    WHERE {parent} = {parent}_temp LIMIT 1
-                    ON CONFLICT ON CONSTRAINT unique_family_no_parents DO NOTHING"""
-                cursor.execute(insert_missing_animal_family_template.format(parent='parent_1'))
-                cursor.execute(insert_missing_animal_family_template.format(parent='parent_2'))
-
-                insert_missing_animal_template = """
-                INSERT INTO animal (id, sex, family) SELECT fi.{parent}, '{sex}', family.id
-                    FROM family_insert as fi
-                    JOIN family ON family.cross_year = fi.{parent}_birth_year_temp
-                    WHERE fi.{parent} = fi.{parent}_temp
-                    AND family.group_id = -1"""
-                # By convention parent 1 is male and parent 2 is female
-                cursor.execute(insert_missing_animal_template.format(parent='parent_1', sex='F'))
-                results['animal'] = cursor.rowcount
-                cursor.execute(insert_missing_animal_template.format(parent='parent_2', sex='M'))
-                results['animal'] = results['animal'] + cursor.rowcount
-
-                insert_missing_animal_tag_template = """INSERT INTO refuge_tag (id, tag, animal)
-                                                    SELECT gen_random_uuid(), {parent}_tag_temp, {parent}
-                                            FROM family_insert where {parent} = {parent}_temp"""
-                cursor.execute(insert_missing_animal_tag_template.format(parent='parent_1'))
-                results['refuge_tag'] = cursor.rowcount
-                cursor.execute(insert_missing_animal_tag_template.format(parent='parent_2'))
-                results['refuge_tag'] = results['refuge_tag'] + cursor.rowcount
-
                 insert_update_sibling_families = """INSERT INTO family (id, cross_date, group_id, parent_1, parent_2)
                                             SELECT gen_random_uuid(),
                                                    cross_date,
@@ -149,9 +124,6 @@ def batch_insert_cross_data(table: InsertTableData, username):
                                                    parent_1,
                                                    parent_2
                                             FROM family_insert
-                                            ON CONFLICT ON CONSTRAINT unique_family_no_parents
-                                            DO UPDATE SET (cross_date, parent_1, parent_2) =
-                                                (excluded.cross_date, excluded.parent_1, excluded.parent_2)
                 """
                 cursor.execute(insert_update_sibling_families)
                 results = {'family': cursor.rowcount}

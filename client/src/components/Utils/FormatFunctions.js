@@ -1,15 +1,15 @@
 import {FormGroup, Input, Label} from "reactstrap";
 import classnames from "classnames";
 import React from "react";
-import {Link} from "react-router-dom";
 
 export const formatDate = (date) => {
     date = new Date(date);
+    date.setTime( date.getTime() + date.getTimezoneOffset()*60*1000 );
     if (date.getUTCMonth() === 0 && date.getUTCDate() === 1){
         // Assume the month and day aren't actually known so only report year
         return date.getUTCFullYear().toString();
     }
-    return new Date(date).toLocaleDateString(undefined, {
+    return date.toLocaleDateString(undefined, {
         year: "numeric",
         month: "2-digit",
         day: "2-digit",

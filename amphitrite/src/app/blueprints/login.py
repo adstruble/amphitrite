@@ -1,4 +1,5 @@
 import uuid
+from time import sleep
 
 from flask import Blueprint, request
 
@@ -13,12 +14,13 @@ logger = get_logger('login')
 
 @login.route('/login', methods=(['POST']))
 def start_session():
-    data = request.get_json()
+    data ={'username':'amphiadmin','password':'amphiadmin'}# request.get_json()
     username = data['username']
     password = data['password']
 
     logger.info(f"Logging in user {username}")
     user_id = maybe_authenticate_user(username, password)
+    logger.info(f"logged in {user_id}")
     if not user_id:
         logger.warning("Authentication failed returning empty token")
         return {}

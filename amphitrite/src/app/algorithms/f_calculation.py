@@ -168,9 +168,9 @@ class FMatrix:
                 return parents_val/2
 
 
-def build_matrix_from_existing(username):
+def build_matrix_from_existing(username, cross_year=datetime.now().year):
     f_matrix = FMatrix()
-    for cross_year in range(2006, datetime.now().year):
+    for cross_year in range(2006,  cross_year):
         family_pedigree = get_family_pedigree(username, cross_year)
         for cross in family_pedigree:
             f_matrix.add_row(cross['child_fam_id'], cross['p1_fam_id'], cross['p2_fam_id'])

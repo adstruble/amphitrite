@@ -59,6 +59,7 @@ export default function ManageFish() {
                                 reloadData={reloadTable}
                                 headerDataStart={FISH_HEADER}
                                 getExpandedRow={getExpandedRow}
+                                filterOptions={{'includeThisYear':false}}
                     />
                 </Row>
             </Container>

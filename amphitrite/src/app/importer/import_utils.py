@@ -1,8 +1,13 @@
+import os
 from datetime import date
 
 from amphi_logging.logger import get_logger
 
 LOGGER = get_logger('importer')
+
+
+def get_import_resources_dir():
+    return os.path.join(os.path.abspath(os.path.dirname(__file__)), "resources")
 
 
 def parse_year_from_filename(filename):

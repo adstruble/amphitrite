@@ -14,12 +14,13 @@ import fetchData from "../../server/fetchData";
 import useToken from "../App/useToken";
 import {useTheme} from "@table-library/react-table-library/theme";
 import {getTheme} from "@table-library/react-table-library/baseline";
-import PropTypes, {string} from "prop-types";
+import PropTypes from "prop-types";
 import {Input, InputGroup, InputGroupText, UncontrolledTooltip} from "reactstrap";
 import AmphiHeaderCell from "./AmphiHeaderCell";
 import classnames from "classnames";
 import AmphiPagination from "./AmphiPagination";
 import {FilterOptions} from "./FilterOptions";
+import {onKeyupWithDelay} from "../Utils/General";
 
 export const getExpandedDefault = () => {
     return (<tr className='expanded-row-contents'><td style={{display:"none"}}/></tr>);
@@ -31,7 +32,8 @@ export default function AmphiTable({tableDataUrl,
                                        getExpandedRow=getExpandedDefault,
                                        includePagination=true,
                                        fetchParams,
-                                       includeSearch=true}){
+                                       includeSearch=true,
+                                       filterOptions={}}){
     const {getUsername} = useToken();
     const [headerCols, setHeaderCols] = useState(headerDataStart.cols);
     const [headerRows, setHeaderRows] = useState(headerDataStart.rows);
@@ -149,13 +151,9 @@ export default function AmphiTable({tableDataUrl,
     }, [headerDataStart]);
 
     const  maybeSearchTable = (e) => {
+        setSearch(e.target.value)
         setCurrPage(0)
-        if (e.key !== 'Enter'){
-            return;
-        }
-        doGetTableData().then();
     }
-
 
     const THEME = {
         Row: `
@@ -181,7 +179,6 @@ export default function AmphiTable({tableDataUrl,
 
     function onApplyFilter(filterState){
         console.info("filter closed");
-        setSearchFocus(searchFocus)
         setShowFilterOptions(false);
         if (!filterState) {
             return;
@@ -195,7 +192,7 @@ export default function AmphiTable({tableDataUrl,
             <div className='amphi-table-search-paginate' id="amphiTableSearchPaginate">
                 <div className='amphi-table-search' id="amphiTableSearch">
                 {includeSearch &&
-                    <InputGroup onBlur={() => setSearchFocus(showFilterOptions)}
+                    <InputGroup onBlur={() => setSearchFocus(false)}
                                 className={classnames({"input-group-focus": searchFocus})}>
                         <div className="input-group-prepend">
                             <InputGroupText>
@@ -206,12 +203,9 @@ export default function AmphiTable({tableDataUrl,
                             placeholder="Search"
                             type="text"
                             onFocus={() => setSearchFocus(true)}
-                            onBlur={() => setSearchFocus(false)}
                             className={classnames({"input-group-focus": searchFocus})}
-                            onChange={e => setSearch(e.target.value)}
-                            onKeyUp={e => {
-                                maybeSearchTable(e)
-                            }}
+                            onKeyUp={onKeyupWithDelay((e) => maybeSearchTable(e),
+                                500)}
                             id={tableDataUrl + "_amphiTable"}
                         />
                         <div className="input-group-append">
@@ -226,7 +220,7 @@ export default function AmphiTable({tableDataUrl,
                     </InputGroup>}
 
                     <FilterOptions applyFilterCallback={onApplyFilter} matchWidthElementId="amphiTableSearch"
-                        showFilter={showFilterOptions}/>
+                        showFilter={showFilterOptions} filterOptions={filterOptions}/>
                 </div>
 
 

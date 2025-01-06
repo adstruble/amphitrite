@@ -31,6 +31,16 @@ def remove_family_by_tags(username, f_tag, m_tag):
     if deleted_record_cnt != 1:
         LOGGER.error(f"Expected to delete 1 family record. Deleted {deleted_record_cnt}")
 
+    # Also unset the parents on the requested cross
+    update_req_cross_sql = f"""
+    UPDATE requested_cross SET (parent_f, parent_m) = (NULL, NULL) 
+        FROM refuge_tag rtf
+        JOIN refuge_tag rtm ON TRUE
+        JOIN animal fa ON fa.id = rtf.animal
+        JOIN animal ma ON ma.id = rtm.animal
+       WHERE rtm.tag = \'{m_tag}' AND rtf.tag = \'{f_tag}\'"""
+    execute_statements(update_req_cross_sql, username, ResultType.RowCount)
+
     return deleted_record_cnt
 
 
@@ -38,3 +48,13 @@ def set_family_mfg(username, params):
     table = 'family' if params['refuge_crosses'] else 'supplementation_family'
     sql = f"UPDATE {table} set mfg = :mfg where id = :fam_id"
     execute_statements((sql, params), username, ResultType.NoResult)
+
+
+def get_ids_and_di_for_tag(tag: str, birth_year: int, username):
+    return execute_statements(
+        (f"""SELECT family.id as family, family.di, animal.id as animal
+              FROM refuge_tag rt 
+              JOIN animal on rt.animal = animal.id
+              JOIN family on animal.family = family.id
+             WHERE rt.tag = :tag AND cross_year = :cross_year""",
+         {'tag': tag, 'cross_year': birth_year}), username).get_as_list_of_dicts()

@@ -60,7 +60,7 @@ class PedigreeImportState:
 def import_pedigree(pedigree_file_path=None):
     if pedigree_exists():
         LOGGER.info("Pedigree previously imported, skipping pedigree import.")
-        return
+        return False
 
     LOGGER.info("Beginning pedigree import.")
     if not pedigree_file_path:
@@ -73,6 +73,8 @@ def import_pedigree(pedigree_file_path=None):
     parse_pedigree_file(ped_state, pedigree_file_path)
 
     ingest_pedigree_data(ped_state)
+
+    return True
 
 
 def pedigree_exists():
@@ -129,7 +131,6 @@ def parse_pedigree_file(ped_state, pedigree_file_path):
                     group_id = (-int(group_id_unparsed)) - 10000
                     child_family_id = str(uuid.uuid4())
                     ped_state.wt_animal[group_id] = {'wt': True,
-                                                     'sex': 'UNKNOWN',
                                                      'alive': False,
                                                      'id': str(uuid.uuid4()),
                                                      'family': child_family_id,
@@ -186,7 +187,9 @@ def parse_pedigree_file(ped_state, pedigree_file_path):
                     group_id_parent_1 = (-int(f"{parent_1}")) - 10000
                     group_id_parent_2 = (-int(f"{parent_2}")) - 10000
                     parent_1_uuid = ped_state.wt_animal[group_id_parent_1]['id']
+                    ped_state.wt_animal[group_id_parent_1]['sex'] = 'M'
                     parent_2_uuid = ped_state.wt_animal[group_id_parent_2]['id']
+                    ped_state.wt_animal[group_id_parent_2]['sex'] = 'F'
 
                     parent_fsg_cross_date = date(cross_year.year - 1, 1, 1)
                     ped_state.families[parent_1_fam_uuid]['cross_date'] = parent_fsg_cross_date
@@ -204,7 +207,7 @@ def parse_pedigree_file(ped_state, pedigree_file_path):
                 animal_id = str(uuid.uuid4())  # group_id_unparsed
                 child_family_id = str(uuid.uuid4())  # f"{cross_year}_{group_id}"
                 ped_state.bred_animal[group_id_unparsed] = {'wt': False,
-                                                            'sex': 'UNKNOWN',
+                                                            'sex': 'F' if group_id_unparsed[-1] == '1' else 'M',
                                                             'alive': False,
                                                             'id': animal_id,
                                                             'family': child_family_id,

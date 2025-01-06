@@ -1,3 +1,4 @@
+import csv
 import tempfile
 import threading
 
@@ -9,7 +10,7 @@ from importer.import_crosses import import_crosses
 from model.crosses import add_requested_cross, remove_requested_cross, get_requested_crosses_csv, \
     add_completed_cross, get_possible_crosses, get_count_possible_females, \
     select_available_female_tags, determine_and_insert_possible_crosses, get_completed_crosses, set_cross_failed, \
-    set_use_for_supplementation, get_exported_crosses_csv, get_completed_crosses_by_family
+    set_use_for_supplementation, get_exported_crosses_csv, get_completed_crosses_by_family, set_available_females
 from model.family import remove_family_by_tags, set_family_mfg
 from utils.data import validate_order_by
 
@@ -94,7 +95,8 @@ def set_cross_completed():
 
     success = add_completed_cross(username_or_err, request_params['f_tag'], request_params['m_tag'],
                                   request_params['f'], request_params['cross_completed_date'],
-                                  'supplementation_family' if request_params['supplementation'] else 'family')
+                                  'supplementation_family' if request_params['supplementation'] else 'family',
+                                  request_params['requested_cross'])
     return {"success": success, "data": []}
 
 
@@ -120,9 +122,27 @@ def remove_completed_cross():
     return {"success": True}
 
 
+@cross_fish.route('/cross_fish/set_available_females_from_file', methods=(['POST']))
+def set_available_females_from_file():
+    LOGGER.info("Setting available females from file")
+    username_or_err = maybe_get_username(request.headers, "bulk upload")
+    if isinstance (username_or_err, dict): # noqa
+        return username_or_err
+
+    try:
+        females = []
+        for line in request.files['file'].stream.read().splitlines():
+            LOGGER.info(f"row: {line.decode('utf-8')}")
+            females.append(line.decode('utf-8'))
+
+        return set_available_females(username_or_err, females)
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
 @cross_fish.route('/cross_fish/set_available_females', methods=(['POST']))
-def set_available_females():
-    LOGGER.info("Available Females")
+def set_available_females_from_comma_seperated_list():
+    LOGGER.info("Setting available females from list")
 
     username_or_err = maybe_get_username(request.headers, "adding completed cross")
     if isinstance (username_or_err, dict): # noqa
@@ -133,24 +153,7 @@ def set_available_females():
     LOGGER.info(f"Setting available females: {request_params['f_tags']}")
     cleaned_f_tags = clean_str_array(request_params['f_tags'])
 
-    try:
-        insert_cnt = determine_and_insert_possible_crosses(username_or_err, cleaned_f_tags)
-    except Exception as e:
-        return {"success": False, "error": str(e)}
-
-    return_val = {'success': True}
-    if insert_cnt < len(request_params['f_tags']):
-        possible_females_cnt = get_count_possible_females(username_or_err)
-        if len(request_params['f_tags']) > possible_females_cnt:
-            f_tags_len = len(request_params['f_tags'])
-            return_val['warning'] = \
-                f"{'' if possible_females_cnt == 0 else 'Only '}{possible_females_cnt} female fish are available " \
-                f"for crossing. You supplied a list of {f_tags_len} female tag{'' if f_tags_len == 1 else 's'}. " \
-                f"Confirm all the fish for the entered tags were added to the database and the tags have been " \
-                f"specified as a comma separated list."
-
-    return_val['data'] = select_available_female_tags(username_or_err)
-    return return_val
+    return set_available_females(username_or_err, cleaned_f_tags)
 
 
 @cross_fish.route('/cross_fish/get_available_f_tags', methods=(['POST']))

@@ -22,18 +22,16 @@ class MasterDataCols(Enum):
     ALLELE_N = 154
 
 
-def import_master_data(t_file_dir, username, job_id, filename):
-    year = parse_year_from_filename(filename)
+def import_master_data(dir_name, username, job_id, year):
 
     refuge_tags = {}
     animals = []
-    families = {}
     genes = []
-    notes = {}  # TODO
+    notes = []
 
     try:
         header = ""
-        with open(os.path.join(t_file_dir.name, f'bulk_upload_{job_id}'), mode='r', encoding='UTF-8') as master_data:
+        with open(os.path.join(dir_name, f'bulk_upload_{job_id}'), mode='r', encoding='UTF-8') as master_data:
             try:
                 csv_lines = csv.reader(master_data)
                 header = next(csv_lines, None)
@@ -73,7 +71,7 @@ def import_master_data(t_file_dir, username, job_id, filename):
                 refuge_tags[line[MasterDataCols.Id.value]] = {"tag": refuge_tag,
                                                               "animal": animal_id,
                                                               "id": str(uuid.uuid4()),
-                                                              "sibling_birth_year_temp": sibling_birth_year,
+                                                              "sibling_birth_year_temp": sibling_birth_year.year,
                                                               "group_id_temp": group_id}
 
                 genotype_string = ""
@@ -83,9 +81,10 @@ def import_master_data(t_file_dir, username, job_id, filename):
                                   "allele_2": line[col+1],
                                   "animal": animal_id,
                                   "id": str(uuid.uuid4()),
-                                  "sibling_birth_year_temp": sibling_birth_year,
+                                  "sibling_birth_year_temp": sibling_birth_year.year,
                                   "group_id_temp": group_id})
                     genotype_string = f'{genotype_string}{line[col]}{line[col+1]}'
+
                 try:
                     box = int(line[MasterDataCols.Box.value])
                 except Exception: # noqa:
@@ -95,11 +94,20 @@ def import_master_data(t_file_dir, username, job_id, filename):
                           "id": animal_id,
                           "family": "\\N",
                           "genotype": genotype_string,
-                          "sibling_birth_year_temp": sibling_birth_year,
+                          "alive": True,
+                          "sibling_birth_year_temp": sibling_birth_year.year,
                           "group_id_temp": group_id}
                 if not(animal['sex'] == 'M' or animal['sex'] == 'F'):
                     animal['sex'] = 'UNKNOWN'
                 animals.append(animal)
+
+                if line[MasterDataCols.Notes.value].strip():
+                    note = {"id": str(uuid.uuid4()),
+                            "content": line[MasterDataCols.Notes.value].strip(),
+                            "animal": animal_id,
+                            "sibling_birth_year_temp": sibling_birth_year.year,
+                            "group_id_temp": group_id,}
+                    notes.append(note)
 
             gene_table_data = InsertTableData('gene', genes)
             gene_table_data.set_insert_condition("ON CONFLICT (name, animal) DO NOTHING")
@@ -112,7 +120,7 @@ def import_master_data(t_file_dir, username, job_id, filename):
             animal_table_data.add_temp_table_update("""UPDATE animal_insert a_i SET (family) = (
                                                      SELECT f.id FROM family as f
                                                      WHERE a_i.group_id_temp = f.group_id
-                                                     AND a_i.sibling_birth_year_temp = f.cross_date)""")
+                                                     AND a_i.sibling_birth_year_temp = f.cross_year)""")
             animal_table_data.set_insert_condition("""ON CONFLICT (genotype) DO UPDATE 
               SET (sex, box, family) = (EXCLUDED.sex, EXCLUDED.box, EXCLUDED.family)
             WHERE animal.genotype = EXCLUDED.genotype 
@@ -128,9 +136,18 @@ def import_master_data(t_file_dir, username, job_id, filename):
               SET tag = EXCLUDED.tag
             WHERE refuge_tag.animal = EXCLUDED.animal AND (refuge_tag.tag != EXCLUDED.tag)""")
 
+            notes_data = InsertTableData('animal_note', notes)
+            notes_data.add_temp_table_update("""
+            UPDATE animal_note_insert n_i SET (animal) = (SELECT a.id)
+              FROM animal a
+              JOIN animal_insert a_i ON a_i.genotype = a.genotype
+             WHERE n_i.animal = a_i.id""")
+            notes_data.set_insert_condition(
+                """WHERE (content) NOT IN (SELECT content FROM animal_note n where animal_note_insert.animal = n.animal)""") # noqa
             table_data = [animal_table_data,
                           refuge_tag_data,
-                          gene_table_data]
+                          gene_table_data,
+                          notes_data]
 
         insert_result = batch_insert_master_data(table_data, username)
         if 'error' in insert_result:

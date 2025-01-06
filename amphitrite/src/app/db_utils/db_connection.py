@@ -41,8 +41,8 @@ class _PGConnections:
         return self._engines[conn_string]
 
 
-def make_connection_kwargs(database_params: dict, username: str, setup_tx:bool = True):
-    return {'database_params': database_params, 'username': username, 'setup_tx': setup_tx}
+def make_connection_kwargs(database_params: dict, username: str, setup_tx: bool = True, abort: bool = False):
+    return {'database_params': database_params, 'username': username, 'setup_tx': setup_tx, 'abort': abort}
 
 
 @contextmanager
@@ -50,10 +50,22 @@ def get_connection(**kwargs) -> Connection:
     database_params = kwargs['database_params']
     username = kwargs['username']
     setup_tx = kwargs['setup_tx']
-    LOGGER.info(f"Setting up connection for: {username}")
+    abort = kwargs['abort']
 
     engine = _PGConnections().get_engine(database_params)
-    conn = engine.connect()
+
+    try:
+        conn = engine.connect()
+        if abort:
+            yield 3
+            LOGGER.info("yield 3")
+            return
+    except Exception as e:
+        LOGGER.info("Got an e: " +str(e))
+        raise e
+    if abort:
+        yield 3
+        return
     tx = conn.begin()
 
     if setup_tx:
@@ -64,7 +76,8 @@ def get_connection(**kwargs) -> Connection:
         yield conn
         tx.commit()
     finally:
-        conn.invalidate()
+        if not abort:
+            conn.invalidate()
 
 
 def _setup_transaction(conn, username):

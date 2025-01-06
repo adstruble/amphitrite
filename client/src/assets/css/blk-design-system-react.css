@@ -14022,7 +14022,6 @@ fieldset[disabled] .btn-link.active {
 }
 
 .form-control {
-  border-color: #2b3553;
   border-radius: 0.4285rem;
   font-size: 0.75rem;
   -webkit-transition: color 0.3s ease-in-out, border-color 0.3s ease-in-out,
@@ -14077,7 +14076,7 @@ fieldset[disabled] .btn-link.active {
 .has-success .input-group-append .input-group-text,
 .has-success .input-group-prepend .input-group-text,
 .has-success .form-control {
-  border-color: #2b3553;
+  border-color: #475788;
 }
 
 .has-success .form-control:focus,
@@ -18252,7 +18251,7 @@ code {
 .input-group-append .input-group-text,
 .input-group-prepend .input-group-text {
   background-color: transparent;
-  border: 1px solid #2b3553;
+  border: 1px solid #475788;
   border-radius: 0.4285rem;
   color: #ffffff;
   -webkit-transition: color 0.3s ease-in-out, border-color 0.3s ease-in-out,
@@ -18301,7 +18300,7 @@ code {
 .input-group-prepend .input-group-text,
 .input-group-prepend .input-group-text {
   background-color: transparent;
-  border: 1px solid #2b3553;
+  border: 1px solid #475788;
   border-radius: 0.4285rem;
   color: #ffffff;
   margin: 0;
@@ -18387,19 +18386,7 @@ fieldset[disabled] .form-control {
 
 textarea.form-control {
   max-width: 100%;
-  max-height: 80px;
-  padding: 10px 10px 0 0;
-  resize: none;
-  border: none;
-  border-bottom: 1px solid #2b3553;
-  border-radius: 0;
-  line-height: 2;
-}
-textarea.form-control:focus,
-textarea.form-control:active {
-  border-left: none;
-  border-top: none;
-  border-right: none;
+  min-height: fit-content;
 }
 
 .has-success.form-group .form-control,
@@ -22983,14 +22970,6 @@ input.datetimepicker[data-color="yellow"]
   margin-top: -25px;
   right: -45px;
 }
-.card-user .avatar {
-  width: 124px;
-  height: 124px;
-  border: 5px solid #2b3553;
-  border-bottom-color: transparent;
-  background-color: transparent;
-  position: relative;
-}
 .card-user .card-body {
   min-height: 240px;
 }
@@ -23934,12 +23913,14 @@ td.rdtYear:hover {
 }
 
 .alert .btn-close {
-  margin-top: -1px;
+  margin-top: -10px;
   color: #ffffff;
   opacity: 0.9;
   text-shadow: none;
   line-height: 0;
   outline: 0;
+  padding-left: 20px;
+  padding-right: 10px;
 }
 .alert .btn-close::after {
   display: inline-block;

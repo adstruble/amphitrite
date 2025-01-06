@@ -4,11 +4,13 @@ import re
 import uuid
 from datetime import date
 
+from algorithms.f_calculation import build_matrix_from_existing
 from amphi_logging.logger import get_logger
-from db_utils.insert import InsertTableData, batch_insert_cross_data
+from db_utils.db_connection import get_connection, DEFAULT_DB_PARAMS, make_connection_kwargs
+from db_utils.insert import insert_table_data
 from exceptions.exceptions import UploadCrossesError
 from importer.import_utils import maybe_correct_for_2_year_olds
-from utils.server_state import complete_job, JobState
+from model.family import get_ids_and_di_for_tag
 
 LOGGER = get_logger('importer')
 
@@ -23,10 +25,12 @@ class RecCrossesDataCols(object):
     MFG = 6
 
 
-def import_crosses(t_file_dir, username, job_id):
+def import_crosses(crosses_file, username):
+    f_matrix = build_matrix_from_existing(username, 2024)
+
     try:
         header = ""
-        with open(os.path.join(t_file_dir.name, f'bulk_upload_{job_id}'), mode='r', encoding='UTF-8') as rec_crosses:
+        with open(crosses_file, mode='r', encoding='UTF-8') as rec_crosses:
             try:
                 csv_lines = csv.reader(rec_crosses)
                 header = next(csv_lines, None)
@@ -59,36 +63,34 @@ def import_crosses(t_file_dir, username, job_id):
                 try:
                     date_str = line[RecCrossesDataCols.Date]
                     cross_date = _handle_date_str(date_str)
-                    parent_1_birth_year, parent_1_tag, _ = maybe_correct_for_2_year_olds(
+                    parent_1_birth_date, parent_1_tag, _ = maybe_correct_for_2_year_olds(
                         cross_date.year - 1, line[RecCrossesDataCols.Female])
-                    parent_2_birth_year, parent_2_tag, _ = maybe_correct_for_2_year_olds(
+                    parent_2_birth_date, parent_2_tag, _ = maybe_correct_for_2_year_olds(
                         cross_date.year - 1, line[RecCrossesDataCols.Male])
-                    temp_parent_2_id = uuid.uuid4()
-                    temp_parent_1_id = uuid.uuid4()
-                    families.append({'id': str(uuid.uuid4()),
-                                     'parent_1_tag_temp': parent_1_tag,
-                                     'parent_2_tag_temp': parent_2_tag,
-                                     'parent_1_birth_year_temp': parent_1_birth_year.year,
-                                     'parent_2_birth_year_temp': parent_2_birth_year.year,
-                                     'parent_1_temp': temp_parent_1_id,  # Should exist in db, but will insert if not
-                                     'parent_2_temp': temp_parent_2_id,  # Should exist in db, but will insert if not
-                                     'parent_1': temp_parent_1_id,
-                                     'parent_2': temp_parent_2_id,
-                                     'cross_date': cross_date,
-                                     'group_id': line[RecCrossesDataCols.SFG]})
 
+                    parent_1 = get_ids_and_di_for_tag(parent_1_tag, parent_1_birth_date.year, username)[0]
+                    parent_2 = get_ids_and_di_for_tag(parent_2_tag, parent_2_birth_date.year, username)[0]
+                    di = (parent_1['di'] + parent_2['di']) / 2 + 1
+                    f = f_matrix.calculate_f_for_potential_cross(parent_1['family'], parent_2['family'])
+                    families.append({'id': str(uuid.uuid4()),
+                                     'parent_1': parent_1['animal'],
+                                     'parent_2': parent_2['animal'],
+                                     'cross_date': cross_date,
+                                     'group_id': line[RecCrossesDataCols.SFG],
+                                     'mfg': line[RecCrossesDataCols.MFG],
+                                     'f': f,
+                                     'di': di})
                 except Exception as e: # noqa
                     LOGGER.exception(f'Error processing date: "{date_str}" '
                                      f'while importing crosses. Skipping cross line: {line_num}', e)
-            insert_result = batch_insert_cross_data(InsertTableData('family', families), username)
 
-        if 'error' in insert_result:
-            complete_job(job_id, JobState.Failed, insert_result)
-        else:
-            complete_job(job_id, JobState.Complete, insert_result)
+        with get_connection(**make_connection_kwargs(DEFAULT_DB_PARAMS, username=username)) as conn:
+            with conn.connection.cursor() as cursor:
+                family_inserts = insert_table_data('family', families, cursor)
+                LOGGER.info(f"{family_inserts} crosses from {cross_date.year} inserted.")
+
     except Exception as any_e:
-        LOGGER.exception(f"Failed import cross job: {job_id}")
-        complete_job(job_id, JobState.Failed, {"error": str(any_e)})
+        LOGGER.exception(f"Failed import cross job: {any_e}")
 
 
 def _handle_date_str(date_str):

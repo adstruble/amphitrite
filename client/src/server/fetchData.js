@@ -3,17 +3,19 @@ import PropTypes from "prop-types";
 
 export default function fetchData(fetchUrl, username, params, setData, fetchCallback=null, fetchException=null,
                                   setAlertLevel=null, setAlertText=null,
-                                  setLoading=null) {
+                                  setLoading=null, body = null) {
     if (setLoading){
         setLoading(true)
     }
+    let headers = {username: username};
+    if (body == null){
+        body = JSON.stringify(params)
+        headers['Content-Type'] = 'application/json';
+    }
     fetch("/amphitrite/" + fetchUrl, {
         method: "POST",
-        headers: {
-            'Content-Type': 'application/json',
-            username: username
-        },
-        body: JSON.stringify(params)
+        headers: headers,
+        body: body
 })
     .then((res) => res.json())
     .then((data) => {
@@ -49,5 +51,8 @@ fetchData.propTypes = {
     params: PropTypes.objectOf(PropTypes.string).isRequired,
     setData: PropTypes.func.isRequired,
     fetchCallback: PropTypes.func,
-    fetchException: PropTypes.func
+    fetchException: PropTypes.func,
+    setAlertLevel: PropTypes.func,
+    setAlertText: PropTypes.func,
+    body: PropTypes.any
 }

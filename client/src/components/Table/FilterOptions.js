@@ -12,11 +12,16 @@ import React, {useState} from "react";
 import {CrossYearDropdown} from "../Basic/CrossYearDropdown";
 import ClickOutsideAlerter from "../Utils/ClickOutsiderAlerter";
 
-export function FilterOptions({applyFilterCallback, showFilter}) {
+export function FilterOptions({applyFilterCallback, showFilter, filterOptions}) {
     const filterWidth = "550px"; //matchWidthElementId ? parseInt(getComputedStyle(document.getElementById(matchWidthElementId))['width'])/2 : "100%";
     const [year, setYear] = useState('All');
     const [sex, setSex] = useState('Both');
     const [sexDropdownOpen, setSexDropdownOpen] = useState(false);
+
+    let includeThisYear = true;
+    if ('includeThisYear' in filterOptions){
+        includeThisYear = filterOptions['includeThisYear']
+    }
 
     function toggleSexDropdown(){
         setSexDropdownOpen((prevState) => !prevState);
@@ -47,7 +52,9 @@ export function FilterOptions({applyFilterCallback, showFilter}) {
                                 <span>Year parents were crossed:</span>
                             </Col>
                             <Col>
-                                <CrossYearDropdown yearSelectedCallback={setYear} includeAllYears={true}/>
+                                <CrossYearDropdown includeThisYear={includeThisYear}
+                                                   yearSelectedCallback={setYear}
+                                                   includeAllYears={true}/>
                             </Col>
                         </Row>
                         <Row>
@@ -94,5 +101,6 @@ export function FilterOptions({applyFilterCallback, showFilter}) {
 
 FilterOptions.propTypes = {
     applyFilterCallback: PropTypes.func.isRequired,
-    matchWidthElementId: PropTypes.string.isRequired
+    showFilter: PropTypes.any.isRequired,
+    filterOptions: PropTypes.any
 }

@@ -55,20 +55,23 @@ class ExecuteSqlResult:
 
 
 def execute_statements(stmt_param_tuples, username: str,
-                       result_type: ResultType = ResultType.RowResults):
+                       result_type: ResultType = ResultType.RowResults, abort: bool = False):
     """
 
     :param stmt_param_tuples: stmts and param tuples, or just statements, if there are no params
     :param username: amphi_user username to execute the queries as
     :param result_type: What type of results caller is expecting
     Dict of table_name: [cols]
+    :param abort: don't actually issues statement (used for debugging only)
     :return: Results of query with type specified by caller
     """
     if not isinstance(stmt_param_tuples, list):
         stmt_param_tuples = [stmt_param_tuples]
 
     results = ExecuteSqlResult()
-    with get_connection(**make_connection_kwargs(DEFAULT_DB_PARAMS, username)) as conn:
+    with get_connection(**make_connection_kwargs(DEFAULT_DB_PARAMS, username, abort=abort)) as conn:
+        if abort:
+            return
         for maybe_stmt_tuple in stmt_param_tuples:
             stmt, params = (maybe_stmt_tuple[0], maybe_stmt_tuple[1]) \
                 if isinstance(maybe_stmt_tuple, tuple) else (maybe_stmt_tuple, {})

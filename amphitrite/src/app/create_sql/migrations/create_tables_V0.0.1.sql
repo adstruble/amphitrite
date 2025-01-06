@@ -298,7 +298,7 @@ CREATE TABLE family
     cross_failed bool      NOT NULL DEFAULT FALSE,                                   -- This is to be indicated manually by crosser, that female didn't become pregnant
     parent_1     uuid REFERENCES animal (id) DEFERRABLE,
     parent_2     uuid REFERENCES animal (id) DEFERRABLE,
-    cross_date   timestamp NOT NULL,                                                 -- exact date the parents were crossed
+    cross_date   date NOT NULL,                                                 -- exact date the parents were crossed
     cross_year   numeric GENERATED ALWAYS AS (extract(year from cross_date)) STORED, -- The year the parent's were crossed
     mfg          int,                                                                -- The multi-family-group AKA tank id
     PRIMARY KEY (id)
@@ -315,7 +315,7 @@ CREATE TABLE family
 CREATE INDEX family_parent_1_idx on family(parent_1);
 CREATE INDEX family_parent_2_idx on family(parent_2);
 
-ALTER TABLE family ADD CONSTRAINT unique_parents UNIQUE (parent_1, parent_2, cross_year);
+-- ALTER TABLE family ADD CONSTRAINT unique_parents UNIQUE (parent_1, parent_2, cross_year); Had to remove because this constraint was broken in 2024 crossings with families 329 & 137
 ALTER TABLE family
     ADD CONSTRAINT different_parents CHECK (not (parent_1 = parent_2));
 CREATE TRIGGER history_trigger_row AFTER INSERT OR DELETE OR UPDATE ON family FOR EACH ROW EXECUTE FUNCTION history.if_modified_func('false');
@@ -356,7 +356,7 @@ CREATE TABLE requested_cross
     parent_f_fam uuid REFERENCES family (id) DEFERRABLE NOT NULL,
     parent_f uuid REFERENCES animal (id) DEFERRABLE,
     parent_m uuid REFERENCES animal (id) DEFERRABLE,
-    cross_date timestamp,
+    cross_date date,
     f float not null,
     supplementation bool NOT NULL DEFAULT false
 ) INHERITS (element);
@@ -401,8 +401,8 @@ CREATE TABLE refuge_tag
     -- may have different format that we want to allow. (So far (231109) these are all dead)
     -- Also note that this tag field is non-unique across years, we could add a year column and add a unique constraint
     -- across the 2 columns
-    date_tagged   timestamp,
-    date_untagged timestamp,
+    date_tagged   date,
+    date_untagged date,
     animal        uuid        NOT NULL REFERENCES animal (id) DEFERRABLE,
     UNIQUE(animal),
     PRIMARY KEY (id)
@@ -413,25 +413,38 @@ CREATE TRIGGER history_trigger_stm AFTER TRUNCATE ON refuge_tag FOR EACH STATEME
 CREATE OR REPLACE TRIGGER element_pre_insert_t BEFORE INSERT ON refuge_tag FOR EACH ROW EXECUTE PROCEDURE element_pre_insert();
 CREATE OR REPLACE TRIGGER element_pre_update_t BEFORE UPDATE ON refuge_tag FOR EACH ROW EXECUTE PROCEDURE element_pre_update();
 
-CREATE TABLE notes
+CREATE TABLE animal_note
 (
-    text text,
+    content text,
+    animal uuid NOT NULL REFERENCES animal(id) DEFERRABLE , -- foreign key to some element
     PRIMARY KEY (id)
 ) INHERITS (element);
-CREATE TRIGGER history_trigger_row AFTER INSERT OR DELETE OR UPDATE ON notes FOR EACH ROW EXECUTE FUNCTION history.if_modified_func('false');
-CREATE TRIGGER history_trigger_stm AFTER TRUNCATE ON notes FOR EACH STATEMENT EXECUTE FUNCTION history.if_modified_func('false');
-CREATE OR REPLACE TRIGGER element_pre_insert_t BEFORE INSERT ON notes FOR EACH ROW EXECUTE PROCEDURE element_pre_insert();
-CREATE OR REPLACE TRIGGER element_pre_update_t BEFORE UPDATE ON notes FOR EACH ROW EXECUTE PROCEDURE element_pre_update();
+CREATE TRIGGER history_trigger_row AFTER INSERT OR DELETE OR UPDATE ON animal_note FOR EACH ROW EXECUTE FUNCTION history.if_modified_func('false');
+CREATE TRIGGER history_trigger_stm AFTER TRUNCATE ON animal_note FOR EACH STATEMENT EXECUTE FUNCTION history.if_modified_func('false');
+CREATE OR REPLACE TRIGGER element_pre_insert_t BEFORE INSERT ON animal_note FOR EACH ROW EXECUTE PROCEDURE element_pre_insert();
+CREATE OR REPLACE TRIGGER element_pre_update_t BEFORE UPDATE ON animal_note FOR EACH ROW EXECUTE PROCEDURE element_pre_update();
 
-CREATE TABLE notes_element
+CREATE TABLE family_note
 (
-    note    uuid REFERENCES notes (id) DEFERRABLE,
-    element uuid REFERENCES element (id) DEFERRABLE
+    content text,
+    animal uuid NOT NULL REFERENCES family(id) DEFERRABLE , -- foreign key to some element
+    PRIMARY KEY (id)
 ) INHERITS (element);
-CREATE TRIGGER history_trigger_row AFTER INSERT OR DELETE OR UPDATE ON notes_element FOR EACH ROW EXECUTE FUNCTION history.if_modified_func('false');
-CREATE TRIGGER history_trigger_stm AFTER TRUNCATE ON notes_element FOR EACH STATEMENT EXECUTE FUNCTION history.if_modified_func('false');
-CREATE OR REPLACE TRIGGER element_pre_insert_t BEFORE INSERT ON notes_element FOR EACH ROW EXECUTE PROCEDURE element_pre_insert();
-CREATE OR REPLACE TRIGGER element_pre_update_t BEFORE UPDATE ON notes_element FOR EACH ROW EXECUTE PROCEDURE element_pre_update();
+CREATE TRIGGER history_trigger_row AFTER INSERT OR DELETE OR UPDATE ON family_note FOR EACH ROW EXECUTE FUNCTION history.if_modified_func('false');
+CREATE TRIGGER history_trigger_stm AFTER TRUNCATE ON family_note FOR EACH STATEMENT EXECUTE FUNCTION history.if_modified_func('false');
+CREATE OR REPLACE TRIGGER element_pre_insert_t BEFORE INSERT ON family_note FOR EACH ROW EXECUTE PROCEDURE element_pre_insert();
+CREATE OR REPLACE TRIGGER element_pre_update_t BEFORE UPDATE ON family_note FOR EACH ROW EXECUTE PROCEDURE element_pre_update();
+
+CREATE TABLE refuge_tag_note
+(
+    content text,
+    animal uuid NOT NULL REFERENCES refuge_tag(id) DEFERRABLE , -- foreign key to some element
+    PRIMARY KEY (id)
+) INHERITS (element);
+CREATE TRIGGER history_trigger_row AFTER INSERT OR DELETE OR UPDATE ON refuge_tag_note FOR EACH ROW EXECUTE FUNCTION history.if_modified_func('false');
+CREATE TRIGGER history_trigger_stm AFTER TRUNCATE ON refuge_tag_note FOR EACH STATEMENT EXECUTE FUNCTION history.if_modified_func('false');
+CREATE OR REPLACE TRIGGER element_pre_insert_t BEFORE INSERT ON refuge_tag_note FOR EACH ROW EXECUTE PROCEDURE element_pre_insert();
+CREATE OR REPLACE TRIGGER element_pre_update_t BEFORE UPDATE ON refuge_tag_note FOR EACH ROW EXECUTE PROCEDURE element_pre_update();
 
 CREATE TABLE f_matrix_row
 (
