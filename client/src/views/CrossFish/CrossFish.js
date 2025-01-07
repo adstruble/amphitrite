@@ -73,6 +73,10 @@ export default function CrossFish() {
     }
 
     const cantUse = (item) =>{
+        // If item is currently selected, should alwasy be enabled
+        if (item['refuge']){
+            return false;
+        }
         return item['selected_male_fam_cnt'] > 0 || item['supplementation'] ||
             (item['completed_x'] !== null);
     }

@@ -6,7 +6,7 @@ from enum import Enum
 from amphi_logging.logger import get_logger
 from db_utils.insert import InsertTableData, batch_insert_master_data
 from exceptions.exceptions import BadFishDataDuplicateTag, BadFishDataTagFormatWrong
-from importer.import_utils import parse_year_from_filename, maybe_correct_for_2_year_olds
+from importer.import_utils import maybe_correct_for_2_year_olds
 from utils.server_state import complete_job, JobState
 
 LOGGER = get_logger('importer')
@@ -71,6 +71,7 @@ def import_master_data(dir_name, username, job_id, year):
                 refuge_tags[line[MasterDataCols.Id.value]] = {"tag": refuge_tag,
                                                               "animal": animal_id,
                                                               "id": str(uuid.uuid4()),
+                                                              "year": year,
                                                               "sibling_birth_year_temp": sibling_birth_year.year,
                                                               "group_id_temp": group_id}
 
@@ -133,7 +134,7 @@ def import_master_data(dir_name, username, job_id, year):
                   JOIN animal_insert a_i ON a_i.genotype = a.genotype
                  WHERE rt_i.animal = a_i.id""")
             refuge_tag_data.set_insert_condition("""ON CONFLICT (animal) DO UPDATE
-              SET tag = EXCLUDED.tag
+              SET (tag,year) = (EXCLUDED.tag, EXCLUDED.year)
             WHERE refuge_tag.animal = EXCLUDED.animal AND (refuge_tag.tag != EXCLUDED.tag)""")
 
             notes_data = InsertTableData('animal_note', notes)

@@ -57,4 +57,4 @@ def get_ids_and_di_for_tag(tag: str, birth_year: int, username):
               JOIN animal on rt.animal = animal.id
               JOIN family on animal.family = family.id
              WHERE rt.tag = :tag AND cross_year = :cross_year""",
-         {'tag': tag, 'cross_year': birth_year}), username).get_as_list_of_dicts()
+         {'tag': tag, 'cross_year': birth_year}), username, log_statement=False).get_as_list_of_dicts()

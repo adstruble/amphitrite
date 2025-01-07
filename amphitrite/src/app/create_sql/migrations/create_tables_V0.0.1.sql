@@ -315,7 +315,8 @@ CREATE TABLE family
 CREATE INDEX family_parent_1_idx on family(parent_1);
 CREATE INDEX family_parent_2_idx on family(parent_2);
 
--- ALTER TABLE family ADD CONSTRAINT unique_parents UNIQUE (parent_1, parent_2, cross_year); Had to remove because this constraint was broken in 2024 crossings with families 329 & 137
+-- Had to remove because this constraint was broken in 2024 crossings with families 256 & 300
+-- ALTER TABLE family ADD CONSTRAINT unique_parents UNIQUE (parent_1, parent_2, cross_year);
 ALTER TABLE family
     ADD CONSTRAINT different_parents CHECK (not (parent_1 = parent_2));
 CREATE TRIGGER history_trigger_row AFTER INSERT OR DELETE OR UPDATE ON family FOR EACH ROW EXECUTE FUNCTION history.if_modified_func('false');
@@ -404,6 +405,7 @@ CREATE TABLE refuge_tag
     date_tagged   date,
     date_untagged date,
     animal        uuid        NOT NULL REFERENCES animal (id) DEFERRABLE,
+    year numeric NOT NULL,
     UNIQUE(animal),
     PRIMARY KEY (id)
 ) INHERITS (element);

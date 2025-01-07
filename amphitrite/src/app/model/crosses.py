@@ -36,12 +36,24 @@ def get_new_possible_crosses_for_females(username, f_tags):
 
 def get_num_fam_crosses_completed (this_fam_id):
     return f"""(SELECT count(distinct rc.id) FROM requested_cross rc
-    WHERE rc.parent_m_fam = {this_fam_id} OR rc.parent_f_fam = {this_fam_id} AND NOT rc.supplementation) +
+    WHERE (rc.parent_m_fam = {this_fam_id} OR rc.parent_f_fam = {this_fam_id}) AND NOT rc.supplementation) +
         (SELECT count(*) FROM family newf
                          JOIN animal a ON a.id = newf.parent_2 OR a.id = newf.parent_1
-                    LEFT JOIN requested_cross rc on rc.parent_m = newf.parent_2 and rc.parent_f = newf.parent_1
-                         AND NOT rc.supplementation
-         WHERE a.family = {this_fam_id} and rc.id is null)"""
+                    LEFT JOIN requested_cross rc ON (rc.parent_m = newf.parent_2 OR rc.parent_f = newf.parent_1)
+                         OR rc.supplementation
+         WHERE a.family = {this_fam_id} AND rc.id IS null AND newf.cross_year = date_part('year', CURRENT_DATE))"""
+
+
+def get_tag_crossed(male: bool):
+    return f"""SELECT tag FROM (SELECT rt.tag FROM family ngf
+            JOIN animal m on ngf.parent_2 = m.id and m.family = pc.male
+            JOIN animal f ON ngf.parent_1 = f.id and f.family = xf.id
+            JOIN refuge_tag rt ON rt.animal = {"m.id" if male else "f.id"}
+            UNION
+            SELECT rt.tag FROM public.supplementation_family ngf
+            JOIN animal m on ngf.parent_2 = m.id and m.family = pc.male
+            JOIN animal f ON ngf.parent_1 = f.id and f.family = xf.id
+            JOIN refuge_tag rt ON rt.animal = {"m.id" if male else "f.id"})q LIMIT 1"""
 
 
 def get_possible_crosses(username, query_params):
@@ -74,16 +86,10 @@ def get_possible_crosses(username, query_params):
                          THEN 1 ELSE 0 END 
                          + count(*) FROM requested_cross WHERE (parent_m_fam = pc.male AND parent_f_fam != xf.id)) 
                          AS selected_male_fam_cnt,              
-           xf.cross_year as x_cross_year,
-           yf.cross_year as y_cross_year,
-            (SELECT rt.tag from family ngf 
-            JOIN animal m on ngf.parent_2 = m.id and m.family = pc.male 
-            JOIN animal f ON ngf.parent_1 = f.id and f.family = xf.id
-            JOIN refuge_tag rt ON rt.animal = m.id limit 1) as completed_y,
-             (SELECT rt.tag from family ngf 
-            JOIN animal m on ngf.parent_2 = m.id and m.family = pc.male 
-            JOIN animal f ON ngf.parent_1 = f.id and f.family = xf.id
-            JOIN refuge_tag rt ON rt.animal = f.id limit 1) as completed_x
+            xf.cross_year as x_cross_year,
+            yf.cross_year as y_cross_year,
+            ({get_tag_crossed(True)}) as completed_y,
+            ({get_tag_crossed(False)}) as completed_x
             """
     records_sql = f"""FROM possible_cross as pc
                     JOIN animal as x ON pc.female = x.id
@@ -210,7 +216,8 @@ def add_completed_cross(username, f_tag, m_tag, f, cross_date_str, table_name, r
           JOIN animal ma ON ma.id = m_tag.animal
           JOIN family f_fam ON f_fam.id = fa.family
           JOIN family m_fam ON m_fam.id = ma.family
-         WHERE m_tag.tag = \'{m_tag}' AND f_tag.tag = \'{f_tag}\' 
+         WHERE m_tag.tag = \'{m_tag}' AND f_tag.tag = \'{f_tag}\'
+           AND m_tag.year = date_part('year', CURRENT_DATE) AND f_tag.year = date_part('year', CURRENT_DATE)
            AND f_fam.id = '{fam_ids[0]}' AND m_fam.id = '{fam_ids[1]}'"""
 
     # Also update requested_cross table to say what male and female we've used as it makes determining crosses count
@@ -221,7 +228,9 @@ def add_completed_cross(username, f_tag, m_tag, f, cross_date_str, table_name, r
             JOIN refuge_tag rtm ON TRUE
             JOIN animal fa ON fa.id = rtf.animal
             JOIN animal ma ON ma.id = rtm.animal
-           WHERE rtm.tag = \'{m_tag}' AND rtf.tag = \'{f_tag}\'"""
+           WHERE rtm.tag = \'{m_tag}' AND rtf.tag = \'{f_tag}\'
+             AND rtm.year = date_part('year', CURRENT_DATE) AND rtf.year = date_part('year', CURRENT_DATE)
+"""
 
     if execute_statements([insert_completed_sql, update_req_cross_sql], username, ResultType.RowCount).row_cnts[0] < 1:
         LOGGER.error(f"Family record was not added for parents: {f_tag} and {m_tag}")

@@ -55,7 +55,8 @@ class ExecuteSqlResult:
 
 
 def execute_statements(stmt_param_tuples, username: str,
-                       result_type: ResultType = ResultType.RowResults, abort: bool = False):
+                       result_type: ResultType = ResultType.RowResults, abort: bool = False,
+                       log_statement: bool = True):
     """
 
     :param stmt_param_tuples: stmts and param tuples, or just statements, if there are no params
@@ -63,6 +64,7 @@ def execute_statements(stmt_param_tuples, username: str,
     :param result_type: What type of results caller is expecting
     Dict of table_name: [cols]
     :param abort: don't actually issues statement (used for debugging only)
+    :param log_statement: Logs the query that is being executed
     :return: Results of query with type specified by caller
     """
     if not isinstance(stmt_param_tuples, list):
@@ -76,7 +78,8 @@ def execute_statements(stmt_param_tuples, username: str,
             stmt, params = (maybe_stmt_tuple[0], maybe_stmt_tuple[1]) \
                 if isinstance(maybe_stmt_tuple, tuple) else (maybe_stmt_tuple, {})
             try:
-                LOGGER.info(f"Executing: {stmt} with params: {params}")
+                if log_statement:
+                    LOGGER.info(f"Executing: {stmt} with params: {params}")
                 result = conn.execute(sqlalchemy.text(stmt), params)
             except Exception as e:
                 LOGGER.exception(f"Exception while executing statement: {stmt} with params {params}")
