@@ -20,6 +20,7 @@ import ViewCrossesExpanded from "./ViewCrossesExpanded";
 import fetchFile from "../../server/fetchFile";
 import useToken from "../../components/App/useToken";
 import {CrossYearDropdown} from "../../components/Basic/CrossYearDropdown";
+import {ViewCrossesFilter} from "./ViewCrossesFilter";
 
 
 export default function ViewCrosses(){
@@ -181,6 +182,7 @@ export default function ViewCrosses(){
                                 fetchParams={tableFetchParams}
                                 reloadData={reloadTable}
                                 getExpandedRow={getExpandedRow}
+                                filter={ViewCrossesFilter}
                     />
                 </Row>
             </Container>

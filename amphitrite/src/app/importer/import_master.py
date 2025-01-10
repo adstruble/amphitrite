@@ -4,9 +4,11 @@ import uuid
 from enum import Enum
 
 from amphi_logging.logger import get_logger
+from db_utils.core import execute_statements, ResultType
 from db_utils.insert import InsertTableData, batch_insert_master_data
 from exceptions.exceptions import BadFishDataDuplicateTag, BadFishDataTagFormatWrong
 from importer.import_utils import maybe_correct_for_2_year_olds
+from model.crosses import cleanup_previous_available_females
 from utils.server_state import complete_job, JobState
 
 LOGGER = get_logger('importer')
@@ -151,6 +153,9 @@ def import_master_data(dir_name, username, job_id, year):
                           notes_data]
 
         insert_result = batch_insert_master_data(table_data, username)
+
+        # Remove possible crosses since we now have new fish to consider for crossing
+        execute_statements(["TRUNCATE possible_cross"], username, ResultType.NoResult)
         if 'error' in insert_result:
             complete_job(job_id, JobState.Failed, insert_result)
         else:

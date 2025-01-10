@@ -12,24 +12,29 @@ LOGGER = get_logger('cross-fish')
 
 def get_new_possible_crosses_for_females(username, f_tags):
     new_possible_crosses_sql = """SELECT * FROM (
-        SELECT  xf.id female_fam,
-                yf.id male,
-                x.id female,
-                (xf.di + yf.di) / 2 + 1 di
-        FROM refuge_tag rtx
-                JOIN animal as x on x.id = rtx.animal
-                JOIN animal as y ON TRUE
-                JOIN family as xf ON x.family = xf.id
-                JOIN family as yf ON y.family = yf.id
-                                 AND yf.id NOT IN (SELECT family FROM animal
-                                                                 JOIN refuge_tag ON animal.id = refuge_tag.animal
-                                                                                AND tag = ANY(:f_tags))
-                JOIN refuge_tag rty ON rty.animal = y.id
-           LEFT JOIN possible_cross pc ON pc.female = rtx.animal
-           LEFT JOIN family next_gen_fam ON next_gen_fam.parent_1 = x.id and next_gen_fam.parent_2 = y.id
-           LEFT JOIN refuge_tag y_crossed_tag ON y_crossed_tag.animal = next_gen_fam.parent_2 AND next_gen_fam.id IS NOT NULL
-               WHERE x.sex = 'F' AND y.sex = 'M' AND x.alive AND y.alive AND pc.id is NULL AND rtx.tag = ANY (:f_tags)
-            GROUP BY rtx.tag, x.id, yf.id, xf.id)q"""
+    SELECT  xf.id female_fam,
+            yf.id male,
+            x.id female,
+            (xf.di + yf.di) / 2 + 1 di
+    FROM refuge_tag rtx
+            JOIN animal as x on x.id = rtx.animal
+            JOIN animal as y ON TRUE
+            JOIN family as xf ON x.family = xf.id
+            JOIN family as yf ON y.family = yf.id
+                             AND yf.id NOT IN (SELECT family FROM animal
+                                                             JOIN refuge_tag ON animal.id = refuge_tag.animal
+                                                                            AND tag = ANY(:f_tags)
+                                                                            AND year = date_part('year', CURRENT_DATE))
+            JOIN refuge_tag rty ON rty.animal = y.id
+       LEFT JOIN possible_cross pc ON pc.female = rtx.animal
+       --LEFT JOIN family next_gen_fam ON next_gen_fam.parent_1 = ANY(SELECT id FROM animal WHERE family = xf.id) 
+       --                             AND next_gen_fam.parent_2 = ANY(SELECT id FROM animal WHERE family = yf.id)
+      -- LEFT JOIN family next_gen_fam2 ON next_gen_fam2.parent_2 = ANY(SELECT id FROM animal WHERE family = xf.id) 
+      --                              AND  next_gen_fam2.parent_1 = ANY(SELECT id FROM animal WHERE family = yf.id)
+           WHERE x.sex = 'F' AND y.sex = 'M' AND x.alive AND y.alive AND pc.id is NULL AND rtx.tag = ANY (:f_tags)
+           AND rtx.year = date_part('year', CURRENT_DATE)
+
+    GROUP BY rtx.id, x.id, yf.id, xf.id)q"""
     return execute_statements([(new_possible_crosses_sql, {'f_tags': list(f_tags)})],
                               username).get_as_list_of_dicts()
 
@@ -45,12 +50,12 @@ def get_num_fam_crosses_completed (this_fam_id):
 
 
 def get_tag_crossed(male: bool):
-    return f"""SELECT tag FROM (SELECT rt.tag FROM family ngf
+    return f"""SELECT concat(tag, '_ref') FROM (SELECT rt.tag FROM family ngf
             JOIN animal m on ngf.parent_2 = m.id and m.family = pc.male
             JOIN animal f ON ngf.parent_1 = f.id and f.family = xf.id
             JOIN refuge_tag rt ON rt.animal = {"m.id" if male else "f.id"}
             UNION
-            SELECT rt.tag FROM public.supplementation_family ngf
+            SELECT concat(rt.tag, '_sup') FROM public.supplementation_family ngf
             JOIN animal m on ngf.parent_2 = m.id and m.family = pc.male
             JOIN animal f ON ngf.parent_1 = f.id and f.family = xf.id
             JOIN refuge_tag rt ON rt.animal = {"m.id" if male else "f.id"})q LIMIT 1"""
@@ -64,6 +69,18 @@ def get_possible_crosses(username, query_params):
         like_filter = "LIKE :like_filter || '%'"
         filter_str += f"rty.tag {like_filter} OR rtx.tag {like_filter} OR "
         filter_str += f"xf.group_id::text {like_filter} OR yf.group_id::text {like_filter})"
+
+    exact_filter = query_params.get('exact_filters')
+    exact_filters = []
+    for idx, (key, value) in enumerate(exact_filter.items()):
+        if key == 'f_tag' or key == 'm_tag':
+            exact_filters.append(f":ef_{idx} = ANY({key}s)")
+        else:
+            exact_filters.append(f"{key} = :ef_{idx}")
+        query_params[f"ef_{idx}"] = value
+    if exact_filters:
+        filter_str = f" {filter_str} AND ({' AND '.join(exact_filters)})"
+
     y_crosses_sql = get_num_fam_crosses_completed('pc.male')
     x_crosses_sql = get_num_fam_crosses_completed('xf.id')
 
@@ -77,14 +94,13 @@ def get_possible_crosses(username, query_params):
             array_agg(distinct rty.tag) m_tags,
             {x_crosses_sql} x_crosses,
             {y_crosses_sql} AS y_crosses,
-
             requested_cross.id is not null AND NOT requested_cross.supplementation as refuge,
             requested_cross.id is not null AND requested_cross.supplementation as supplementation,
             pc.f,
             pc.di,
             (SELECT CASE WHEN pc.male = ANY(select distinct f.family from possible_cross pc join animal f on pc.female = f.id) 
-                         THEN 1 ELSE 0 END 
-                         + count(*) FROM requested_cross WHERE (parent_m_fam = pc.male AND parent_f_fam != xf.id)) 
+                         THEN 1 ELSE 0 END  
+                         + count(*) FROM requested_cross WHERE parent_m_fam = pc.male AND parent_f_fam != xf.id AND cross_date is null) 
                          AS selected_male_fam_cnt,              
             xf.cross_year as x_cross_year,
             yf.cross_year as y_cross_year,
@@ -106,13 +122,14 @@ def get_possible_crosses(username, query_params):
                  (requested_cross.id is not null and requested_cross.supplementation)DESC,
                  {y_crosses_sql},
                  {x_crosses_sql}, f
-                 )q OFFSET :offset LIMIT :limit"""
+                 )q WHERE (completed_x IS NULL OR substr(completed_x,1, length(completed_x)-4) = f_tags[1]) OFFSET :offset LIMIT :limit"""
 
     possible_crosses = execute_statements((columns_sql + records_sql + order_sql, query_params),
                                           username).get_as_list_of_dicts()
 
-    cnt_sql = 'SELECT count(1) FROM (SELECT 1 '
-    cnt_sql_end = ")q"
+    cnt_sql = (f'''SELECT count(*) FROM (SELECT ({get_tag_crossed(False)}) as completed_x, 
+                                                  array_agg(distinct rtx.tag) f_tags ''')
+    cnt_sql_end = ")q WHERE (completed_x IS NULL OR substr(completed_x,1, length(completed_x)-4) = f_tags[1])"
 
     possible_crosses_cnt = execute_statements((cnt_sql + records_sql + cnt_sql_end, query_params),
                                               username).get_single_result()
@@ -223,7 +240,7 @@ def add_completed_cross(username, f_tag, m_tag, f, cross_date_str, table_name, r
     # Also update requested_cross table to say what male and female we've used as it makes determining crosses count
     # for Possible Crosses table much eaiser
     update_req_cross_sql = f"""
-        UPDATE requested_cross SET (parent_f, parent_m) = (fa.id, ma.id) 
+        UPDATE requested_cross SET (parent_f, parent_m, cross_date) = (fa.id, ma.id, to_date('{cross_date_str}'::varchar, 'MM/DD/YYYY')) 
             FROM refuge_tag rtf
             JOIN refuge_tag rtm ON TRUE
             JOIN animal fa ON fa.id = rtf.animal
@@ -260,8 +277,12 @@ def cleanup_previous_available_females(username: str, female_tags: set):
     :param female_tags: Refuge tags of females to use to determine possible crosses
     :return:
     """
-    # TODO: Also clean up this table when adding new males through manage fish
-    delete_sql = ('DELETE FROM possible_cross USING refuge_tag WHERE not (tag = ANY(:f_tags)) AND female = animal',
+    delete_sql = ('''DELETE FROM possible_cross pc USING refuge_tag rt 
+                                                 JOIN animal x on x.id =rt.animal
+                                                 JOIN family xf on xf.id = x.family
+                                                 JOIN family yf on yf.group_id = xf.group_id
+     WHERE not (tag = ANY(:f_tags)) AND female = animal
+                  OR yf.id = pc.male''',
                   {"f_tags": list(female_tags)})
     execute_statements(delete_sql, username, ResultType.NoResult)
 
@@ -340,6 +361,18 @@ def get_completed_crosses(username, query_params, order_by_clause, filter_str):
         like_filter_str += f"rty.tag {like_filter} OR rtx.tag {like_filter} OR "
         like_filter_str += f"xf.group_id::text {like_filter} OR yf.group_id::text {like_filter})"
 
+    exact_filter = query_params.get('exact_filters')
+    exact_filters = []
+    for idx, (key, value) in enumerate(exact_filter.items()):
+        if value == -1:
+            # -1 is used to indicate all WT group_ids any of which would be considered a match and all are < 0
+            exact_filters.append(f"{key} < 0")
+        else:
+            exact_filters.append(f"{key} = :ef_{idx}")
+        query_params[f"ef_{idx}"] = value
+    if exact_filters:
+        filter_str = f" {filter_str} AND ({' AND '.join(exact_filters)})"
+
     columns_sql = f"""
         SELECT completed_cross.id as id,
             completed_cross.group_id as group_id,
@@ -364,9 +397,9 @@ def get_completed_crosses(username, query_params, order_by_clause, filter_str):
                     JOIN animal as x ON x.id = completed_cross.parent_1
                     JOIN animal as y ON y.id = completed_cross.parent_2
                     JOIN family as xf ON x.family = xf.id
-                    JOIN family as yf on yf.id = y.family
+                    JOIN family as yf ON yf.id = y.family
                LEFT JOIN refuge_tag rtx ON rtx.animal = x.id
-               LEFT JOIN refuge_tag rty on rty.animal = y.id
+               LEFT JOIN refuge_tag rty ON rty.animal = y.id
                    WHERE {filter_str} {like_filter_str}"""
 
     order_by = f" {order_by_clause} {'OFFSET :offset' if 'offset' in query_params else ''} " + \

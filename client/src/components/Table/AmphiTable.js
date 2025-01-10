@@ -8,7 +8,7 @@ import {
     Row,
     useCustom
 } from '@table-library/react-table-library/table';
-import React, {useState} from "react";
+import React, {Fragment, useState} from "react";
 
 import fetchData from "../../server/fetchData";
 import useToken from "../App/useToken";
@@ -19,7 +19,6 @@ import {Input, InputGroup, InputGroupText, UncontrolledTooltip} from "reactstrap
 import AmphiHeaderCell from "./AmphiHeaderCell";
 import classnames from "classnames";
 import AmphiPagination from "./AmphiPagination";
-import {FilterOptions} from "./FilterOptions";
 import {onKeyupWithDelay} from "../Utils/General";
 
 export const getExpandedDefault = () => {
@@ -33,7 +32,7 @@ export default function AmphiTable({tableDataUrl,
                                        includePagination=true,
                                        fetchParams,
                                        includeSearch=true,
-                                       filterOptions={}}){
+                                       filter=Fragment}){
     const {getUsername} = useToken();
     const [headerCols, setHeaderCols] = useState(headerDataStart.cols);
     const [headerRows, setHeaderRows] = useState(headerDataStart.rows);
@@ -43,8 +42,9 @@ export default function AmphiTable({tableDataUrl,
     const [tableSize, setTableSize] = useState(0);
     const [currElementCnt, setCurrElementCnt] = useState(0);
     const [currPage, setCurrPage] = useState(0);
-    const [exactFilter, setExactFilter] = useState(null);
+    const [exactFilter, setExactFilter] = useState({});
     const LIMIT = 30;
+    const Filter = filter;
 
     const [tableNodes, setTableNodes] = useState({
         nodes: [],
@@ -219,8 +219,7 @@ export default function AmphiTable({tableDataUrl,
                         </div>
                     </InputGroup>}
 
-                    <FilterOptions applyFilterCallback={onApplyFilter} matchWidthElementId="amphiTableSearch"
-                        showFilter={showFilterOptions} filterOptions={filterOptions}/>
+                    {Filter &&  <Filter applyFilterCallback={onApplyFilter} showFilter={showFilterOptions}/>}
                 </div>
 
 

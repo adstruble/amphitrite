@@ -9,19 +9,14 @@ import {
 } from "reactstrap";
 import PropTypes from "prop-types";
 import React, {useState} from "react";
-import {CrossYearDropdown} from "../Basic/CrossYearDropdown";
-import ClickOutsideAlerter from "../Utils/ClickOutsiderAlerter";
+import {CrossYearDropdown} from "../../components/Basic/CrossYearDropdown";
+import ClickOutsideAlerter from "../../components/Utils/ClickOutsiderAlerter";
 
-export function FilterOptions({applyFilterCallback, showFilter, filterOptions}) {
+export function ManageFishFilter({applyFilterCallback, showFilter}) {
     const filterWidth = "550px"; //matchWidthElementId ? parseInt(getComputedStyle(document.getElementById(matchWidthElementId))['width'])/2 : "100%";
     const [year, setYear] = useState('All');
     const [sex, setSex] = useState('Both');
     const [sexDropdownOpen, setSexDropdownOpen] = useState(false);
-
-    let includeThisYear = true;
-    if ('includeThisYear' in filterOptions){
-        includeThisYear = filterOptions['includeThisYear']
-    }
 
     function toggleSexDropdown(){
         setSexDropdownOpen((prevState) => !prevState);
@@ -52,7 +47,7 @@ export function FilterOptions({applyFilterCallback, showFilter, filterOptions}) 
                                 <span>Year parents were crossed:</span>
                             </Col>
                             <Col>
-                                <CrossYearDropdown includeThisYear={includeThisYear}
+                                <CrossYearDropdown includeThisYear={false}
                                                    yearSelectedCallback={setYear}
                                                    includeAllYears={true}/>
                             </Col>
@@ -99,8 +94,7 @@ export function FilterOptions({applyFilterCallback, showFilter, filterOptions}) 
     )
 }
 
-FilterOptions.propTypes = {
+ManageFishFilter.propTypes = {
     applyFilterCallback: PropTypes.func.isRequired,
-    showFilter: PropTypes.any.isRequired,
-    filterOptions: PropTypes.any
+    showFilter: PropTypes.any.isRequired
 }

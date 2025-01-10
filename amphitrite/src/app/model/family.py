@@ -31,9 +31,9 @@ def remove_family_by_tags(username, f_tag, m_tag):
     if deleted_record_cnt != 1:
         LOGGER.error(f"Expected to delete 1 family record. Deleted {deleted_record_cnt}")
 
-    # Also unset the parents on the requested cross
+    # Also unset the parents and cross_date on the requested cross
     update_req_cross_sql = f"""
-    UPDATE requested_cross SET (parent_f, parent_m) = (NULL, NULL) 
+    UPDATE requested_cross SET (parent_f, parent_m, cross_date) = (NULL, NULL, NULL) 
         FROM refuge_tag rtf
         JOIN refuge_tag rtm ON TRUE
         JOIN animal fa ON fa.id = rtf.animal

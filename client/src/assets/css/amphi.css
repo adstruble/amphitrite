@@ -100,10 +100,18 @@ body{
     padding-right: 0;
     padding-left: 0;
 }
+.filter div.input-area{
+    line-height: 34px;
+}
 div.input-area{
     line-height: 29px;
 }
-
+.input-area .row{
+    margin-bottom: 10px;
+}
+.filter .input-area .nav-link{
+    padding:initial;
+}
 .cross-fish .input-area > div > div:first-child {
     flex-basis: 210px;
     flex-shrink: 0;

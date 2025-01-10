@@ -17,6 +17,7 @@ import {useOutletContext} from "react-router-dom";
 import ReactDatetime from "react-datetime";
 import moment from "moment";
 import CrossFishExpanded from "./CrossFishExpanded";
+import {CrossFishFilter} from "./CrossFishFilter";
 
 export default function CrossFish() {
     const {getUsername} = useToken();
@@ -65,16 +66,16 @@ export default function CrossFish() {
     };
 
     const useRefugeSelected = (item) => {
-        return item['refuge']
+        return item['refuge'] || (item['completed_x'] && item['completed_x'].endsWith("_ref"))
     }
 
     const useSupplementationSelected = (item) => {
-        return item['supplementation']
+        return item['supplementation'] || (item['completed_x'] && item['completed_x'].endsWith("_sup"))
     }
 
     const cantUse = (item) =>{
-        // If item is currently selected, should alwasy be enabled
-        if (item['refuge']){
+        // If item is currently selected as refuge, should always be enabled if it's not completed
+        if (item['refuge'] && item['completed_x'] === null){
             return false;
         }
         return item['selected_male_fam_cnt'] > 0 || item['supplementation'] ||
@@ -86,6 +87,14 @@ export default function CrossFish() {
     }
 
     const cantComplete = (item) => {
+        // If the item has been completed, should always be able to uncomplete
+        if (item['completed_x'] != null){
+            if(item['f_tags'][0] !== item['completed_x'].slice(0,-4)) {
+                return true;
+            }
+            return false;
+        }
+
         return !(item['refuge']) && !(item['supplementation'])
     }
 
@@ -121,7 +130,7 @@ export default function CrossFish() {
             }
         }else{
             fetchData("cross_fish/remove_completed_cross", getUsername(),
-                {f_tag: item['completed_x'], m_tag: item['completed_y']},
+                {f_tag: item['completed_x'].slice(0, -4), m_tag: item['completed_y'].slice(0, -4)},
                 () => setReloadTable(reloadTable => reloadTable + 1),
                 null, null, setAlertLevel, setAlertText)
         }
@@ -402,6 +411,7 @@ export default function CrossFish() {
                                 headerDataStart={CROSSES_HEADER}
                                 reloadData={reloadTable}
                                 getExpandedRow={getExpandedRow}
+                                filter={CrossFishFilter}
                     />
                 </Row>
             </Container>

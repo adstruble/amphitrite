@@ -89,11 +89,20 @@ export const formatArrayToStrTags = (tags, requested_cross, m_f) => {
     if (tags == null){
         return "";
     }
-    tags.sort(function (a, b){return sort_by_completed(a, b, requested_cross['completed' + m_f])});
-    if (requested_cross['completed' + m_f] != null){
+    // Super hacky, but _sup or _ref is encoded into the completed tag so that we know if it came
+    // from supp or refuge family
+    let requested_cross_tag = "";
+    if (requested_cross['completed' + m_f] !=  null){
+        requested_cross_tag = requested_cross['completed' + m_f].slice(0, -4);
+    }
+    tags.sort(function (a, b){return sort_by_completed(a, b, requested_cross_tag)});
+    if (requested_cross_tag !== ""){
+        if (tags.length === 1 && requested_cross_tag !== tags[0]){
+            return (<div><span className='text-muted'>{tags[0]} </span><span className='text-primary'>({requested_cross_tag})</span></div>);
+        }
         return (tags.map((tag, index) => {
                 let comma = index < tags.length - 1 ? ", " : ""
-                if (tag === requested_cross['completed' + m_f]) {
+                if (tag === requested_cross_tag) {
                     return(<span className='text-primary'>{tag}{comma}</span>);
                 }
                 return(<span className='text-muted'>{tag}{comma}</span>)
