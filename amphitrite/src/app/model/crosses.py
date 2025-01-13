@@ -10,7 +10,17 @@ from db_utils.insert import insert_table_data
 LOGGER = get_logger('cross-fish')
 
 
+def clear_requested_crosses(username):
+    # If this is a new breeding year we want to clear out all the requested crosses
+    execute_statements(["""DELETE FROM requested_cross WHERE EXISTS (
+                        SELECT 1 FROM public.requested_cross
+                                WHERE date_part('year', cross_date) < date_part('year', CURRENT_DATE))"""],
+                       username, ResultType.NoResult)
+
+
 def get_new_possible_crosses_for_females(username, f_tags):
+    clear_requested_crosses(username)
+
     new_possible_crosses_sql = """SELECT * FROM (
     SELECT  xf.id female_fam,
             yf.id male,
@@ -50,7 +60,7 @@ def get_num_fam_crosses_completed (this_fam_id):
 
 
 def get_tag_crossed(male: bool):
-    return f"""SELECT concat(tag, '_ref') FROM (SELECT rt.tag FROM family ngf
+    return f"""SELECT concat(tag, '_ref') FROM family ngf
             JOIN animal m on ngf.parent_2 = m.id and m.family = pc.male
             JOIN animal f ON ngf.parent_1 = f.id and f.family = xf.id
             JOIN refuge_tag rt ON rt.animal = {"m.id" if male else "f.id"}
@@ -58,7 +68,7 @@ def get_tag_crossed(male: bool):
             SELECT concat(rt.tag, '_sup') FROM public.supplementation_family ngf
             JOIN animal m on ngf.parent_2 = m.id and m.family = pc.male
             JOIN animal f ON ngf.parent_1 = f.id and f.family = xf.id
-            JOIN refuge_tag rt ON rt.animal = {"m.id" if male else "f.id"})q LIMIT 1"""
+            JOIN refuge_tag rt ON rt.animal = {"m.id" if male else "f.id"} LIMIT 1"""
 
 
 def get_possible_crosses(username, query_params):
@@ -122,7 +132,7 @@ def get_possible_crosses(username, query_params):
                  (requested_cross.id is not null and requested_cross.supplementation)DESC,
                  {y_crosses_sql},
                  {x_crosses_sql}, f
-                 )q WHERE (completed_x IS NULL OR substr(completed_x,1, length(completed_x)-4) = f_tags[1]) OFFSET :offset LIMIT :limit"""
+                 )q WHERE (completed_x IS NULL OR substr(completed_x, 1, length(completed_x)-4) = f_tags[1]) OFFSET :offset LIMIT :limit"""
 
     possible_crosses = execute_statements((columns_sql + records_sql + order_sql, query_params),
                                           username).get_as_list_of_dicts()
@@ -389,7 +399,8 @@ def get_completed_crosses(username, query_params, order_by_clause, filter_str):
             completed_cross.di,
             completed_cross.cross_date::date,
             completed_cross.cross_failed,
-            (SELECT count(1) FROM supplementation_family sf WHERE sf.parent_1 = x.id AND sf.parent_2 = y.id) as supplementation
+            (SELECT count(1) FROM supplementation_family sf WHERE sf.parent_1 = x.id AND sf.parent_2 = y.id) as supplementation,
+            coalesce(note.content, '') notes
             """
 
     family_table = 'family' if query_params.get('refuge', True) else 'supplementation_family'
@@ -400,6 +411,7 @@ def get_completed_crosses(username, query_params, order_by_clause, filter_str):
                     JOIN family as yf ON yf.id = y.family
                LEFT JOIN refuge_tag rtx ON rtx.animal = x.id
                LEFT JOIN refuge_tag rty ON rty.animal = y.id
+               LEFT JOIN {family_table}_note note on completed_cross.id = note.family
                    WHERE {filter_str} {like_filter_str}"""
 
     order_by = f" {order_by_clause} {'OFFSET :offset' if 'offset' in query_params else ''} " + \

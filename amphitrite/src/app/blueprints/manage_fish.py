@@ -9,7 +9,7 @@ from blueprints.utils import maybe_get_username, validate_and_create_upload_job
 from importer.import_utils import parse_year_from_filename
 from utils.data import validate_order_by
 from importer.import_master import import_master_data
-from model.fish import get_fishes_from_db
+from model.fish import get_fishes_from_db, save_fish_notes
 
 manage_fish = Blueprint('manage_fish', __name__)
 
@@ -45,6 +45,29 @@ def get_fishes():
 
     query_params = request.get_json()
     order_by_clause = validate_order_by(query_params['order_by'],
-                                        ['box', 'sex', 'group_id', 'f', 'di', 'tag', 'cross_date'], 'group_id ASC')
+                                        ['box', 'sex', 'group_id', 'f', 'di', 'tag', 'cross_date', 'notes'], 'group_id ASC')
     db_fishes, db_fishes_size = get_fishes_from_db(username_or_err, query_params, order_by_clause)
     return {"success": {'data': db_fishes, 'size': db_fishes_size}}
+
+
+@manage_fish.route('/manage_fish/save_notes', methods=(['POST']))
+def save_fish_notes_api():
+    LOGGER.info("Saving fish notes")
+    username_or_err = maybe_get_username(request.headers, "get fishes")
+    if isinstance (username_or_err, dict): # noqa
+        return username_or_err
+
+    query_params = request.get_json()
+
+    return save_fish_notes(username_or_err, query_params)
+
+
+@manage_fish.route('manage_fish/upload_deaths', methods=(['POST']))
+def upload_deaths():
+    LOGGER.info("Uploading dead fish")
+    username_or_err = maybe_get_username(request.headers, "get fishes")
+    if isinstance (username_or_err, dict): # noqa
+        return username_or_err
+
+    import_deaths(username_or_err, request)
+    return {"success": True}

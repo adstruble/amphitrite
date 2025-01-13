@@ -5,7 +5,7 @@ import AmphiTable from "../../components/Table/AmphiTable";
 import {
     formatStr,
     formatDoubleTo3,
-    formatCheckbox, formatArrayToStrTags
+    formatCheckbox, formatArrayToStrTags, formatTextWithIcon
 } from "../../components/Utils/FormatFunctions";
 import classnames from "classnames";
 import fetchData from "../../server/fetchData";
@@ -289,11 +289,13 @@ export default function CrossFish() {
         {name: "DI", key: "di", visible: true, format_fn: formatDoubleTo3, width:".7fr"},
         {name: "F Fish", key: "f_tags", visible: true, format_fn: formatArrayToStrTags,
             width:"2fr", format_args: '_x', tooltip: true},
-        {name: "F PC/FSG", key: "x_gid",  visible: true, format_fn: formatStr, width:".9fr"},
+        {name: "F PC/FSG", key: "x_gid",  visible: true, format_fn: formatTextWithIcon,
+            format_args:['icon-view', true, 'Show/Hide Details'], width:".9fr"},
         {name: "F Crosses Completed", key: "x_crosses", visible: true, format_fn: formatStr, width:".7fr"},
         {name: "M Fish", key: "m_tags", visible: true, format_fn: formatArrayToStrTags, width:"2.5fr",
             format_args:'_y', tooltip: true},
-        {name: "M PC/FSG", key: "y_gid",  visible: true, format_fn: formatStr, width:".9fr"},
+        {name: "M PC/FSG", key: "y_gid",  visible: true, format_fn: formatTextWithIcon,
+            format_args:['icon-view', true, 'Show/Hide Details'], width:".9fr"},
         {name: "M Crosses Completed", key: "y_crosses", visible: true, format_fn: formatStr, width:".7fr"},
         ]};
 

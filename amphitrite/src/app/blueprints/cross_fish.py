@@ -11,7 +11,7 @@ from model.crosses import add_requested_cross, remove_requested_cross, get_reque
     add_completed_cross, get_possible_crosses, get_count_possible_females, \
     select_available_female_tags, determine_and_insert_possible_crosses, get_completed_crosses, set_cross_failed, \
     set_use_for_supplementation, get_exported_crosses_csv, get_completed_crosses_by_family, set_available_females
-from model.family import remove_family_by_tags, set_family_mfg
+from model.family import remove_family_by_tags, set_family_mfg, save_family_notes
 from utils.data import validate_order_by
 
 cross_fish = Blueprint('cross_fish', __name__)
@@ -260,3 +260,17 @@ def export_crosses_api():
         get_exported_crosses_csv(username_or_err, params, temp_crosses_csv)
         temp_crosses_csv.flush()
         return send_file(temp_crosses_csv.name, as_attachment=True)
+
+
+@cross_fish.route('/cross_fish/save_notes', methods=(['POST']))
+def save_family_notes_api():
+    LOGGER.info("Saving family notes")
+    username_or_err = maybe_get_username(request.headers, "exporting crosses")
+    if isinstance (username_or_err, dict): # noqa
+        return username_or_err
+
+    params = request.get_json()
+    table_name = 'supplementation_family' if params.pop('supplementation') else 'family'
+    save_family_notes(username_or_err, table_name, query_params=params)
+
+    return {"success": True}

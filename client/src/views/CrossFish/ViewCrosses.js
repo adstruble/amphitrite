@@ -12,9 +12,10 @@ import AmphiAlert from "../../components/Basic/AmphiAlert";
 import React,{useState} from "react";
 import AmphiTable from "../../components/Table/AmphiTable";
 import {
+    formatCheckbox,
     formatDate,
     formatDoubleTo3,
-    formatStr
+    formatStr, formatTextWithIcon
 } from "../../components/Utils/FormatFunctions";
 import ViewCrossesExpanded from "./ViewCrossesExpanded";
 import fetchFile from "../../server/fetchFile";
@@ -44,12 +45,16 @@ export default function ViewCrosses(){
         {name: "Male PC/FSG Crosses Completed", key: "y_crosses", visible: true, format_fn: formatStr, width:".9fr",
             className:"numberCell", order:2, order_direction: "", order_by: "y_crosses"},
     ];
-    const REFUGE_CROSSES_COLS = [{name: "PC/FSG", key: "group_id",  visible: true, format_fn: formatStr, width:".65fr",
+    const REFUGE_CROSSES_COLS = [{name: "Edit", key: "edit", visible: true, format_fn:formatTextWithIcon,
+        format_args:['icon-pencil', true, 'Show/Hide Edit details'], width:".3fr"},
+        {name: "PC/FSG", key: "group_id",  visible: true, format_fn: formatStr, width:".65fr",
         className:"numberCell", order_direction: "ASC", order:1, order_by: "group_id"},
         {name: "MFG", key: "mfg",  visible: true, format_fn: formatStr, width:".55fr", className:"numberCell",
             order:2, order_direction: "", order_by: "mfg"}].concat(BOTH_CROSSES_COLS);
 
-    const SUPPLEMENTATION_CROSSES_COLS = [{name: "Tank", key: "mfg",  visible: true, format_fn: formatStr,
+    const SUPPLEMENTATION_CROSSES_COLS = [{name: "Edit", key: "edit", visible: true, format_fn:formatTextWithIcon,
+        format_args:['icon-pencil', true, 'Show/Hide Edit details'], width:".25fr"},
+        {name: "Tank", key: "mfg",  visible: true, format_fn: formatStr,
         width:".55fr", className:"numberCell", order:1, order_direction: "DESC", order_by: "mfg"}].concat(BOTH_CROSSES_COLS);
 
     const REFUGE_CROSSES_HEADER = {

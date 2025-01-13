@@ -370,7 +370,7 @@ CREATE INDEX rc_parent_fams_idx ON requested_cross(parent_f_fam, parent_m_fam);
 CREATE TABLE possible_cross
 (
     female  uuid REFERENCES animal (id) NOT NULL,
-      male  uuid REFERENCES family (id) NOT NULL,
+      male  uuid REFERENCES famxily (id) NOT NULL,
          f  float NOT NULL,
         di  float NOT NULL
 ) INHERITS (element);
@@ -419,7 +419,8 @@ CREATE TABLE animal_note
 (
     content text,
     animal uuid NOT NULL REFERENCES animal(id) DEFERRABLE , -- foreign key to some element
-    PRIMARY KEY (id)
+    PRIMARY KEY (id),
+    CONSTRAINT unique_animal_for_note UNIQUE (animal)
 ) INHERITS (element);
 CREATE TRIGGER history_trigger_row AFTER INSERT OR DELETE OR UPDATE ON animal_note FOR EACH ROW EXECUTE FUNCTION history.if_modified_func('false');
 CREATE TRIGGER history_trigger_stm AFTER TRUNCATE ON animal_note FOR EACH STATEMENT EXECUTE FUNCTION history.if_modified_func('false');
@@ -429,18 +430,31 @@ CREATE OR REPLACE TRIGGER element_pre_update_t BEFORE UPDATE ON animal_note FOR 
 CREATE TABLE family_note
 (
     content text,
-    animal uuid NOT NULL REFERENCES family(id) DEFERRABLE , -- foreign key to some element
-    PRIMARY KEY (id)
+    family uuid NOT NULL REFERENCES family(id) DEFERRABLE , -- foreign key to some element
+    PRIMARY KEY (id),
+    CONSTRAINT unique_family_for_note UNIQUE (family)
 ) INHERITS (element);
 CREATE TRIGGER history_trigger_row AFTER INSERT OR DELETE OR UPDATE ON family_note FOR EACH ROW EXECUTE FUNCTION history.if_modified_func('false');
 CREATE TRIGGER history_trigger_stm AFTER TRUNCATE ON family_note FOR EACH STATEMENT EXECUTE FUNCTION history.if_modified_func('false');
 CREATE OR REPLACE TRIGGER element_pre_insert_t BEFORE INSERT ON family_note FOR EACH ROW EXECUTE PROCEDURE element_pre_insert();
 CREATE OR REPLACE TRIGGER element_pre_update_t BEFORE UPDATE ON family_note FOR EACH ROW EXECUTE PROCEDURE element_pre_update();
 
+CREATE TABLE supplementation_family_note
+(
+    content text,
+    family uuid NOT NULL REFERENCES supplementation_family(id) DEFERRABLE , -- foreign key to some element
+    PRIMARY KEY (id),
+    CONSTRAINT unique_supplementation_family_for_note UNIQUE (family)
+) INHERITS (element);
+CREATE TRIGGER history_trigger_row AFTER INSERT OR DELETE OR UPDATE ON supplementation_family_note FOR EACH ROW EXECUTE FUNCTION history.if_modified_func('false');
+CREATE TRIGGER history_trigger_stm AFTER TRUNCATE ON supplementation_family_note FOR EACH STATEMENT EXECUTE FUNCTION history.if_modified_func('false');
+CREATE OR REPLACE TRIGGER element_pre_insert_t BEFORE INSERT ON supplementation_family_note FOR EACH ROW EXECUTE PROCEDURE element_pre_insert();
+CREATE OR REPLACE TRIGGER element_pre_update_t BEFORE UPDATE ON supplementation_family_note FOR EACH ROW EXECUTE PROCEDURE element_pre_update();
+
 CREATE TABLE refuge_tag_note
 (
     content text,
-    animal uuid NOT NULL REFERENCES refuge_tag(id) DEFERRABLE , -- foreign key to some element
+    refuge_tag uuid NOT NULL REFERENCES refuge_tag(id) DEFERRABLE , -- foreign key to some element
     PRIMARY KEY (id)
 ) INHERITS (element);
 CREATE TRIGGER history_trigger_row AFTER INSERT OR DELETE OR UPDATE ON refuge_tag_note FOR EACH ROW EXECUTE FUNCTION history.if_modified_func('false');

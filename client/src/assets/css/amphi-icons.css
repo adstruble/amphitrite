@@ -85,12 +85,12 @@ Generated using nucleoapp.com
   cursor: pointer;
 }
 
-.icon-view::before {
+.icon-hide::before {
   content: "\ea02";
   font-family: "amphi", serif;
 }
 
-.icon-hide::before {
+.icon-view::before {
   content: "\ea03";
   font-family: "amphi", serif;
 }

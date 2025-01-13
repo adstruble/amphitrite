@@ -32,7 +32,7 @@ export default function AmphiTable({tableDataUrl,
                                        includePagination=true,
                                        fetchParams,
                                        includeSearch=true,
-                                       filter=Fragment}){
+                                       filter=null}){
     const {getUsername} = useToken();
     const [headerCols, setHeaderCols] = useState(headerDataStart.cols);
     const [headerRows, setHeaderRows] = useState(headerDataStart.rows);
@@ -58,7 +58,7 @@ export default function AmphiTable({tableDataUrl,
     }, [headerDataStart]);
 
     const handleExpand = (item, event) => {
-        if (event.target.classList.contains('form-check-sign')){
+        if (event && event.target.classList.contains('form-check-sign')){
             return;
         }
         if (ids.includes(item.id)) {
@@ -210,7 +210,7 @@ export default function AmphiTable({tableDataUrl,
                         />
                         <div className="input-group-append">
                             <InputGroupText>
-                                <i className="amphi-icon icon-filter"
+                                <i className="amphi-icon icon-filter clickable"
                                    style={showFilterOptions ? {display: "none"} : {}}
                                    onClick={() => {
                                        setShowFilterOptions(!showFilterOptions);
@@ -256,15 +256,15 @@ export default function AmphiTable({tableDataUrl,
                             </Header>
 
                             <Body>
-                                {tableList.map((item, index) => (
+                                {tableList.map((item) => (
 
                                     <React.Fragment key={item.id}>
                                         <Row className={
                                             classnames({'expanded': ids.includes(item.id) },
                                             'table-row', (headerRows.getRowClass) && headerRows.getRowClass(item))}
-                                             key={item.id} item={item} onClick={handleExpand}>
+                                             key={item.id} item={item}>
                                             {headerCols.map((header) => {
-                                                let txt = () => {return(header['format_fn'](item[header.key], item, header.format_args))};
+                                                let txt = () => {return(header['format_fn'](item[header.key], item, header.format_args, handleExpand, header.key))};
                                                 return (
                                                     <Cell id={'id' + item.id + header.key}
                                                           key={item.id + header.key}

@@ -1,4 +1,4 @@
-import {FormGroup, Input, Label} from "reactstrap";
+import {FormGroup, Input, Label, UncontrolledTooltip} from "reactstrap";
 import classnames from "classnames";
 import React from "react";
 
@@ -56,6 +56,28 @@ export const formatCheckbox = (checked, item, format_args) => {
                     <span className={classnames("form-check-sign", "form-check-sign-table")} />
                 </Label>
             </FormGroup>);
+}
+
+export function formatTextWithIcon (txt, item, format_args, handleExpand, colName){
+    // First format_arg is the icon class, 2nd format_arg is True if clicking the icon should
+    // expand the row.3rd format_is is tooltip.
+    function onIconClick(event) {
+        if (format_args[1]){
+            handleExpand(item, event);
+        }
+    }
+
+    return (<div><i id={'id' + item['id'] + colName + 'i'}
+                    onClick={onIconClick}
+                    className={classnames("tim-icons", format_args[0], "amphi-cell")}
+                    color="info"/>
+        {format_args[2] && <UncontrolledTooltip
+                    placement={"top-start"}
+                    target={'id' + item['id'] + colName + 'i'}>
+                    {format_args[2]}
+                </UncontrolledTooltip>}
+        <span>{txt}</span>
+    </div>);
 }
 
 export const formatDoubleTo3 = (dbl) =>{

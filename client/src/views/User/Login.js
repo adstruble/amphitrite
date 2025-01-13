@@ -114,7 +114,7 @@ export default function Login({setToken}) {
                                                 <div className="input-group-append">
                                                     <InputGroupText>
                                                         <i className={classnames('input-group-append', 'tim-icons',
-                                                            passwordInputType === 'password' ? 'icon-hide' : 'icon-view')}
+                                                            passwordInputType === 'password' ? 'icon-view' : 'icon-hide')}
                                                            style={{paddingLeft:'5px'}}
                                                            onClick={() => setPasswordInputType(
                                                                passwordInputType === 'password' ? 'text' : 'password')}/>

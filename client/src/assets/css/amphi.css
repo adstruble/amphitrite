@@ -177,6 +177,9 @@ div.row.input-area {
     padding-bottom: 6px;
     font-size: 14px;
 }
+.table-row.tr-header th{
+    padding-left:2px;
+}
 .table-row.tr-header {
     background-color: #2b3858!important;
 }
@@ -202,9 +205,6 @@ div.row.input-area {
 .expanded-row-contents td {
     border-top:none;
     flex: 1;
-}
-.expanded-row-contents .cross-btn {
-    float:right;
 }
 td.table-bottom{
     background-color: transparent;
@@ -241,6 +241,21 @@ td.centerCell:last-child div{
 }
 label.amphi-cell{
     margin-bottom: 0;
+}
+i.amphi-cell{
+    float:left;
+    line-height: 1.5;
+    padding-right: 5px;
+    color: #1d8cf8;
+}
+i.amphi-cell:hover,
+i.amphi-icon.clickable:hover{
+    color: #0772db;
+    cursor: pointer;
+}
+i.amphi-icon.clickable{
+    color: #1d8cf8;
+    opacity: initial;
 }
 .cross-fish .table > thead > tr > th {
     padding-bottom: 3px;

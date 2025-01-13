@@ -1,24 +1,28 @@
 import PropTypes from "prop-types";
-import {Button} from "reactstrap";
+import {Button, Input} from "reactstrap";
 import React from "react";
+import {onKeyupWithDelay} from "../../components/Utils/General";
 
-export default function ManageRowExpanded({item}) {
-
-    const handleCrossFishClick = () => {
-        console.info("Request to cross: " + item.id)
-    }
-
+export default function ManageRowExpanded({fish, saveNotes}) {
     return (
         <tr className='expanded-row-contents'>
             <td>
-                <Button className="btn cross-btn" color="default" type="button" onClick={handleCrossFishClick}>
-                    Cross
-                </Button>
+                <div>
+                    <span>Notes</span>
+                </div>
+                <div>
+                    <Input type="textarea"
+                           defaultValue={fish['notes']}
+                           className="form-control"
+                           id="fishNotesArea" rows="2"
+                           onKeyUp={onKeyupWithDelay((e) => saveNotes(e.target.value, fish),500)}/>
+                </div>
             </td>
         </tr>
     );
 }
 
 ManageRowExpanded.propTypes = {
-    fishId: PropTypes.string.isRequired
+    fish: PropTypes.object.isRequired,
+    saveNotes: PropTypes.func.isRequired
 }

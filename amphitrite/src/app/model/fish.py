@@ -13,6 +13,13 @@ class Fish:
     id = -1
 
 
+def save_fish_notes(username: str, query_params):
+    sql = ("INSERT INTO animal_note as an (id, animal, content) VALUES (gen_random_uuid (), :fish_id, :notes) "
+           "ON CONFLICT (animal) DO UPDATE SET content = EXCLUDED.content WHERE an.animal = EXCLUDED.animal")
+    execute_statements((sql, query_params), username, ResultType.NoResult)
+    return {"success": True}
+
+
 def get_fishes_from_db(username: str, query_params: dict, order_by_clause: str):
     """
 
@@ -29,7 +36,8 @@ def get_fishes_from_db(username: str, query_params: dict, order_by_clause: str):
                      f"OR (group_id < 0 AND 'UNKNOWN' {like_filter}) " \
                      f"OR tag {like_filter} " \
                      f"OR sex::text {like_filter} " \
-                     f"OR date(cross_date)::text {like_filter})"
+                     f"OR date(cross_date)::text {like_filter})" \
+                     f"OR an.content {like_filter}"
     exact_filter = query_params.get('exact_filters')
     if exact_filter:
         exact_filters = [f"{key} = :{key}" for key in exact_filter]
@@ -38,17 +46,19 @@ def get_fishes_from_db(username: str, query_params: dict, order_by_clause: str):
 
     LOGGER.info(f"Query params: {query_params}")
     fish = execute_statements((
-        f"""SELECT animal.id as id, 
+        f"""SELECT a.id as id, 
                    CASE WHEN group_id < 0 THEN 'FROM WILD' ELSE group_id::text END,
                    date(cross_date) as cross_date,
                    COALESCE(tag, 'UNKNOWN') as tag,
                    sex,
                    f,
                    di,
-                   box
-                FROM animal 
-                JOIN family ON animal.family = family.id
-                LEFT JOIN refuge_tag on animal.id = refuge_tag.animal
+                   box,
+                   coalesce(an.content,'') as notes
+                FROM animal a
+                JOIN family ON a.family = family.id
+                LEFT JOIN refuge_tag on a.id = refuge_tag.animal
+                LEFT JOIN animal_note an on a.id = an.animal
                 {filter_str}
                 {order_by_clause} OFFSET :offset LIMIT :limit""",
         query_params), username=username).get_as_list_of_dicts()
@@ -56,7 +66,8 @@ def get_fishes_from_db(username: str, query_params: dict, order_by_clause: str):
     fish_cnt = execute_statements(('SELECT count(animal.id) '
                                    '  FROM animal '
                                    '  LEFT JOIN family ON animal.family = family.id'
-                                   f' LEFT JOIN refuge_tag on animal.id = refuge_tag.animal {filter_str}', query_params), # noqa
+                                   '  LEFT JOIN refuge_tag on animal.id = refuge_tag.animal'
+                                   f' LEFT JOIN public.animal_note an on animal.id = an.animal {filter_str}', query_params), # noqa
                                   username).get_single_result()
 
     return fish, fish_cnt

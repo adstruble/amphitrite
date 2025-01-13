@@ -58,3 +58,11 @@ def get_ids_and_di_for_tag(tag: str, birth_year: int, username):
               JOIN family on animal.family = family.id
              WHERE rt.tag = :tag AND cross_year = :cross_year""",
          {'tag': tag, 'cross_year': birth_year}), username, log_statement=False).get_as_list_of_dicts()
+
+
+def save_family_notes(username: str, table_name, query_params):
+    sql = (f"INSERT INTO {table_name}_note AS an "
+           f"(id, family, content) VALUES (gen_random_uuid (), :fam_id, :notes) "
+           f"ON CONFLICT (family) DO UPDATE SET content = EXCLUDED.content")
+    execute_statements((sql, query_params), username, ResultType.NoResult)
+    return {"success": True}
