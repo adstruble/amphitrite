@@ -94,7 +94,7 @@ def check_job_internal(job_id):
         job = ServerJob(JobState.NotFound)
     else:
         server_jobs_pinged[job_id] = True
-    if job.get_state() == JobState.Complete:
+    if job.get_state() != JobState.InProgress:
         server_jobs.pop(job_id)
     return job
 

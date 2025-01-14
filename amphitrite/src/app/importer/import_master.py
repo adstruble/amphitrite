@@ -43,6 +43,7 @@ def import_master_data(dir_name, username, job_id, year):
 
             except: # noqa
                 LOGGER.error(f"Data for master sheet upload is not in valid CSV format. Header of submitted file: {header}")
+                complete_job(job_id, JobState.Failed, {"error": "Data for master sheet upload is not in valid CSV format."})
                 return {"error": "Data for master sheet upload is not in valid CSV format."}
 
             for line in csv.reader(master_data):

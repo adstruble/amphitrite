@@ -102,3 +102,17 @@ def get_fish_f_values(fish_ids: list, username):
 def mark_all_fish_dead(username):
     return execute_statements("UPDATE animal set alive = false", username, # noqa
                              result_type=ResultType.NoResult)
+
+
+def mark_fish_dead(username, dead_fish):
+    marked_fish = execute_statements(
+        ("UPDATE animal da set alive = false "
+         "FROM refuge_tag rt "
+         "WHERE tag = ANY(:dead_fish) AND year = date_part('year', CURRENT_DATE) AND da.id = rt.animal",
+         {"dead_fish": dead_fish}), username, result_type=ResultType.RowCount).row_cnts[0]
+
+    if marked_fish > 0:
+        # Reset possible_cross table since fish might now be dead
+        execute_statements(["TRUNCATE possible_cross"], username, ResultType.NoResult)
+
+    return marked_fish

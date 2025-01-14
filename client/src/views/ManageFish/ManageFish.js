@@ -1,4 +1,4 @@
-import {Container, Row} from "reactstrap";
+import {Col, Container, Row} from "reactstrap";
 
 import FishDataUpload from "../../components/Upload/FishDataUpload";
 import React, {useState} from "react";
@@ -10,12 +10,15 @@ import {ManageFishFilter} from "./ManageFishFilter";
 import fetchData from "../../server/fetchData";
 import useToken from "../../components/App/useToken";
 import ManageRowExpanded from "./ManageRowExpanded";
+import AmphiAlert from "../../components/Basic/AmphiAlert";
 
 export default function ManageFish() {
     const {getUsername} = useToken();
     const [reloadTable, setReloadTable] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
     const [setSpinning] = useOutletContext();
+    const [alertText, setAlertText] = useState("");
+    const [alertLevel, setAlertLevel] = useState("");
 
     const getExpandedRow = (fish) => {
         return (ManageRowExpanded({fish, saveNotes}))
@@ -65,18 +68,29 @@ export default function ManageFish() {
 
         <div className={classNames("wrapper", isLoading ? 'disabled' : '')}>
             <Container>
+                <Row>
+                    <AmphiAlert alertText={alertText} alertLevel={alertLevel} setAlertText={setAlertText}/>
+                </Row>
+                <Row>
                 <FishDataUpload dataUploadUrl="manage_fish/bulk_upload"
                                 uploadCallback={handleFishUploadedCallback}
                                 formModalTitle="Upload Bulk Fish Data (master sheet)"
                                 uploadButtonText="Upload Fish"
                                 setIsLoading={setIsLoading}
+                                setAlertText={setAlertText}
+                                setAlertLevel={setAlertLevel}
+
                     />
                 <FishDataUpload dataUploadUrl="manage_fish/upload_deaths"
-                                uploadCallback={handleFishUploadedCallback}
+                                uploadCallback={()=>{}}
                                 formModalTitle="Upload Dead Fish"
                                 uploadButtonText="Upload Deaths"
                                 setIsLoading={setIsLoading}
+                                fileNameStartText="File should specify one tag per line"
+                                setAlertText={setAlertText}
+                                setAlertLevel={setAlertLevel}
                 />
+                </Row>
                 <Row>
                     <AmphiTable tableDataUrl="manage_fish/get_fishes"
                                 reloadData={reloadTable}

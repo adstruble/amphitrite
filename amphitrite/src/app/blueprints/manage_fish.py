@@ -9,7 +9,7 @@ from blueprints.utils import maybe_get_username, validate_and_create_upload_job
 from importer.import_utils import parse_year_from_filename
 from utils.data import validate_order_by
 from importer.import_master import import_master_data
-from model.fish import get_fishes_from_db, save_fish_notes
+from model.fish import get_fishes_from_db, save_fish_notes, mark_fish_dead
 
 manage_fish = Blueprint('manage_fish', __name__)
 
@@ -62,12 +62,16 @@ def save_fish_notes_api():
     return save_fish_notes(username_or_err, query_params)
 
 
-@manage_fish.route('manage_fish/upload_deaths', methods=(['POST']))
+@manage_fish.route('/manage_fish/upload_deaths', methods=(['POST']))
 def upload_deaths():
     LOGGER.info("Uploading dead fish")
     username_or_err = maybe_get_username(request.headers, "get fishes")
     if isinstance (username_or_err, dict): # noqa
         return username_or_err
 
-    import_deaths(username_or_err, request)
-    return {"success": True}
+    dead_fish = []
+    for line in request.files['file'].stream.read().splitlines():
+        LOGGER.info(f"row: {line.decode('utf-8')}")
+        dead_fish.append(line.decode('utf-8'))
+
+    return {"success": {"updated": {"Fish": f"{mark_fish_dead(username_or_err, dead_fish)} fish marked dead"}}}

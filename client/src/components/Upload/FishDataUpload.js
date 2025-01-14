@@ -5,10 +5,11 @@ import PropTypes from "prop-types";
 
 
 export default function FishDataUpload({dataUploadUrl, uploadCallback, uploadButtonText,
-                                       formModalTitle, setIsLoading=null}) {
+                                       formModalTitle, setIsLoading=null,
+                                       fileNameStartText='No file chosen',
+                                       setAlertText, setAlertLevel}
+) {
     const [formModal, setFormModal] = useState(false);
-    const [alertText, setAlertText] = useState("");
-    const [alertLevel, setAlertLevel] = useState("");
 
     const handleUploadFishDataClick = async e => {
         e.preventDefault();
@@ -22,9 +23,11 @@ export default function FishDataUpload({dataUploadUrl, uploadCallback, uploadBut
             for (let k in result['success']['inserted']) {
                 message += " " + k + " insertions: " + result['success']['inserted'][k];
             }
-            message += ". "
+            if ("inserted" in result['success']) {
+                message += "."
+            }
             for (let k in result['success']['updated']) {
-                message += k + " updates: " + result['success']['updated'][k] + " ";
+                message += " " + k + " updates: " + result['success']['updated'][k];
             }
             setAlertText(message);
             setAlertLevel("success");
@@ -47,23 +50,18 @@ export default function FishDataUpload({dataUploadUrl, uploadCallback, uploadBut
 
     return (
         <>
-            <Row>
-                <UncontrolledAlert className="alert-with-icon" isOpen={alertText.length > 0} color={alertLevel}>
-                    {alertLevel === "danger" && <strong>Error: </strong>} {alertText}
-                </UncontrolledAlert>
-            </Row>
-            <Row>
-                <FileUploadSingle formModalProp={formModal} fileUploadUrl={dataUploadUrl}
-                                  submitReturnCallback={fishDataUploadCallback}
-                                  submitCallback={fishDataUploadInProgress}
-                                  cancelCallback={fishDataUploadCancel}
-                                  formModalTitle={formModalTitle}
-                                  setIsLoading={setIsLoading}/>
-                <Button className="btn" color="default" type="button" onClick={handleUploadFishDataClick}>
-                    {uploadButtonText}
-                </Button>
-            </Row>
-        </>)
+            <FileUploadSingle formModalProp={formModal} fileUploadUrl={dataUploadUrl}
+                              submitReturnCallback={fishDataUploadCallback}
+                              submitCallback={fishDataUploadInProgress}
+                              cancelCallback={fishDataUploadCancel}
+                              formModalTitle={formModalTitle}
+                              setIsLoading={setIsLoading}
+                              fileNameStartText={fileNameStartText}/>
+            <Button className="btn" color="default" type="button" onClick={handleUploadFishDataClick}>
+                {uploadButtonText}
+            </Button>
+        </>
+    )
 
 }
 FishDataUpload.propTypes = {
