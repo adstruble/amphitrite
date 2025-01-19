@@ -5,7 +5,7 @@ import {
     HeaderCell,
     HeaderRow,
     Table,
-    Row,
+    Row as ReactTableRow,
     useCustom
 } from '@table-library/react-table-library/table';
 import React, {Fragment, useState} from "react";
@@ -14,8 +14,8 @@ import fetchData from "../../server/fetchData";
 import useToken from "../App/useToken";
 import {useTheme} from "@table-library/react-table-library/theme";
 import {getTheme} from "@table-library/react-table-library/baseline";
-import PropTypes from "prop-types";
-import {Input, InputGroup, InputGroupText, UncontrolledTooltip} from "reactstrap";
+import PropTypes, {func} from "prop-types";
+import {Button, Input, InputGroup, InputGroupText, Row, UncontrolledTooltip} from "reactstrap";
 import AmphiHeaderCell from "./AmphiHeaderCell";
 import classnames from "classnames";
 import AmphiPagination from "./AmphiPagination";
@@ -42,9 +42,13 @@ export default function AmphiTable({tableDataUrl,
     const [tableSize, setTableSize] = useState(0);
     const [currElementCnt, setCurrElementCnt] = useState(0);
     const [currPage, setCurrPage] = useState(0);
+    const [filterState, setFilterState] = useState({})
+    const [filterStateHolder, setFilterStateHolder] = useState({})
     const [exactFilter, setExactFilter] = useState({});
     const LIMIT = 30;
     const Filter = filter;
+    const filterWidth = "550px"; //matchWidthElementId ? parseInt(getComputedStyle(document.getElementById(matchWidthElementId))['width'])/2 : "100%";
+
 
     const [tableNodes, setTableNodes] = useState({
         nodes: [],
@@ -77,6 +81,12 @@ export default function AmphiTable({tableDataUrl,
         //console.log(action, state);
     }
 
+    function setParentFilterHolder(state, forceReload){
+        setFilterStateHolder(state);
+        if (forceReload){
+            setFilterState(state);
+        }
+    }
     function updateOrderBy(clickedHeader){
         const newHeaders =
         headerCols.map((header) => {
@@ -125,10 +135,10 @@ export default function AmphiTable({tableDataUrl,
                 order_by: newOrderBy,
                 return_size: true,
                 like_filter: search,
-                exact_filters: exactFilter
+                exact_filters: filterState
             }};
         fetchData(tableDataUrl, getUsername(), params, setTableData);
-    }, [fetchData, search, currPage, fetchParams, headerCols, exactFilter]);
+    }, [fetchData, search, currPage, fetchParams, headerCols, filterState]);
 
     const setTableData = (tableData, params) => {
         setTableNodes({nodes: tableData['data']});
@@ -139,7 +149,6 @@ export default function AmphiTable({tableDataUrl,
             setCurrElementCnt(params.offset + LIMIT)
         }
     };
-
 
     React.useEffect(() => {
         doGetTableData().then();
@@ -156,7 +165,7 @@ export default function AmphiTable({tableDataUrl,
     }
 
     const THEME = {
-        Row: `
+        ReactTableRow: `
         &.table_row {
             background-color: (0,0,0,0);
         }
@@ -177,14 +186,6 @@ export default function AmphiTable({tableDataUrl,
         doGetTableData().then();
     }
 
-    function onApplyFilter(filterState){
-        console.info("filter closed");
-        setShowFilterOptions(false);
-        if (!filterState) {
-            return;
-        }
-        setExactFilter(filterState)
-    }
 
     return (
         <div className='amphi-table-container'>
@@ -219,7 +220,25 @@ export default function AmphiTable({tableDataUrl,
                         </div>
                     </InputGroup>}
 
-                    {Filter &&  <Filter applyFilterCallback={onApplyFilter} showFilter={showFilterOptions}/>}
+                    {Filter &&
+                        <div style={{width: filterWidth, display:showFilterOptions ? "inherit": "none"}}
+                             className="filter" id="filterTable">
+                            <div style={{border: "1px solid #1d8cf8", padding: "10px"}}>
+                                <Filter setFilterParent={setParentFilterHolder}/>
+                                <Row style={{margin:0}}>
+                                    <div style={{display:"flex"}}>
+                                        <Button type="button" onClick={()=>setShowFilterOptions(false)}>Close</Button>
+                                    </div>
+                                    <div style={{display:"flex", marginLeft:"auto"}}>
+                                        <Button type="button" onClick={()=>{
+                                            setShowFilterOptions(false);
+                                            setFilterState(filterStateHolder);
+                                        }}>Search</Button>
+                                    </div>
+                                </Row>
+                            </div>
+                        </div>
+                    }
                 </div>
 
 
@@ -259,7 +278,7 @@ export default function AmphiTable({tableDataUrl,
                                 {tableList.map((item) => (
 
                                     <React.Fragment key={item.id}>
-                                        <Row className={
+                                        <ReactTableRow className={
                                             classnames({'expanded': ids.includes(item.id) },
                                             'table-row', (headerRows.getRowClass) && headerRows.getRowClass(item))}
                                              key={item.id} item={item}>
@@ -279,13 +298,13 @@ export default function AmphiTable({tableDataUrl,
                                                     </Cell>
                                                    );})
                                             }
-                                        </Row>
+                                        </ReactTableRow>
                                         {ids.includes(item.id) && (getExpandedRow(item))}
                                     </React.Fragment>
                                 ))}
-                                <Row key='bottom' item={null}>
+                                <ReactTableRow key='bottom' item={null}>
                                     <Cell key='bottom-cell' className='table-bottom' gridColumnStart={1} gridColumnEnd={headerCols.length + 1}>&nbsp;</Cell>
-                                </Row>
+                                </ReactTableRow>
                             </Body>
                         </>
                     )}

@@ -289,9 +289,7 @@ CREATE OR REPLACE TRIGGER element_pre_update_t BEFORE UPDATE ON animal FOR EACH 
 
 CREATE TABLE family
 (
-    group_id     int       NOT NULL,                                                 -- TODO Should this be text? Do we even need it? Yes, because we want the family to be unique
-    -- and we might only know the birth year and not the exact cross_date when first importing data, this would disallow
-    -- repeat crosses of the same male and female by the unique constraint (which we may or may not want)
+    group_id     int       NOT NULL,
     di           float              DEFAULT -1,                                      -- This can be calculated, but probably want to store it. (value = 1 for wildtype)
     f            float              DEFAULT -1,                                      -- This can be calculated, almost assuredly want to store it (value = 0 for wildtype)
     do_not_cross bool      NOT NULL DEFAULT FALSE,                                   -- This is to be indicated manually by crosser,
@@ -310,6 +308,7 @@ CREATE TABLE family
 -- There are 35 cases where the same parents were bred in two different years. One of these cases is
 -- probably incorrect as one year is 2017 and one is 2007. However, the others seems legitimate.
 -- Therefore we need to include cross_year in the constraint on unique parents
+ALTER TABLE family ADD CONSTRAINT unique_family_parents_year UNIQUE(parent_1, parent_2, cross_year);
 -- Here is the SQL to find them:
 -- select array_agg(f1.gen_id) as children_first_cross, family.group_id,family.cross_year, array_agg(f2.gen_id) as children_second_cross, family_2.group_id,family_2.cross_year from family join family as family_2 on family.parent_1 = family_2.parent_1 and family.id != family_2.id AND family.parent_2 = family_2.parent_2 join animal f1 on f1.family = family.id join animal f2 on f2.family = family_2.id where family.cross_year < family_2.cross_year group by family.group_id, family.cross_year, family_2.group_id, family_2.cross_year;
 CREATE INDEX family_parent_1_idx on family(parent_1);
@@ -332,6 +331,7 @@ CREATE TRIGGER history_trigger_row AFTER INSERT OR DELETE OR UPDATE ON supplemen
 CREATE TRIGGER history_trigger_stm AFTER TRUNCATE ON supplementation_family FOR EACH STATEMENT EXECUTE FUNCTION history.if_modified_func('false');
 CREATE OR REPLACE TRIGGER element_pre_insert_t BEFORE INSERT ON supplementation_family FOR EACH ROW EXECUTE PROCEDURE element_pre_insert();
 CREATE OR REPLACE TRIGGER element_pre_update_t BEFORE UPDATE ON supplementation_family FOR EACH ROW EXECUTE PROCEDURE element_pre_update();
+ALTER TABLE supplementation_family ADD CONSTRAINT unique_supplementation_family_parents_date UNIQUE(parent_1, parent_2, cross_date);
 
 -- Add family column to animal now that that table exists
 ALTER TABLE animal
@@ -366,11 +366,14 @@ CREATE TRIGGER history_trigger_stm AFTER TRUNCATE ON requested_cross FOR EACH ST
 CREATE OR REPLACE TRIGGER element_pre_insert_t BEFORE INSERT ON requested_cross FOR EACH ROW EXECUTE PROCEDURE element_pre_insert();
 CREATE OR REPLACE TRIGGER element_pre_update_t BEFORE UPDATE ON requested_cross FOR EACH ROW EXECUTE PROCEDURE element_pre_update();
 CREATE INDEX rc_parent_fams_idx ON requested_cross(parent_f_fam, parent_m_fam);
+ALTER TABLE requested_cross ADD CONSTRAINT unique_requested_cross_parents_type UNIQUE(parent_f_fam, parent_m_fam, supplementation);
+ALTER TABLE requested_cross
+    ADD CONSTRAINT different_parent_families CHECK (not (parent_m_fam != parent_f_fam));
 
 CREATE TABLE possible_cross
 (
     female  uuid REFERENCES animal (id) NOT NULL,
-      male  uuid REFERENCES famxily (id) NOT NULL,
+      male  uuid REFERENCES family (id) NOT NULL,
          f  float NOT NULL,
         di  float NOT NULL
 ) INHERITS (element);

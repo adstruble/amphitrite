@@ -3,98 +3,133 @@ import {
     Col,
     Dropdown, DropdownItem,
     DropdownMenu,
-    DropdownToggle,
-    Input,
+    DropdownToggle, FormGroup,
+    Input, Label,
     Row
 } from "reactstrap";
 import PropTypes from "prop-types";
 import React, {useState} from "react";
 import {CrossYearDropdown} from "../../components/Basic/CrossYearDropdown";
-import ClickOutsideAlerter from "../../components/Utils/ClickOutsiderAlerter";
+import classnames from "classnames";
 
-export function ManageFishFilter({applyFilterCallback, showFilter}) {
-    const filterWidth = "550px"; //matchWidthElementId ? parseInt(getComputedStyle(document.getElementById(matchWidthElementId))['width'])/2 : "100%";
-    const [year, setYear] = useState('All');
+export function ManageFishFilter({setFilterParent}) {
+    const [year, setYear] = useState('2024');
     const [sex, setSex] = useState('Both');
     const [sexDropdownOpen, setSexDropdownOpen] = useState(false);
+    const [aliveYes, setAliveYes] = useState(true);
+    const [aliveNo, setAliveNo] = useState(false);
+    const [yesAliveDisabled, setYesAliveDisabled] = useState(true);
+    const [noAliveDisabled, setNoAliveDisabled] = useState(false);
+    const [groupId, setGroupId] = useState("");
+    const [initLoad, setInitLoad] = useState(true);
+
 
     function toggleSexDropdown(){
         setSexDropdownOpen((prevState) => !prevState);
     }
-    function getFilters(){
-        let filter = {}
+
+
+    React.useEffect(()=>{
+        let filterState = {}
         if (year !== 'All'){
-            filter['cross_year'] = year
+            filterState['cross_year'] = year
         }
         if (sex !== 'Both'){
-            filter['sex'] = sex[0].toUpperCase()
+            filterState['sex'] = sex[0].toUpperCase()
         }
-        const groupId = document.getElementById("groupId").value.trim();
         if (groupId !== ""){
-            filter['group_id'] = groupId;
+            filterState['group_id'] = groupId;
         }
-        return filter;
-    }
+        if (!(aliveYes && aliveNo)){
+            filterState['alive'] = aliveYes
+        }
+        setFilterParent(filterState, initLoad);
+        setInitLoad(false);
+    }, [groupId, aliveYes, aliveNo, sex, year, initLoad]);
+
 
     return (
-        <ClickOutsideAlerter clickedOutsideCallback={applyFilterCallback} show={showFilter}>
-            <div style={{width: filterWidth}}
-                 className="filter" id="filterTable">
-                <div style={{border: "1px solid #1d8cf8", padding: "10px"}}>
-                    <div className="input-area">
-                        <Row>
-                            <Col>
-                                <span>Year parents were crossed:</span>
-                            </Col>
-                            <Col>
-                                <CrossYearDropdown includeThisYear={false}
-                                                   yearSelectedCallback={setYear}
-                                                   includeAllYears={true}/>
-                            </Col>
-                        </Row>
-                        <Row>
-                            <Col>
-                                <span>Family ID:</span>
-                            </Col>
-                            <Col>
-                                <Input id="groupId" style={{width:"auto"}}/>
-                            </Col>
-                        </Row>
-                        <Row>
-                            <Col>
-                                <span>Sex:</span>
-                            </Col>
-                            <Col>
-                                <Dropdown isOpen={sexDropdownOpen} toggle={toggleSexDropdown} >
-                                    <DropdownToggle style={{paddingTop: 0, paddingLeft: 0}}
-                                                    aria-expanded={false}
-                                                    aria-haspopup={true}
-                                                    caret
-                                                    color="default"
-                                                    data-toggle="dropdown"
-                                                    id="sexFilterDropdown"
-                                                    nav
-                                    >
-                                        <span id="completedCrossesYear">{sex}</span>
-                                    </DropdownToggle>
-                                    <DropdownMenu>
-                                        <DropdownItem onClick={()=>setSex("Female")}>Female</DropdownItem>
-                                        <DropdownItem onClick={() =>setSex("Male")}>Male</DropdownItem>
-                                    </DropdownMenu>
-                                </Dropdown>
-                            </Col>
-                        </Row>
-                    </div>
-                    <div style={{display:"flex", justifyContent:"flex-end"}}>
-                        <Button type="button" onClick={()=>applyFilterCallback(getFilters())}>Search</Button>
-                    </div>
-                </div>
-            </div>
-        </ClickOutsideAlerter>
+        <div className="input-area">
+            <Row>
+                <Col>
+                    <span>Year parents were crossed:</span>
+                </Col>
+                <Col>
+                    <CrossYearDropdown includeThisYear={false}
+                                       yearSelectedCallback={setYear}
+                                       includeAllYears={true}
+                                       startSelection={new Date().getFullYear() - 1}
+                    />
+                </Col>
+            </Row>
+            <Row>
+                <Col>
+                    <span>Family ID:</span>
+                </Col>
+                <Col>
+                    <Input id="groupId" style={{width:"auto"}} onChange={(e)=>{
+                        setGroupId(e.target.value);
+                    }}/>
+                </Col>
+            </Row>
+            <Row>
+                <Col>
+                    <span>Sex:</span>
+                </Col>
+                <Col>
+                    <Dropdown isOpen={sexDropdownOpen} toggle={toggleSexDropdown} >
+                        <DropdownToggle style={{paddingTop: 0, paddingLeft: 0}}
+                                        aria-expanded={false}
+                                        aria-haspopup={true}
+                                        caret
+                                        color="default"
+                                        data-toggle="dropdown"
+                                        id="sexFilterDropdown"
+                                        nav
+                        >
+                            <span id="sexSelection">{sex}</span>
+                        </DropdownToggle>
+                        <DropdownMenu>
+                            <DropdownItem onClick={()=>{setSex("Both")}}>Both</DropdownItem>
+                            <DropdownItem onClick={()=>{setSex("Female")}}>Female</DropdownItem>
+                            <DropdownItem onClick={() =>{setSex("Male")}}>Male</DropdownItem>
+                        </DropdownMenu>
+                    </Dropdown>
+                </Col>
+            </Row>
+            <Row>
+                <Col>
+                    <span>Alive:</span>
+                </Col>
+                <Col>
+                    <FormGroup check>
+                        <Label check style={{marginRight: '10px'}}>
+                            <Input disabled={yesAliveDisabled} defaultChecked={aliveYes} type="checkbox"
+                                   onChange={(e) => {
+                                           setAliveYes(e.target.checked);
+                                           setNoAliveDisabled(!e.target.checked);
+                                   }}
+                                   id="yesAliveCheck"
+                            />
+                            <span className={classnames("form-check-sign")}>Yes</span>
+                        </Label>
+                    <Label check>
+                        <Input defaultChecked={aliveNo} type="checkbox" disabled={noAliveDisabled}
+                               onChange={(e) => {
+                                       setAliveNo(e.target.checked);
+                                       setYesAliveDisabled(!e.target.checked);
+                               }}
+                               id="noAliveCheck"
+                        />
+                        <span className={classnames("form-check-sign")}>No</span>
+                    </Label>
+                </FormGroup>
+                </Col>
+            </Row>
+        </div>
     )
 }
 
 ManageFishFilter.propTypes = {
-    applyFilterCallback: PropTypes.func.isRequired,
-    showFilter: PropTypes.any.isRequired
+    setFilterParent: PropTypes.func.isRequired
 }

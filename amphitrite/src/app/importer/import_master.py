@@ -70,6 +70,11 @@ def import_master_data(dir_name, username, job_id, year):
                     LOGGER.warning(f"Invalid family group_id: '{line[MasterDataCols.Family_Id.value]}' for: {refuge_tag}. "
                                    f"Fish record will be skipped.")
                     continue
+                alive = True
+                if group_id is None:
+                    # If fish previously existed and now it's group it is None, this is our indication that it is dead
+                    alive = False
+                    group_id = '\\N'
 
                 refuge_tags[line[MasterDataCols.Id.value]] = {"tag": refuge_tag,
                                                               "animal": animal_id,
@@ -98,7 +103,7 @@ def import_master_data(dir_name, username, job_id, year):
                           "id": animal_id,
                           "family": "\\N",
                           "genotype": genotype_string,
-                          "alive": True,
+                          "alive": alive,
                           "sibling_birth_year_temp": sibling_birth_year.year,
                           "group_id_temp": group_id}
                 if not(animal['sex'] == 'M' or animal['sex'] == 'F'):
@@ -126,9 +131,10 @@ def import_master_data(dir_name, username, job_id, year):
                                                      WHERE a_i.group_id_temp = f.group_id
                                                      AND a_i.sibling_birth_year_temp = f.cross_year)""")
             animal_table_data.set_insert_condition("""ON CONFLICT (genotype) DO UPDATE 
-              SET (sex, box, family) = (EXCLUDED.sex, EXCLUDED.box, EXCLUDED.family)
+              SET (sex, box, family, alive) = (EXCLUDED.sex, EXCLUDED.box, coalesce(EXCLUDED.family, family), EXCLUDED.alive)
             WHERE animal.genotype = EXCLUDED.genotype 
-              AND (animal.sex != EXCLUDED.sex OR animal.box != EXCLUDED.box OR animal.family != EXCLUDED.family)""")
+              AND (animal.sex != EXCLUDED.sex OR animal.box != EXCLUDED.box OR animal.family != EXCLUDED.family OR
+              animal.alive != EXCLUDED.alive)""")
 
             refuge_tag_data = InsertTableData('refuge_tag', list(refuge_tags.values()))
             refuge_tag_data.add_temp_table_update("""

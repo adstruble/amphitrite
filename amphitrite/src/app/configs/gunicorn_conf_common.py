@@ -94,5 +94,5 @@ def on_starting(server: Arbiter) -> None:
         import_master_data(get_import_resources_dir(), 'amphiadmin', 'master_data_2023BY.csv', 2024)
         # Import the crosses made in 2024 (Recommended Crosses tab from Final_BY2023_Mastersheet_MF)
         crosses_path = os.path.join(get_import_resources_dir(), "bulk_upload_crosses_2024.csv")
-        import_crosses(crosses_path, 'amphiadmin')
+        import_crosses(crosses_path, 'amphiadmin', 2024)
         mark_all_fish_dead('amphiadmin')

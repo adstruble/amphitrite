@@ -1,4 +1,5 @@
 import csv
+import os
 import tempfile
 import threading
 
@@ -8,8 +9,8 @@ from amphi_logging.logger import get_logger
 from blueprints.utils import maybe_get_username, validate_and_create_upload_job, clean_str_array, validate_params
 from importer.import_crosses import import_crosses
 from model.crosses import add_requested_cross, remove_requested_cross, get_requested_crosses_csv, \
-    add_completed_cross, get_possible_crosses, get_count_possible_females, \
-    select_available_female_tags, determine_and_insert_possible_crosses, get_completed_crosses, set_cross_failed, \
+    add_completed_cross, get_possible_crosses, \
+    select_available_female_tags, get_completed_crosses, set_cross_failed, \
     set_use_for_supplementation, get_exported_crosses_csv, get_completed_crosses_by_family, set_available_females
 from model.family import remove_family_by_tags, set_family_mfg, save_family_notes
 from utils.data import validate_order_by
@@ -19,12 +20,14 @@ cross_fish = Blueprint('cross_fish', __name__)
 LOGGER = get_logger('cross-fish')
 
 
-@cross_fish.route('/cross_fish/upload_crosses', methods=(['POST']))
+@cross_fish.route('/cross_fish/upload_completed_crosses', methods=(['POST']))
 def bulk_upload():
+
+    LOGGER.info(f"Uploading crossed fish")
     job_id, username, t_file_dir = validate_and_create_upload_job(request)
 
-    t = threading.Thread(name="import_master", target=import_crosses,
-                         args=(t_file_dir, username, job_id),
+    t = threading.Thread(name="import_crosses", target=import_crosses,
+                         args=(os.path.join(t_file_dir.name, f'bulk_upload_{job_id}'), username, job_id),
                          daemon=True)
     t.start()
     return {"job_id": job_id}
@@ -133,7 +136,7 @@ def set_available_females_from_file():
         females = []
         for line in request.files['file'].stream.read().splitlines():
             LOGGER.info(f"row: {line.decode('utf-8')}")
-            females.append(line.decode('utf-8'))
+            females.append(line.decode('utf-8').split('_')[0])
 
         return set_available_females(username_or_err, females)
     except Exception as e:

@@ -9,7 +9,8 @@ export default function FileUploadSingle({fileUploadUrl,
                                              cancelCallback,
                                              formModalProp,
                                          formModalTitle, setIsLoading,
-                                         fileNameStartText}) {
+                                         fileNameStartText,
+                                             UserOptions=null, uploadParams={}}) {
 
     const [formModal, setFormModal] = useState(false);
     const [file, setFile] = useState();
@@ -81,12 +82,16 @@ export default function FileUploadSingle({fileUploadUrl,
         setSubmitDisabled(true);
         const formData = new FormData();
         formData.append('file', file);
+        for (const key in uploadParams){
+            formData.append(key, uploadParams[key]);
+        }
         setIsLoading?.(true);
         // 👇 Uploading the file using the fetch API to the server
         fetch("/amphitrite/" + fileUploadUrl, {
             method: "POST",
             headers: {
-                username: getUsername()
+                username: getUsername(),
+                ContentType: 'multipart/form-data'
             },
             body: formData,
         })
@@ -135,6 +140,7 @@ export default function FileUploadSingle({fileUploadUrl,
                            dismissible>
                         <strong>Error:</strong><> {submitAlert}</>
                     </Alert>
+                    {UserOptions && UserOptions}
                     <div>
                         <Input className="" type="file" name="file" id="file_input" onChange={handleFileChange}/>
                         <label htmlFor="file_input">Choose File</label>

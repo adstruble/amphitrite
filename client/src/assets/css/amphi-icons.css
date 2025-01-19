@@ -94,3 +94,8 @@ Generated using nucleoapp.com
   content: "\ea03";
   font-family: "amphi", serif;
 }
+
+.icon-dead::before {
+  content: "\ea04";
+  font-family: "amphi", serif;
+}

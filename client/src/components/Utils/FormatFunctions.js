@@ -25,8 +25,9 @@ export const formatArrayToStr = (array) => {
     return array.join(", ");
 }
 
-export const formatIcon = (_, format_args) => {
-    return (<i className={classnames('tim-icons', format_args[1])}
+export const formatIcon = (val, item, format_args) => {
+    // Use format_args[1] if val is True, otherwise use format_args[2]
+    return (<i className={classnames('tim-icons', val ? format_args[1] : format_args[2], 'amphi-cell', 'color-red')}
                onClick={format_args[0]}/>
     );
 }
@@ -69,7 +70,7 @@ export function formatTextWithIcon (txt, item, format_args, handleExpand, colNam
 
     return (<div><i id={'id' + item['id'] + colName + 'i'}
                     onClick={onIconClick}
-                    className={classnames("tim-icons", format_args[0], "amphi-cell")}
+                    className={classnames("tim-icons", format_args[0], "amphi-cell", "clickable")}
                     color="info"/>
         {format_args[2] && <UncontrolledTooltip
                     placement={"top-start"}

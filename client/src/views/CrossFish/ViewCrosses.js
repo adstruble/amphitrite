@@ -5,14 +5,13 @@ import {
     Container, Dropdown,
     DropdownItem,
     DropdownMenu,
-    DropdownToggle,
-    Row
+    DropdownToggle, FormGroup,
+    Row, UncontrolledTooltip
 } from "reactstrap";
 import AmphiAlert from "../../components/Basic/AmphiAlert";
 import React,{useState} from "react";
 import AmphiTable from "../../components/Table/AmphiTable";
 import {
-    formatCheckbox,
     formatDate,
     formatDoubleTo3,
     formatStr, formatTextWithIcon
@@ -22,6 +21,10 @@ import fetchFile from "../../server/fetchFile";
 import useToken from "../../components/App/useToken";
 import {CrossYearDropdown} from "../../components/Basic/CrossYearDropdown";
 import {ViewCrossesFilter} from "./ViewCrossesFilter";
+import FishDataUpload from "../../components/Upload/FishDataUpload";
+import ReactDatetime from "react-datetime";
+import moment from "moment/moment";
+import {useOutletContext} from "react-router-dom";
 
 
 export default function ViewCrosses(){
@@ -76,9 +79,20 @@ export default function ViewCrosses(){
     const [tableFetchParams, setTableFetchParams] = useState(
         {'year':completedCrossesYear, 'refuge':viewingRefugeCrosses})
     const {_, __, getUsername} = useToken();
+    const [crossCompletionDate, setCrossCompletionDate] = useState(moment(new Date()).format("MM/DD/YYYY"));
+    const [setSpinning] = useOutletContext();
+
 
     const toggleCrossType = () => setCrossTypeDropdownOpen(prevState => !prevState)
 
+    React.useEffect(() =>{
+        if (isLoading){
+            setSpinning(true);
+        }else{
+            setSpinning(false);
+        }
+    }, [isLoading]);
+    
     const handleExportCrossesClick = async e => {
         let fileName = 'supplementation_crosses.csv';
         if (viewingRefugeCrosses){
@@ -125,7 +139,37 @@ export default function ViewCrosses(){
             return "Supplementation"
         }
     }
-    return(
+
+    const UserOptions = <Row style={{paddingBottom:10}}>
+            <Col style={{justifyContent:"right",paddingRight:0, maxWidth:"fit-content"}}>
+                <span>Date cross made:</span>
+            </Col>
+            <Col>
+                <div className="setting">
+                    <FormGroup className="form-group setting">
+                        <ReactDatetime
+                            className=" amphi-date"
+                            value={crossCompletionDate}
+                            onChange={(date) => {
+                                if (date instanceof String) {
+                                    setAlertLevel('danger');
+                                    setAlertText("'" + date +
+                                        "' is not a valid date. Cross completion date must be a valid date.");
+                                } else {
+                                    setCrossCompletionDate(moment(date).format("MM/DD/YYYY"));
+                                }
+                            }}
+                            inputProps={{readOnly: true}}
+                            dateFormat="MM/DD/YYYY"
+                            timeFormat={false}
+                        />
+                    </FormGroup>
+                </div>
+            </Col>
+        </Row>
+
+    const uploadBtnText = "Upload Completed Crosses";
+    return (
         <div className={classnames('wrapper', 'view-fish', isLoading ? 'disabled' : '')}>
             <Container>
                 <Row>
@@ -133,22 +177,22 @@ export default function ViewCrosses(){
                 </Row>
                 <Row>
                     <Col>
-                    <Col>
-                        <Row>
-                            <Col style={{padding: 0, flexBasis: "fit-content", flexGrow: "0"}}>
-                                <span>Cross Use:</span>
-                            </Col>
-                            <Col>
-                                <Dropdown label="Refuge" toggle={toggleCrossType} isOpen={crossTypeDropdownOpen}>
-                                    <DropdownToggle style={{paddingTop: 0, paddingLeft: 0}}
-                                                    aria-expanded={false}
-                                                    aria-haspopup={true}
-                                                    caret
-                                                    color="default"
-                                                    data-toggle="dropdown"
-                                                    id="crossesTypeMenuLink"
-                                                    nav
-                                    >
+                        <Col>
+                            <Row>
+                                <Col style={{padding: 0, flexBasis: "fit-content", flexGrow: "0"}}>
+                                    <span>Cross Type:</span>
+                                </Col>
+                                <Col>
+                                    <Dropdown label="Refuge" toggle={toggleCrossType} isOpen={crossTypeDropdownOpen}>
+                                        <DropdownToggle style={{paddingTop: 0, paddingLeft: 0}}
+                                                        aria-expanded={false}
+                                                        aria-haspopup={true}
+                                                        caret
+                                                        color="default"
+                                                        data-toggle="dropdown"
+                                                        id="crossesTypeMenuLink"
+                                                        nav
+                                        >
                                         <span id="crossType">{getCrossTypeDropdownLabel()}</span>
                                     </DropdownToggle>
                                     <DropdownMenu aria-labelledby="navbarDropdownMenuLink">
@@ -176,6 +220,18 @@ export default function ViewCrosses(){
                         padding: 0, textAlign: "right", flexGrow: "0", flexBasis: "fit-content",
                         justifyContent: "flex-end"
                     }}>
+                        <FishDataUpload dataUploadUrl="cross_fish/upload_completed_crosses"
+                                        uploadCallback={()=>{setReloadTable(reloadTable + 1)}}
+                                        formModalTitle="Upload Completed Refuge Crosses"
+                                        uploadButtonText={uploadBtnText}
+                                        setIsLoading={setIsLoading}
+                                        setAlertText={setAlertText}
+                                        setAlertLevel={setAlertLevel}
+                                        /*UserOptions={UserOptions}
+                                        uploadParams={{'cross_date': crossCompletionDate}}*/
+                        />
+                        <UncontrolledTooltip target={uploadBtnText.replace(/ /g,'')}
+                            placement={"top-start"}>Upload completed crosses file (refuge only)</UncontrolledTooltip>
                         <Button className="btn" color="default" type="button" onClick={handleExportCrossesClick}>
                             Export Crosses
                         </Button>

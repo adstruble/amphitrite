@@ -12,11 +12,11 @@ import React, {useState} from "react";
 import {CrossYearDropdown} from "../../components/Basic/CrossYearDropdown";
 import ClickOutsideAlerter from "../../components/Utils/ClickOutsiderAlerter";
 
-export function CrossFishFilter({applyFilterCallback, showFilter}) {
-    const filterWidth = "550px"; //matchWidthElementId ? parseInt(getComputedStyle(document.getElementById(matchWidthElementId))['width'])/2 : "100%";
+export function CrossFishFilter({setFilterParent}) {
+    const [initLoad, setInitLoad] = useState(true);
 
-
-    function getFilters(){
+    React.useEffect(()=>{setFilter(); setInitLoad(false)}, [])
+    function setFilter(){
         let filter = {}
         const fGroupId = document.getElementById("fGroupId").value.trim()
         if (fGroupId !== ""){
@@ -38,58 +38,47 @@ export function CrossFishFilter({applyFilterCallback, showFilter}) {
         if (mTag !== ""){
             filter['rty.tag'] = mTag;
         }
-        return filter;
+        setFilterParent(filter, initLoad);
     }
 
     return (
-        <ClickOutsideAlerter clickedOutsideCallback={applyFilterCallback} show={showFilter}>
-            <div style={{width: filterWidth}}
-                 className="filter" id="filterTable">
-                <div style={{border: "1px solid #1d8cf8", padding: "10px"}}>
-                    <div className="input-area">
-                        <Row>
-                            <Col>
-                                <span>Female PC/FSG:</span>
-                            </Col>
-                            <Col>
-                                <Input id="fGroupId" style={{width:"auto"}}/>
-                            </Col>
-                        </Row>
-                        <Row>
-                            <Col>
-                                <span>Female Fish Tag:</span>
-                            </Col>
-                            <Col>
-                                <Input id="fTag" style={{width:"auto"}}/>
-                            </Col>
-                        </Row>
-                        <Row>
-                            <Col>
-                                <span>Male PC/FSG:</span>
-                            </Col>
-                            <Col>
-                                <Input id="mGroupId" style={{width:"auto"}}/>
-                            </Col>
-                        </Row>
-                        <Row>
-                            <Col>
-                                <span>Male Fish Tag:</span>
-                            </Col>
-                            <Col>
-                                <Input id="mTag" style={{width:"auto"}}/>
-                            </Col>
-                        </Row>
-                    </div>
-                    <div style={{display:"flex", justifyContent:"flex-end"}}>
-                        <Button type="button" onClick={()=>applyFilterCallback(getFilters())}>Search</Button>
-                    </div>
-                </div>
-            </div>
-        </ClickOutsideAlerter>
+        <div className="input-area">
+            <Row>
+                <Col>
+                    <span>Female PC/FSG:</span>
+                </Col>
+                <Col>
+                    <Input id="fGroupId" style={{width:"auto"}} onChange={()=>setFilter()}/>
+                </Col>
+            </Row>
+            <Row>
+                <Col>
+                    <span>Female Fish Tag:</span>
+                </Col>
+                <Col>
+                    <Input id="fTag" style={{width:"auto"}} onChange={()=>setFilter()}/>
+                </Col>
+            </Row>
+            <Row>
+                <Col>
+                    <span>Male PC/FSG:</span>
+                </Col>
+                <Col>
+                    <Input id="mGroupId" style={{width:"auto"}} onChange={()=>setFilter()}/>
+                </Col>
+            </Row>
+            <Row>
+                <Col>
+                    <span>Male Fish Tag:</span>
+                </Col>
+                <Col>
+                    <Input id="mTag" style={{width:"auto"}} onChange={()=>setFilter()}/>
+                </Col>
+            </Row>
+        </div>
     )
 }
 
-CrossFishFilter.propTypes = {
-    applyFilterCallback: PropTypes.func.isRequired,
-    showFilter: PropTypes.any.isRequired
+CrossFishFilter.apropTypes = {
+    setFilterParent: PropTypes.func.isRequired
 }

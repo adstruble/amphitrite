@@ -1,4 +1,5 @@
 import csv
+import datetime
 import os
 import re
 import uuid
@@ -11,6 +12,7 @@ from db_utils.insert import insert_table_data
 from exceptions.exceptions import UploadCrossesError
 from importer.import_utils import maybe_correct_for_2_year_olds
 from model.family import get_ids_and_di_for_tag
+from utils.server_state import complete_job, JobState
 
 LOGGER = get_logger('importer')
 
@@ -25,12 +27,12 @@ class RecCrossesDataCols(object):
     MFG = 6
 
 
-def import_crosses(crosses_file, username):
-    f_matrix = build_matrix_from_existing(username, 2024)
+def import_crosses(crosses_file, username, job_id, year=datetime.datetime.now().year):
 
     try:
         header = ""
         with open(crosses_file, mode='r', encoding='UTF-8') as rec_crosses:
+            f_matrix = build_matrix_from_existing(username, year)
             try:
                 csv_lines = csv.reader(rec_crosses)
                 header = next(csv_lines, None)
@@ -58,39 +60,87 @@ def import_crosses(crosses_file, username):
                 raise UploadCrossesError({any_e}) from any_e
 
             families = []
+            requested_crosses = []
             for line_num, line in enumerate(csv.reader(rec_crosses)):
                 date_str = ""
                 try:
                     date_str = line[RecCrossesDataCols.Date]
-                    cross_date = _handle_date_str(date_str)
+                    try:
+                        cross_date = _handle_date_str(date_str)
+                    except: # noqa
+                        complete_job(job_id, JobState.Failed, {"error": f"Failure parsing date for row: {line_num}"})
+
                     parent_1_birth_date, parent_1_tag, _ = maybe_correct_for_2_year_olds(
                         cross_date.year - 1, line[RecCrossesDataCols.Female])
                     parent_2_birth_date, parent_2_tag, _ = maybe_correct_for_2_year_olds(
                         cross_date.year - 1, line[RecCrossesDataCols.Male])
+                    group_id = line[RecCrossesDataCols.SFG]
+                    if not group_id:
+                        complete_job(job_id, JobState.Failed, {"error": f"Group ID missing for row: {line_num}"})
+                        return
 
-                    parent_1 = get_ids_and_di_for_tag(parent_1_tag, parent_1_birth_date.year, username)[0]
-                    parent_2 = get_ids_and_di_for_tag(parent_2_tag, parent_2_birth_date.year, username)[0]
+                    try:
+                        parent_1 = get_ids_and_di_for_tag(parent_1_tag, parent_1_birth_date.year, username)[0]
+                    except IndexError:
+                        handle_missing_parent_tag(parent_1_tag, job_id)
+                        return
+                    try:
+                        parent_2 = get_ids_and_di_for_tag(parent_2_tag, parent_2_birth_date.year, username)[0]
+                    except IndexError:
+                        handle_missing_parent_tag(parent_2_tag, job_id)
+                        return
+
                     di = (parent_1['di'] + parent_2['di']) / 2 + 1
                     f = f_matrix.calculate_f_for_potential_cross(parent_1['family'], parent_2['family'])
+
+                    LOGGER.info(f"Calculated f {f}, for families 1 {parent_1['family']}, 2: {parent_2['family']}"
+                                f" tag1 {parent_1_tag}, tag2 {parent_2_tag}")
                     families.append({'id': str(uuid.uuid4()),
                                      'parent_1': parent_1['animal'],
                                      'parent_2': parent_2['animal'],
                                      'cross_date': cross_date,
                                      'group_id': line[RecCrossesDataCols.SFG],
-                                     'mfg': line[RecCrossesDataCols.MFG],
+                                     'mfg': '\\N' if not line[RecCrossesDataCols.MFG] else line[RecCrossesDataCols.MFG],
                                      'f': f,
                                      'di': di})
+                    requested_crosses.append({
+                        'id': str(uuid.uuid4()),
+                        'parent_f': parent_1['animal'],
+                        'parent_m': parent_2['animal'],
+                        'parent_f_fam': parent_1['family'],
+                        'parent_m_fam': parent_2['family'],
+                        'cross_date': cross_date,
+                        'f': f
+                    })
                 except Exception as e: # noqa
                     LOGGER.exception(f'Error processing date: "{date_str}" '
                                      f'while importing crosses. Skipping cross line: {line_num}', e)
 
         with get_connection(**make_connection_kwargs(DEFAULT_DB_PARAMS, username=username)) as conn:
             with conn.connection.cursor() as cursor:
-                family_inserts = insert_table_data('family', families, cursor)
+                family_inserts, family_updates = insert_table_data(
+                    'family', families, cursor,'ON CONFLICT (parent_1, parent_2, cross_year)'
+                                               ' DO UPDATE SET(cross_date, group_id, mfg) = (EXCLUDED.cross_date,'
+                                               'EXCLUDED.group_id, EXCLUDED.mfg)')
                 LOGGER.info(f"{family_inserts} crosses from {cross_date.year} inserted.")
+                rc_inserts, rc_updates = insert_table_data(
+                    'requested_cross', requested_crosses, cursor,
+                    'ON CONFLICT (parent_f_fam, parent_m_fam, supplementation) DO UPDATE SET '
+                    '(cross_date, parent_f, parent_m) = (EXCLUDED.cross_date, EXCLUDED.parent_f, EXCLUDED.parent_m)')
+                LOGGER.info(f"{rc_inserts} requested_crosses from {cross_date.year} inserted.")
+                complete_job(job_id, JobState.Complete, {"success": {'inserts': {'Family': family_inserts,
+                                                                                 'Requested Cross': rc_inserts},
+                                                                     'updates': {'Family': family_updates,
+                                                                                 'Requested Cross': rc_updates}}})
 
     except Exception as any_e:
         LOGGER.exception(f"Failed import cross job: {any_e}")
+        complete_job(job_id, JobState.Failed, {"error": str(any_e)})
+
+
+def handle_missing_parent_tag(parent, job_id):
+    LOGGER.error("Parent tag from upload crosses file was not found")
+    complete_job(job_id, JobState.Failed, {"error": f"Parent tag: {parent} from upload crosses file was not found"})
 
 
 def _handle_date_str(date_str):

@@ -214,7 +214,7 @@ def get_requested_crosses(username):
        JOIN family m_family on m_family.id = parent_m_fam
        LEFT JOIN pedigree y_crosses ON y_crosses.parent = m_parent.id
        LEFT JOIN pedigree x_crosses ON x_crosses.parent = f_parent.id
-       WHERE f_parent.id IN (SELECT DISTINCT female from possible_cross)
+       WHERE f_parent.id IN (SELECT DISTINCT female from possible_cross) AND requested_cross.cross_date IS NULL
        GROUP BY (requested_cross.f, f_family.group_id, m_family.group_id, requested_cross.supplementation)
        ORDER BY requested_cross.supplementation, count(x_crosses), count(y_crosses), requested_cross.f;
     """
@@ -248,7 +248,7 @@ def add_completed_cross(username, f_tag, m_tag, f, cross_date_str, table_name, r
            AND f_fam.id = '{fam_ids[0]}' AND m_fam.id = '{fam_ids[1]}'"""
 
     # Also update requested_cross table to say what male and female we've used as it makes determining crosses count
-    # for Possible Crosses table much eaiser
+    # for Possible Crosses table much easier
     update_req_cross_sql = f"""
         UPDATE requested_cross SET (parent_f, parent_m, cross_date) = (fa.id, ma.id, to_date('{cross_date_str}'::varchar, 'MM/DD/YYYY')) 
             FROM refuge_tag rtf
@@ -276,7 +276,8 @@ def insert_possible_crosses(username: str, possible_crosses: list):
 """
     with get_connection(**make_connection_kwargs(DEFAULT_DB_PARAMS, username=username)) as conn:
         with conn.connection.cursor() as cursor:
-            return insert_table_data('possible_cross', possible_crosses, cursor)
+            num_inserts, _ = insert_table_data('possible_cross', possible_crosses, cursor)
+            return num_inserts
 
 
 def cleanup_previous_available_females(username: str, female_tags: set):
@@ -371,7 +372,7 @@ def get_completed_crosses(username, query_params, order_by_clause, filter_str):
         like_filter_str += f"rty.tag {like_filter} OR rtx.tag {like_filter} OR "
         like_filter_str += f"xf.group_id::text {like_filter} OR yf.group_id::text {like_filter})"
 
-    exact_filter = query_params.get('exact_filters')
+    exact_filter = query_params.get('exact_filters', {})
     exact_filters = []
     for idx, (key, value) in enumerate(exact_filter.items()):
         if value == -1:

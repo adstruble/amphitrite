@@ -11,10 +11,10 @@ LOGGER = get_logger('importer')
 
 
 class InsertTableData:
-    def __init__(self, name: str, data: list[dict]):
+    def __init__(self, name: str, data: list[dict], insert_condition=None):
         self.name = name
         self.data = data
-        self.insert_condition = None
+        self.insert_condition = insert_condition
         self.temp_table_updates = []
         self.columns = []
         if data:
@@ -46,8 +46,6 @@ def batch_insert_master_data(table_data: list[InsertTableData], username):
                 for table in table_data:
                     if not table.data:
                         continue
-                    cursor.execute(f"SELECT COUNT(*) FROM {table.name}")
-                    start_cnt = cursor.fetchone()[0]
                     table_for_error = table
                     custom_alters = [
                         f"ALTER TABLE {table.name}_insert ADD COLUMN IF NOT EXISTS sibling_birth_year_temp numeric",
@@ -55,13 +53,10 @@ def batch_insert_master_data(table_data: list[InsertTableData], username):
                     custom_alters.extend(table.temp_table_updates)
                     prepare_copy_table_for_bulk_insert(table, cursor, custom_alters)
                     final_table_col_str = ",".join([f"\"{col}\"" for col in list(table.data[0].keys())[:-2]])
-                    copy_to_final_table(table, cursor, final_table_col_str)
+                    inserts, updates = copy_to_final_table(table, cursor, final_table_col_str)
 
-                    changed = cursor.rowcount
-                    cursor.execute(f"SELECT COUNT(*) FROM {table.name}")
-                    end_cnt = cursor.fetchone()[0]
-                    results['updated'][table.name] = changed - (end_cnt - start_cnt)
-                    results['inserted'][table.name] = end_cnt - start_cnt
+                    results['updated'][table.name] = inserts
+                    results['inserted'][table.name] = updates
 
             cursor.close()
         return {"success": results}
@@ -80,6 +75,15 @@ def batch_insert_master_data(table_data: list[InsertTableData], username):
 
 
 def copy_to_final_table(table: InsertTableData, cursor, col_str=None):
+    """
+    :param table:  table to copy
+    :param cursor: current db cursor
+    :param col_str: columns to copy
+    :return: Returns tuple of counts: (inserts, updates)
+    """
+    cursor.execute(f"SELECT COUNT(*) FROM {table.name}")
+    start_cnt = cursor.fetchone()[0]
+
     if not col_str:
         col_str = ",".join([f"\"{col}\"" for col in list(table.data[0].keys())])
     insert_str = f"""INSERT INTO {table.name} ({col_str})
@@ -88,6 +92,10 @@ def copy_to_final_table(table: InsertTableData, cursor, col_str=None):
                              """
 
     cursor.execute(insert_str)
+    changed = cursor.rowcount
+    cursor.execute(f"SELECT COUNT(*) FROM {table.name}")
+    end_cnt = cursor.fetchone()[0]
+    return end_cnt - start_cnt, changed - (end_cnt - start_cnt)
 
 
 def batch_insert_cross_data(table: InsertTableData, username):
@@ -128,17 +136,18 @@ def batch_insert_cross_data(table: InsertTableData, username):
                 cursor.execute(insert_update_sibling_families)
                 results = {'family': cursor.rowcount}
                 return {'success': results}
-                
+
     except Exception as e: # noqa
         LOGGER.exception("Exception during batch insert of crosses")
         return {"error": str(e)}
 
 
-def insert_table_data(table_name, data, cursor):
-    table = InsertTableData(table_name, data)
+def insert_table_data(table_name, data, cursor, insert_condition=None):
+    table = InsertTableData(table_name, data, insert_condition)
     prepare_copy_table_for_bulk_insert(table, cursor, [])
-    copy_to_final_table(table, cursor)
-    return cursor.rowcount
+    if not table.data:
+        return 0, 0
+    return copy_to_final_table(table, cursor)
 
 
 def prepare_copy_table_for_bulk_insert(table: InsertTableData, cursor, custom_alters: list):

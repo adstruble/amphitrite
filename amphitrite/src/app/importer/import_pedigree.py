@@ -88,17 +88,17 @@ def ingest_pedigree_data(ped_state):
         with get_connection(**make_connection_kwargs(DEFAULT_DB_PARAMS, 'amphiadmin')) as conn:
             with conn.connection.cursor() as cursor:
                 # Insert all the child family groups
-                results['family'] = insert_table_data('family', list(ped_state.families.values()), cursor)
+                results['family'], _ = insert_table_data('family', list(ped_state.families.values()), cursor)
 
                 # Insert the animal to animal table
-                results['animal'] = insert_table_data('animal',
+                results['animal'], _ = insert_table_data('animal',
                                                       list(ped_state.wt_animal.values()) +
                                                       list(ped_state.bred_animal.values()), cursor)
                 # Make a list of all pedigrees
                 all_pedigrees = []
                 for pedigrees in ped_state.pedigrees.values():
                     all_pedigrees.extend(pedigrees)
-                results['pedigree'] = insert_table_data('pedigree', all_pedigrees, cursor)
+                results['pedigree'], _ = insert_table_data('pedigree', all_pedigrees, cursor)
 
                 # FMatrix values (don't include results in import results as this data is only used internally)
                 #start_row = 0

@@ -117,7 +117,6 @@ div.input-area{
     flex-shrink: 0;
 }
 .setting:has(div.amphi-date){
-    vertical-align: middle;
     display:inline-block;
 }
 .filter .input-area > div > div:first-child {
@@ -139,6 +138,12 @@ div.row.input-area {
 .filter div.row > div.col > div.row > input{
     line-height: 29px;
     height: 29px;
+}
+.filter .dropdown button {
+    line-height: normal;
+}
+.filter .form-check {
+    margin-top:0;
 }
 .amphi-table-contents {
     flex: 1;
@@ -242,13 +247,13 @@ td.centerCell:last-child div{
 label.amphi-cell{
     margin-bottom: 0;
 }
-i.amphi-cell{
+i.amphi-cell:has(+ span){
     float:left;
     line-height: 1.5;
     padding-right: 5px;
     color: #1d8cf8;
 }
-i.amphi-cell:hover,
+i.amphi-cell.clickable:hover,
 i.amphi-icon.clickable:hover{
     color: #0772db;
     cursor: pointer;
@@ -256,6 +261,10 @@ i.amphi-icon.clickable:hover{
 i.amphi-icon.clickable{
     color: #1d8cf8;
     opacity: initial;
+}
+div:has(> i.amphi-cell:only-child){
+    margin-left:-5px;
+    color: var(--red);
 }
 .cross-fish .table > thead > tr > th {
     padding-bottom: 3px;
@@ -332,7 +341,7 @@ ul.pagination .item-count{
 }
 .form-group.setting{
     padding: 0;
-    margin-bottom: 0;
+    margin-bottom: 0 !important;
 }
 .setting .form-control{
     padding: 0 10px;

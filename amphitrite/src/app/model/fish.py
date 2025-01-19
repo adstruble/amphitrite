@@ -54,7 +54,8 @@ def get_fishes_from_db(username: str, query_params: dict, order_by_clause: str):
                    f,
                    di,
                    box,
-                   coalesce(an.content,'') as notes
+                   coalesce(an.content,'') as notes,
+                   alive
                 FROM animal a
                 JOIN family ON a.family = family.id
                 LEFT JOIN refuge_tag on a.id = refuge_tag.animal

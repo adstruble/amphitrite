@@ -191,7 +191,7 @@ export default function CrossFish() {
         }else{
             setSpinning(false);
         }
-    }, [isLoading, setSpinning]);
+    }, [isLoading]);
 
     const selectFemales = () => {
         // Tab 1 is file upload
@@ -285,18 +285,18 @@ export default function CrossFish() {
             format_args:[handleUseSupplementation, useSupplementationSelected, cantUseSupplementation], width:".7fr"},
         {name: "Cross Completed", key: "", visible: true, format_fn:formatCheckbox,
             format_args:[handleCompletedChecked,  isCompleted, cantComplete], width:".7fr"},
-        {name: "F", key: "f", visible: true, format_fn: formatDoubleTo3, width:"1fr"},
-        {name: "DI", key: "di", visible: true, format_fn: formatDoubleTo3, width:".7fr"},
+        {name: "F", key: "f", visible: true, format_fn: formatDoubleTo3, width:"1fr", className:"numberCell"},
+        {name: "DI", key: "di", visible: true, format_fn: formatDoubleTo3, width:".7fr", className:"numberCell"},
         {name: "F Fish", key: "f_tags", visible: true, format_fn: formatArrayToStrTags,
-            width:"2fr", format_args: '_x', tooltip: true},
+            width:"1fr", format_args: '_x', tooltip: true},
         {name: "F PC/FSG", key: "x_gid",  visible: true, format_fn: formatTextWithIcon,
-            format_args:['icon-view', true, 'Show/Hide Details'], width:".9fr"},
-        {name: "F Crosses Completed", key: "x_crosses", visible: true, format_fn: formatStr, width:".7fr"},
+            format_args:['icon-hide', true, 'Show/Hide Details'], width:".9fr"},
+        {name: "F Crosses Completed", key: "x_crosses", visible: true, format_fn: formatStr, width:".7fr", className:"numberCell"},
         {name: "M Fish", key: "m_tags", visible: true, format_fn: formatArrayToStrTags, width:"2.5fr",
             format_args:'_y', tooltip: true},
         {name: "M PC/FSG", key: "y_gid",  visible: true, format_fn: formatTextWithIcon,
-            format_args:['icon-view', true, 'Show/Hide Details'], width:".9fr"},
-        {name: "M Crosses Completed", key: "y_crosses", visible: true, format_fn: formatStr, width:".7fr"},
+            format_args:['icon-hide', true, 'Show/Hide Details'], width:".9fr"},
+        {name: "M Crosses Completed", key: "y_crosses", visible: true, format_fn: formatStr, width:".7fr", className:"numberCell"},
         ]};
 
     return (
