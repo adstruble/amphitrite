@@ -184,7 +184,7 @@ def get_requested_crosses_csv(username, csv_file):
             prev_female_group = ""
         if cross['f_group_id'] == prev_female_group:
             cross['f_tags'] = ''
-            cross['f_group_id'] = ''
+            cross['f_group_id'] = '(Alternate)'
         else:
             prev_female_group = cross['f_group_id']
         csv_file.write(f",\"{'(pick one) ' if len(cross['f_tags']) > 1 else ''}{', '.join(cross['f_tags'])}\","
@@ -216,7 +216,7 @@ def get_requested_crosses(username):
        LEFT JOIN pedigree x_crosses ON x_crosses.parent = f_parent.id
        WHERE f_parent.id IN (SELECT DISTINCT female from possible_cross) AND requested_cross.cross_date IS NULL
        GROUP BY (requested_cross.f, f_family.group_id, m_family.group_id, requested_cross.supplementation)
-       ORDER BY requested_cross.supplementation, count(x_crosses), count(y_crosses), requested_cross.f;
+       ORDER BY requested_cross.supplementation, f_family.group_id, count(x_crosses), count(y_crosses), requested_cross.f;
     """
     return execute_statements(requested_crosses_sql, username).get_as_list_of_dicts()
 

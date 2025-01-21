@@ -135,8 +135,8 @@ def set_available_females_from_file():
     try:
         females = []
         for line in request.files['file'].stream.read().splitlines():
-            LOGGER.info(f"row: {line.decode('utf-8')}")
-            females.append(line.decode('utf-8').split('_')[0])
+            LOGGER.info(f"row: {line.decode('utf-8-sig').split('_')[0].strip()}")
+            females.append(line.decode('utf-8-sig').split('_')[0].strip())
 
         return set_available_females(username_or_err, females)
     except Exception as e:
