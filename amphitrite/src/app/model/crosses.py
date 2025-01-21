@@ -428,10 +428,11 @@ def get_completed_crosses(username, query_params, order_by_clause, filter_str):
 
     return completed_crosses, completed_crosses_cnt
 
-
+#TESTING THIS CHANGE
 def set_cross_failed(username, params):
-    sql = "UPDATE family set cross_failed = :cross_failed WHERE id = :fam_id"
-    execute_statements((sql, params), username, ResultType.NoResult)
+    sql_up = "UPDATE family SET cross_failed = :cross_failed WHERE id = :fam_id"
+    sql_del = "DELETE FROM requested_cross rc USING family f WHERE rc.parent_f = f.parent_1 AND rc.parent_m = f.parent_2 AND f.id = :fam_id" # noqa
+    execute_statements([(sql_up, params), (sql_del, params)], username, ResultType.NoResult)
 
 
 def set_use_for_supplementation(username, params):

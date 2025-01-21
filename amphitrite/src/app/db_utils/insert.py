@@ -55,8 +55,8 @@ def batch_insert_master_data(table_data: list[InsertTableData], username):
                     final_table_col_str = ",".join([f"\"{col}\"" for col in list(table.data[0].keys())[:-2]])
                     inserts, updates = copy_to_final_table(table, cursor, final_table_col_str)
 
-                    results['updated'][table.name] = inserts
-                    results['inserted'][table.name] = updates
+                    results['updated'][table.name] = updates
+                    results['inserted'][table.name] = inserts
 
             cursor.close()
         return {"success": results}

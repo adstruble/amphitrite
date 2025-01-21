@@ -48,7 +48,7 @@ def maybe_correct_for_2_year_olds(sibling_birth_year_int, refuge_tag, csv_fam_id
         csv_fam_id = int(csv_fam_id)
     except ValueError:
         if len(csv_fam_id) == 0:
-            return None
+            return sibling_birth_year, refuge_tag, None
         csv_fam_id = -1
 
     return sibling_birth_year, refuge_tag, csv_fam_id

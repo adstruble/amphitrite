@@ -31,7 +31,7 @@ def import_crosses(crosses_file, username, job_id, year=datetime.datetime.now().
 
     try:
         header = ""
-        with open(crosses_file, mode='r', encoding='UTF-8') as rec_crosses:
+        with open(crosses_file, mode='r', encoding='utf-8-sig') as rec_crosses:
             f_matrix = build_matrix_from_existing(username, year)
             try:
                 csv_lines = csv.reader(rec_crosses)
@@ -68,7 +68,7 @@ def import_crosses(crosses_file, username, job_id, year=datetime.datetime.now().
                     try:
                         cross_date = _handle_date_str(date_str)
                     except: # noqa
-                        complete_job(job_id, JobState.Failed, {"error": f"Failure parsing date for row: {line_num}"})
+                        complete_job(job_id, JobState.Failed.name, {"error": f"Failure parsing date for row: {line_num}"})
 
                     parent_1_birth_date, parent_1_tag, _ = maybe_correct_for_2_year_olds(
                         cross_date.year - 1, line[RecCrossesDataCols.Female])
@@ -76,7 +76,7 @@ def import_crosses(crosses_file, username, job_id, year=datetime.datetime.now().
                         cross_date.year - 1, line[RecCrossesDataCols.Male])
                     group_id = line[RecCrossesDataCols.SFG]
                     if not group_id:
-                        complete_job(job_id, JobState.Failed, {"error": f"Group ID missing for row: {line_num}"})
+                        complete_job(job_id, JobState.Failed.name, {"error": f"Group ID missing for row: {line_num}"})
                         return
 
                     try:
@@ -128,19 +128,19 @@ def import_crosses(crosses_file, username, job_id, year=datetime.datetime.now().
                     'ON CONFLICT (parent_f_fam, parent_m_fam, supplementation) DO UPDATE SET '
                     '(cross_date, parent_f, parent_m) = (EXCLUDED.cross_date, EXCLUDED.parent_f, EXCLUDED.parent_m)')
                 LOGGER.info(f"{rc_inserts} requested_crosses from {cross_date.year} inserted.")
-                complete_job(job_id, JobState.Complete, {"success": {'inserts': {'Family': family_inserts,
+                complete_job(job_id, JobState.Complete.name, {"success": {'inserts': {'Family': family_inserts,
                                                                                  'Requested Cross': rc_inserts},
                                                                      'updates': {'Family': family_updates,
                                                                                  'Requested Cross': rc_updates}}})
 
     except Exception as any_e:
         LOGGER.exception(f"Failed import cross job: {any_e}")
-        complete_job(job_id, JobState.Failed, {"error": str(any_e)})
+        complete_job(job_id, JobState.Failed.name, {"error": str(any_e)})
 
 
 def handle_missing_parent_tag(parent, job_id):
     LOGGER.error("Parent tag from upload crosses file was not found")
-    complete_job(job_id, JobState.Failed, {"error": f"Parent tag: {parent} from upload crosses file was not found"})
+    complete_job(job_id, JobState.Failed.name, {"error": f"Parent tag: {parent} from upload crosses file was not found"})
 
 
 def _handle_date_str(date_str):
@@ -160,7 +160,7 @@ def count_sibling_groups(t_file_dir, job_id):
     sibling_groups = set()
     try:
         header = ""
-        with open(os.path.join(t_file_dir.name, f'bulk_upload_{job_id}'), mode='r', encoding='UTF-8') as rec_crosses:
+        with open(os.path.join(t_file_dir.name, f'bulk_upload_{job_id}'), mode='r', encoding='utf-8-sig') as rec_crosses:
             try:
                 csv_lines = csv.reader(rec_crosses)
                 header = next(csv_lines, None)

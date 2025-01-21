@@ -117,7 +117,7 @@ def ingest_pedigree_data(ped_state):
 
 def parse_pedigree_file(ped_state, pedigree_file_path):
     try:
-        with (open(pedigree_file_path, mode='r', encoding='UTF-8') as pedigree_data):
+        with (open(pedigree_file_path, mode='r', encoding='utf-8-sig') as pedigree_data):
             for line_num, line in enumerate(csv.reader(pedigree_data)):
                 if line_num % 1000 == 0:
                     LOGGER.info(f"Line: {line_num}: {line}")
@@ -302,7 +302,7 @@ def _read_pedigree_values(line):
 # Not currently in use, but may switch back to this method so keeping for now
 def parse_f_file(f_file_path, ped_state):
     try:
-        with (open(f_file_path, mode='r', encoding='UTF-8') as f_data):
+        with (open(f_file_path, mode='r', encoding='utf-8-sig') as f_data):
             for line in csv.reader(f_data):
                 # Check for header
                 if line[FDataCols.CROSS_YEAR.value].lower() == 'cross_year':

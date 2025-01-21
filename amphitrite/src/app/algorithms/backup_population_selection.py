@@ -44,7 +44,7 @@ def determine_parents_backup_tanks(recommended_crosses_file, tank_count):
     :return:
     """
     results_path = "./results.txt"
-    with open(results_path, mode='w', encoding='UTF-8') as results_file:
+    with open(results_path, mode='w', encoding='utf-8-sig') as results_file:
         tanks = dict()  # MFGs to include (MFG #) : [sibling groups]
         tanks_included = set()
         sibling_groups_included = set()
@@ -52,7 +52,7 @@ def determine_parents_backup_tanks(recommended_crosses_file, tank_count):
         tank_results.desired_tank_count = tank_count
         try:
             header = ""
-            with open(recommended_crosses_file, mode='r', encoding='UTF-8') as rec_crosses:
+            with open(recommended_crosses_file, mode='r', encoding='utf-8-sig') as rec_crosses:
                 try:
                     csv_lines = csv.reader(rec_crosses)
                     header = next(csv_lines, None)

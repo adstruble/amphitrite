@@ -72,7 +72,7 @@ def upload_deaths():
 
     dead_fish = []
     for line in request.files['file'].stream.read().splitlines():
-        LOGGER.info(f"row: {line.decode('utf-8')}")
-        dead_fish.append(line.decode('utf-8'))
+        LOGGER.info(f"row: {line.decode('utf-8-sig')}")
+        dead_fish.append(line.decode('utf-8-sig'))
 
     return {"success": {"updated": {"Fish": f"{mark_fish_dead(username_or_err, dead_fish)} fish marked dead"}}}

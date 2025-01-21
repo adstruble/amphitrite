@@ -425,6 +425,7 @@ CREATE TABLE animal_note
     PRIMARY KEY (id),
     CONSTRAINT unique_animal_for_note UNIQUE (animal)
 ) INHERITS (element);
+CREATE INDEX animal_note_animal_idx on animal_note (animal);
 CREATE TRIGGER history_trigger_row AFTER INSERT OR DELETE OR UPDATE ON animal_note FOR EACH ROW EXECUTE FUNCTION history.if_modified_func('false');
 CREATE TRIGGER history_trigger_stm AFTER TRUNCATE ON animal_note FOR EACH STATEMENT EXECUTE FUNCTION history.if_modified_func('false');
 CREATE OR REPLACE TRIGGER element_pre_insert_t BEFORE INSERT ON animal_note FOR EACH ROW EXECUTE PROCEDURE element_pre_insert();
@@ -437,6 +438,7 @@ CREATE TABLE family_note
     PRIMARY KEY (id),
     CONSTRAINT unique_family_for_note UNIQUE (family)
 ) INHERITS (element);
+CREATE INDEX family_note_family_idx ON family_note (family);
 CREATE TRIGGER history_trigger_row AFTER INSERT OR DELETE OR UPDATE ON family_note FOR EACH ROW EXECUTE FUNCTION history.if_modified_func('false');
 CREATE TRIGGER history_trigger_stm AFTER TRUNCATE ON family_note FOR EACH STATEMENT EXECUTE FUNCTION history.if_modified_func('false');
 CREATE OR REPLACE TRIGGER element_pre_insert_t BEFORE INSERT ON family_note FOR EACH ROW EXECUTE PROCEDURE element_pre_insert();
@@ -449,6 +451,7 @@ CREATE TABLE supplementation_family_note
     PRIMARY KEY (id),
     CONSTRAINT unique_supplementation_family_for_note UNIQUE (family)
 ) INHERITS (element);
+CREATE INDEX supplementation_family_note_family_idx ON supplementation_family_note(family);
 CREATE TRIGGER history_trigger_row AFTER INSERT OR DELETE OR UPDATE ON supplementation_family_note FOR EACH ROW EXECUTE FUNCTION history.if_modified_func('false');
 CREATE TRIGGER history_trigger_stm AFTER TRUNCATE ON supplementation_family_note FOR EACH STATEMENT EXECUTE FUNCTION history.if_modified_func('false');
 CREATE OR REPLACE TRIGGER element_pre_insert_t BEFORE INSERT ON supplementation_family_note FOR EACH ROW EXECUTE PROCEDURE element_pre_insert();
@@ -460,6 +463,7 @@ CREATE TABLE refuge_tag_note
     refuge_tag uuid NOT NULL REFERENCES refuge_tag(id) DEFERRABLE , -- foreign key to some element
     PRIMARY KEY (id)
 ) INHERITS (element);
+CREATE INDEX refuge_tag_note_refuge_tag_idx ON refuge_tag_note(refuge_tag);
 CREATE TRIGGER history_trigger_row AFTER INSERT OR DELETE OR UPDATE ON refuge_tag_note FOR EACH ROW EXECUTE FUNCTION history.if_modified_func('false');
 CREATE TRIGGER history_trigger_stm AFTER TRUNCATE ON refuge_tag_note FOR EACH STATEMENT EXECUTE FUNCTION history.if_modified_func('false');
 CREATE OR REPLACE TRIGGER element_pre_insert_t BEFORE INSERT ON refuge_tag_note FOR EACH ROW EXECUTE PROCEDURE element_pre_insert();

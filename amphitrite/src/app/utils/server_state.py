@@ -20,15 +20,15 @@ class JobState(Enum):
 
 class ServerJob(object):
 
-    def __init__(self, job_id):
+    def __init__(self, state=JobState.InProgress.name):
         self.result: str = ""
-        self.state: JobState = JobState.NotFound
+        self.state: str = state
 
     def get_result(self):
         return self.result
 
     def get_state(self) -> str:
-        return self.state.name
+        return self.state
 
 
 server_jobs: Dict[uuid.UUID, ServerJob] = dict()
@@ -69,8 +69,7 @@ def add_server_job_internal(job_id):
 
     # Add the jobs to pinged first so it doesn't get cleaned
     server_jobs_pinged[job_id] = True
-    server_jobs[job_id] = ServerJob(job_id)
-    server_jobs[job_id].state = JobState.InProgress
+    server_jobs[job_id] = ServerJob()
     logger.info("Added job internal:" + job_id + " " + str(server_jobs))
 
 
@@ -91,11 +90,15 @@ def check_job_internal(job_id):
     logger.info("checking job internal:" + job_id + " " + str(server_jobs))
     job = server_jobs.get(job_id)
     if job is None:
-        job = ServerJob(JobState.NotFound)
+        job = ServerJob(JobState.NotFound.name)
     else:
         server_jobs_pinged[job_id] = True
-    if job.get_state() != JobState.InProgress:
-        server_jobs.pop(job_id)
+    if job.get_state() != JobState.InProgress.name:
+        try:
+            logger.info(f"Removing job: {job_id} with status {job.state}")
+            server_jobs.pop(job_id)
+        except KeyError:
+            logger.info(f"Expected to find job: {job_id} with status {job.state}, but didn't")
     return job
 
 
@@ -104,7 +107,6 @@ def complete_job(job_id, job_state, result):
 
 
 def complete_job_internal(job_id, job_state, result):
-    global server_jobs
     try:
         job = server_jobs[job_id]
         job.state = job_state
