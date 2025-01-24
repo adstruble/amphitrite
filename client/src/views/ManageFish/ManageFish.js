@@ -37,19 +37,19 @@ export default function ManageFish() {
                 format_fn: formatIcon, format_args:[null, "","icon-dead"], width: ".25fr"},
         {name: "Family ID", key: "group_id", order_by: "group_id", visible: true, order_direction: "ASC", order: 1,
             format_fn: formatStr, className:"numberCell"},
-        {name: "Parent Cross Date", key: "cross_date", order_by: "cross_date", visible: true, order_direction: "", order: 2,
+        {name: "Parent Cross Date", key: "cross_date", order_by: "cross_date", visible: true, order_direction:null, order:null,
             format_fn: formatDate, className:"numberCell", width:"1.3fr"},
-        {name: "F", key: "f", order_by: "f", visible: true, order_direction: "", order: 2, format_fn: formatDoubleTo3,
+        {name: "F", key: "f", order_by: "f", visible: true, order_direction:null, order:null, format_fn: formatDoubleTo3,
             className:"numberCell"},
-        {name: "DI", key: "di", order_by: "di", visible: true, order_direction: "", order: 2, format_fn: formatDoubleTo3,
+        {name: "DI", key: "di", order_by: "di", visible: true, order_direction:null, order:null, format_fn: formatDoubleTo3,
             className:"numberCell"},
-        {name: "Sex", key: "sex", order_by: "sex", visible: true, order_direction: "", order: 2, format_fn: formatStr,
+        {name: "Sex", key: "sex", order_by: "sex", visible: true, order_direction:null, order:null, format_fn: formatStr,
             className:"numberCell"},
-        {name: "Refuge Tag", key: "tag", order_by: "tag", visible: true, order_direction: "", order: 2,
+        {name: "Refuge Tag", key: "tag", order_by: "tag", visible: true, order_direction:null, order:null,
             format_fn: formatStr, width:"1fr"},
-        {name: "Box", key: "box", order_by: "box", visible: true, order_direction: "", order: 2, format_fn: formatStr,
+        {name: "Box", key: "box", order_by: "box", visible: true, order_direction:null, order:null, format_fn: formatStr,
             className:"numberCell"},
-        {name: "Notes", key: "notes", order_by: "notes", visible: true, order_direction: "", order: 2,
+        {name: "Notes", key: "notes", order_by: "notes", visible: true, order_direction:null, order:null,
             format_fn: formatTextWithIcon, format_args:['icon-pencil', true, 'Show/Hide Edit notes'], width:"4fr"}
     ]};
 
@@ -105,6 +105,7 @@ export default function ManageFish() {
                                 headerDataStart={FISH_HEADER}
                                 getExpandedRow={getExpandedRow}
                                 filter={ManageFishFilter}
+                                LIMIT={500}
                     />
                 </Row>
             </Container>

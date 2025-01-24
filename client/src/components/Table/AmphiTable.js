@@ -32,7 +32,8 @@ export default function AmphiTable({tableDataUrl,
                                        includePagination=true,
                                        fetchParams,
                                        includeSearch=true,
-                                       filter=null}){
+                                       filter=null,
+                                   LIMIT=50}){
     const {getUsername} = useToken();
     const [headerCols, setHeaderCols] = useState(headerDataStart.cols);
     const [headerRows, setHeaderRows] = useState(headerDataStart.rows);
@@ -45,7 +46,6 @@ export default function AmphiTable({tableDataUrl,
     const [filterState, setFilterState] = useState({})
     const [filterStateHolder, setFilterStateHolder] = useState({})
     const [exactFilter, setExactFilter] = useState({});
-    const LIMIT = 30;
     const Filter = filter;
     const filterWidth = "550px"; //matchWidthElementId ? parseInt(getComputedStyle(document.getElementById(matchWidthElementId))['width'])/2 : "100%";
 
@@ -88,18 +88,25 @@ export default function AmphiTable({tableDataUrl,
         }
     }
     function updateOrderBy(clickedHeader){
+        const clickedHeaderOrder = clickedHeader.order;
         const newHeaders =
         headerCols.map((header) => {
             if (header.key === clickedHeader.key){
                 if(header.order_direction === "ASC"){
                     header.order_direction = "DESC";
+                }else if (header.order_direction == null) {
+                    header.order_direction = "ASC"
                 }else{
-                    header.order_direction = "ASC";
+                    header.order_direction = null;
                 }
-                header.order = 1;
+                if (header.order_direction == null) {
+                    header.order = null;
+                }else{
+                    header.order = 1;
+                }
                 return header;
             }else{
-                if(header.order <= clickedHeader.order){
+                if(header.order <= clickedHeaderOrder || clickedHeaderOrder == null){
                     header.order = header.order + 1;
                 }
                 return header;
@@ -114,6 +121,23 @@ export default function AmphiTable({tableDataUrl,
         // Shouldn't need to do a deep copy because we're not changing data on the headers themselves
         const headerDataClone = headerCols.slice(0);
         const sortedHeaders = (headerDataClone.sort((a, b) => {
+            if (!"order" in a && ! "order" in b) {
+                return 0;
+            }
+            if (!"order" in a){
+                    return 1;
+            }if(!"order" in b){
+                return -1;
+            }
+            if (isNaN(a.order) && isNaN(b.order)){
+                return 0;
+            }
+            if (isNaN(a.order)){
+                return 1;
+            }
+            if(isNaN(b.order)){
+                return -1;
+            }
             return a.order < b.order ? -1 : a.order === b.order ? 0 : 1;
         }));
         let newOrderBy = [];

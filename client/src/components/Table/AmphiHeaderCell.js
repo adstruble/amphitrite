@@ -1,5 +1,7 @@
 import PropTypes from "prop-types";
 import classnames from "classnames";
+import {UncontrolledTooltip} from "reactstrap";
+import React from "react";
 
 export default function AmphiHeaderCell({header, updateOrderBy}) {
     const showOrderedDesc = header. order_direction ? header.order_direction === "DESC" : header.order_by != null;
@@ -22,7 +24,12 @@ export default function AmphiHeaderCell({header, updateOrderBy}) {
                        style={{display: showOrderedDesc ? 'block' : 'none', cursor: showOrderedDesc ? 'pointer' : 'inherit'}}
                        aria-hidden="true"/>
                 </div>
-                <span>{header.name}</span>
+                <span id={"header" + header.key}>{header.name}</span>
+                {header.header_tooltip && <UncontrolledTooltip
+                    placement={"top-start"}
+                    target={"header" + header.key}>
+                    {header.header_tooltip}
+                </UncontrolledTooltip>}
             </div>
         </th>
     );

@@ -32,6 +32,7 @@ export default function CrossFish() {
     const [alertLevel, setAlertLevel] = useState("");
     const [userSetFTags, setUserSetFTags] = useState("");
     const [availableFTags, setAvailableFTags] = useState("None");
+    const [uncrossedFTags, setUncrossedFTags] = useState("")
 
     const [isLoading, setIsLoading] = useState(false);
     const [setSpinning] = useOutletContext();
@@ -57,11 +58,15 @@ export default function CrossFish() {
         if (e.target.checked){
             fetchData("cross_fish/add_selected_cross", getUsername(),
                 {cross_id: item['id'], f: item['f'], supplementation: supplementation}, () => {
-                    setReloadTable(reloadTable => reloadTable + 1)})
+                    setReloadTable(reloadTable => reloadTable + 1)},
+                (data) =>{setUncrossedFTags(data['data']['uncrossed_tags'])},
+                null, setAlertLevel, setAlertText)
         }else{
             fetchData("cross_fish/remove_selected_cross", getUsername(),
                 {cross_id: item['id']}, () => {
-                    setReloadTable(reloadTable => reloadTable + 1)})
+                    setReloadTable(reloadTable => reloadTable + 1)},
+                (data)=>{setUncrossedFTags(data['data']['uncrossed_tags'])},
+                null, setAlertLevel, setAlertText)
         }
     };
 
@@ -83,7 +88,12 @@ export default function CrossFish() {
     }
 
     const cantUseSupplementation = (item) =>{
-        return item['refuge'] || (item['completed_x'] != null);
+        // If item is selected as refuge, should always be enabled if it's not completed
+        if (item['supplementation'] && item['completed_x'] === null){
+            return false;
+        }
+        // Can't use for a supplementation cross if it has been selected for refuge or the family has been selected
+        return item['refuge'] || (item['completed_x'] !== null || item['selected_male_fam_cnt'] > 0);
     }
 
     const cantComplete = (item) => {
@@ -159,7 +169,7 @@ export default function CrossFish() {
       cross_completed_date: crossCompletionDate},
             () => {
                 setReloadTable(reloadTable => reloadTable + 1)
-            }
+            }, null, null, setAlertLevel, setAlertText
         );
 
     }
@@ -180,7 +190,8 @@ export default function CrossFish() {
                     let availableFemales = success['f_tags'].length > 0 ? success['f_tags'] : "None"
                     setAvailableFTags(availableFemales);
                     setUserSetFTags(availableFemales);
-                });
+                    setUncrossedFTags(success['uncrossed_tags']);
+                }, null, null, setAlertLevel, setAlertText);
         }
     }, [getUsername]);
 
@@ -247,7 +258,8 @@ export default function CrossFish() {
                 setAlertText(data['warning']);
             }
         }
-        setAvailableFTags(data['data'])
+        setAvailableFTags(data['data']['f_tags'])
+        setUncrossedFTags(data['data']['uncrossed_tags'])
         setReloadTable(reloadTable => reloadTable + 1)
     }
 
@@ -280,23 +292,36 @@ export default function CrossFish() {
     const CROSSES_HEADER = {
         rows:{},
         cols:[{name: "Refuge Cross", key: "refuge", visible: true, format_fn:formatCheckbox,
-            format_args:[handleUseRefuge, useRefugeSelected, cantUse], width:".7fr"},
+            format_args:[handleUseRefuge, useRefugeSelected, cantUse], width:".6fr",
+            order:1, order_direction: "DESC", order_by: "ref_cross"},
         {name: "Suppl. Cross", key: "supplementation", visible: true, format_fn:formatCheckbox,
-            format_args:[handleUseSupplementation, useSupplementationSelected, cantUseSupplementation], width:".7fr"},
+            format_args:[handleUseSupplementation, useSupplementationSelected, cantUseSupplementation], width:".6fr",
+        order:2, order_direction: "DESC", order_by:"sup_cross"},
         {name: "Cross Completed", key: "", visible: true, format_fn:formatCheckbox,
-            format_args:[handleCompletedChecked,  isCompleted, cantComplete], width:".7fr"},
-        {name: "F", key: "f", visible: true, format_fn: formatDoubleTo3, width:"1fr", className:"numberCell"},
+            format_args:[handleCompletedChecked,  isCompleted, cantComplete], width:".65fr"},
+        {name: "F", key: "f", visible: true, format_fn: formatDoubleTo3, width:".8fr", className:"numberCell",
+            order:5, order_direction: "ASC", order_by: "f"},
         {name: "DI", key: "di", visible: true, format_fn: formatDoubleTo3, width:".7fr", className:"numberCell"},
         {name: "F Fish", key: "f_tags", visible: true, format_fn: formatArrayToStrTags,
             width:"1fr", format_args: '_x', tooltip: true},
         {name: "F PC/FSG", key: "x_gid",  visible: true, format_fn: formatTextWithIcon,
             format_args:['icon-hide', true, 'Show/Hide Details'], width:".9fr"},
-        {name: "F Crosses Completed", key: "x_crosses", visible: true, format_fn: formatStr, width:".7fr", className:"numberCell"},
+        {name: "F Ref Crosses", key: "x_crosses", visible: true, format_fn: formatStr, width:".6fr", className:"numberCell",
+            header_tooltip: "Count of female family refuge crosses completed and requested",
+            order:4, order_direction: "ASC", order_by: "f_ref_cross_count"},
+        {name: "F Sup Crosses", key: "sup_x_crosses", visible: true, format_fn: formatStr, width:".6fr", className:"numberCell",
+            header_tooltip:"Count of male family supplementation crosses completed and requested",
+            order:null, order_direction: null, order_by: "f_sup_cross_count"},
         {name: "M Fish", key: "m_tags", visible: true, format_fn: formatArrayToStrTags, width:"2.5fr",
             format_args:'_y', tooltip: true},
         {name: "M PC/FSG", key: "y_gid",  visible: true, format_fn: formatTextWithIcon,
             format_args:['icon-hide', true, 'Show/Hide Details'], width:".9fr"},
-        {name: "M Crosses Completed", key: "y_crosses", visible: true, format_fn: formatStr, width:".7fr", className:"numberCell"},
+        {name: "M Ref Crosses", key: "y_crosses", visible: true, format_fn: formatStr, width:".6fr", className:"numberCell",
+            header_tooltip:"Count of male family refuge crosses completed and requested",
+            order:3, order_direction: "ASC", order_by: "m_ref_cross_count"},
+        {name: "M Sup Crosses", key: "sup_y_crosses", visible: true, format_fn: formatStr, width:".6fr", className:"numberCell",
+            header_tooltip:"Count of male family supplementation crosses completed and requested",
+            order:null, order_direction: null, order_by: "m_sup_cross_count"}
         ]};
 
     return (
@@ -372,6 +397,14 @@ export default function CrossFish() {
                                 <span style={{marginRight:"20px"}}>{availableFTags}</span>
                                 <Button  className="btn setting" color="default" type="button"
                                         onClick={handleSetAvailableFemalesClick}>Set Available Females</Button>
+                            </Col>
+                        </Row>
+                        <Row>
+                            <Col>
+                                <span>Females with 0 or 1 selected males:</span>
+                            </Col>
+                            <Col>
+                            <span style={{marginRight:"20px"}}>{uncrossedFTags}</span>
                             </Col>
                         </Row>
                         <Row>

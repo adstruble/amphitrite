@@ -29,7 +29,7 @@ export default function ViewCrossesExpanded({item, reloadTable, refugeCrosses}) 
 
     function setCrossFailed(value) {
         fetchData('cross_fish/set_cross_failed', getUsername(),
-            {'cross_failed': value, 'fam_id': item.id}, () => {
+            {'cross_failed': value, 'fam_id': item.id, 'refuge_crosses': refugeCrosses}, () => {
                 reloadTable();
             });
     }
@@ -48,72 +48,57 @@ export default function ViewCrossesExpanded({item, reloadTable, refugeCrosses}) 
         )
     }
 
-    let row_contents;
-    if (refugeCrosses){
-        row_contents =
-            <>
-            <Col xs="2">
-                <FormGroup className={classnames({"input-group-focus": mfgFocus})}>
-                    <label>MFG</label>
-                    <Input
-                        onFocus={() => setMFGFocus(true)}
-                        onBlur={() => setMFGFocus(false)}
-                        defaultValue={item['mfg']}
-                        type="text"
-                        onKeyUp={onKeyupWithDelay((e) => maybeSetMfg(e.target.value),
-                            750)}
-                    />
-                    {!mfgIsValid && <p>MFG must be set to an integer.</p>}
-                </FormGroup>
-            </Col>
-            <Col xs="3">
-                <FormGroup check>
-                    <Label check>
-                        <Input defaultChecked={item['cross_failed']} type="checkbox"
-                               onChange={(e) => setCrossFailed(e.target.checked)}/>
-                        <span className="form-check-sign"/>
-                        Cross failed
-                    </Label>
-                </FormGroup>
-                <FormGroup check>
-                    <Label check>
-                        <Input defaultChecked={item['supplementation'] > 0} type="checkbox"
-                               checked={item['supplementation'] > 0}
-                               onChange={(e) => setSupplementation(e.target.checked)}/>
-                        <span className="form-check-sign" id={'id' + item['id']+'supplcheck'}>
-                            <UncontrolledTooltip
-                                placement={"top-start"}
-                                target={'id' + item['id']+'supplcheck'}>
-                                {'When selecting, all MFG families will be included in supplementation. To include only some families of a MFG, deselect those not included.'}
-                            </UncontrolledTooltip>
-                        Cross included in supplementation
-                        </span>
-                    </Label>
-                </FormGroup>
-            </Col>
-            </>
-    } else {
-        row_contents =
-            <Col xs="3">
-                <FormGroup>
-                    <label>Tank</label>
-                    <Input
-                        defaultValue={item['mfg']}
-                        type="text"
-                        onKeyUp={onKeyupWithDelay((e) => maybeSetMfg(e.target.value),
-                            750)}
-                    />
-                    {!mfgIsValid && <p>Tank must be set to an integer.</p>}
-                </FormGroup>
-            </Col>
-    }
+    let row_contents =
+        <>
+        <Col xs="2" style={{marginTop:"auto"}}>
+            <FormGroup className={classnames({"input-group-focus": mfgFocus}, "tank-group")}>
+                <label>{refugeCrosses ? "MFG" : "Tank"}</label>
+                <Input
+                    onFocus={() => setMFGFocus(true)}
+                    onBlur={() => setMFGFocus(false)}
+                    defaultValue={item['mfg']}
+                    type="text"
+                    onKeyUp={onKeyupWithDelay((e) => maybeSetMfg(e.target.value),
+                        750)}
+                />
+                {!mfgIsValid && <p>{refugeCrosses ? "MFG" : "Tank"} must be set to an integer.</p>}
+            </FormGroup>
+        </Col>
+        <Col xs="3" style={{marginTop:"auto"}}>
+            <FormGroup check>
+                <Label check>
+                    <Input defaultChecked={item['cross_failed']} type="checkbox"
+                           onChange={(e) => setCrossFailed(e.target.checked)}/>
+                    <span className="form-check-sign"/>
+                    Cross failed
+                </Label>
+            </FormGroup>
+            {refugeCrosses &&
+            <FormGroup check>
+                <Label check>
+                    <Input defaultChecked={item['supplementation'] > 0} type="checkbox"
+                           checked={item['supplementation'] > 0}
+                           onChange={(e) => setSupplementation(e.target.checked)}/>
+                    <span className="form-check-sign" id={'id' + item['id']+'supplcheck'}>
+                        <UncontrolledTooltip
+                            placement={"top-start"}
+                            target={'id' + item['id']+'supplcheck'}>
+                            {'When selecting, all MFG families will be included in supplementation. To include only some families of a MFG, deselect those not included.'}
+                        </UncontrolledTooltip>
+                    Cross included in supplementation
+                    </span>
+                </Label>
+            </FormGroup>}
+        </Col>
+        </>
+
 
     return (
         <tr className='expanded-row-contents'>
             <td>
                 <Row>
                     {row_contents}
-                    <Col xs="7">
+                    <Col xs="7" style={{marginTop:"auto"}}>
                         <div>
                             <span>Notes</span>
                         </div>

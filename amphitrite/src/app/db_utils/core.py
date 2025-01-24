@@ -79,7 +79,7 @@ def execute_statements(stmt_param_tuples, username: str,
                 if isinstance(maybe_stmt_tuple, tuple) else (maybe_stmt_tuple, {})
             try:
                 if log_statement:
-                    LOGGER.info(f"Executing: {stmt} with params: {params}")
+                    LOGGER.info(f"Executing: {stmt[0:50]} with params: {params}")
                 result = conn.execute(sqlalchemy.text(stmt), params)
             except Exception as e:
                 LOGGER.exception(f"Exception while executing statement: {stmt} with params {params}")

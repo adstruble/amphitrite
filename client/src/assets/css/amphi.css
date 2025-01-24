@@ -113,7 +113,7 @@ div.input-area{
     padding:initial;
 }
 .cross-fish .input-area > div > div:first-child {
-    flex-basis: 210px;
+    flex-basis: 225px;
     flex-shrink: 0;
 }
 .setting:has(div.amphi-date){
@@ -374,6 +374,9 @@ tr.row-line-through td {
     padding: 10px;
     border-radius: .2587rem;
     margin-top: 5px;
+}
+.tank-group{
+    margin-bottom: 0 !important;
 }
 ::-webkit-scrollbar {
     -webkit-appearance: none;

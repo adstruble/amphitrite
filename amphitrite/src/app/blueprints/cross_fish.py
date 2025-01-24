@@ -10,8 +10,9 @@ from blueprints.utils import maybe_get_username, validate_and_create_upload_job,
 from importer.import_crosses import import_crosses
 from model.crosses import add_requested_cross, remove_requested_cross, get_requested_crosses_csv, \
     add_completed_cross, get_possible_crosses, \
-    select_available_female_tags, get_completed_crosses, set_cross_failed, \
-    set_use_for_supplementation, get_exported_crosses_csv, get_completed_crosses_by_family, set_available_females
+    get_available_female_tags_str, get_completed_crosses, set_cross_failed, \
+    set_use_for_supplementation, get_exported_crosses_csv, get_completed_crosses_by_family, set_available_females, \
+    get_available_females_with_0_or_1_males
 from model.family import remove_family_by_tags, set_family_mfg, save_family_notes
 from utils.data import validate_order_by
 
@@ -57,7 +58,8 @@ def add_selected_cross():
 
     requests = add_requested_cross(username_or_err, ids[0], ids[1], request_params['f'],
                                    request_params['supplementation'])
-    return {"success": requests == 1, "data": []}
+    uncrossed_tags = ", ".join(get_available_females_with_0_or_1_males(username_or_err))
+    return {"success": requests == 1, "data": {"uncrossed_tags": uncrossed_tags}}
 
 
 @cross_fish.route('/cross_fish/remove_selected_cross', methods=(['POST']))
@@ -71,7 +73,8 @@ def remove_selected_cross():
     ids = request_params['cross_id'].split("__")
 
     requests = remove_requested_cross(username_or_err, ids[0], ids[1])
-    return {"success": requests == 1, "data": []}
+    uncrossed_tags = ", ".join(get_available_females_with_0_or_1_males(username_or_err))
+    return {"success": requests == 1, "data": {"uncrossed_tags": uncrossed_tags}}
 
 
 @cross_fish.route('/cross_fish/export_selected_crosses', methods=(['POST']))
@@ -100,7 +103,10 @@ def set_cross_completed():
                                   request_params['f'], request_params['cross_completed_date'],
                                   'supplementation_family' if request_params['supplementation'] else 'family',
                                   request_params['requested_cross'])
-    return {"success": success, "data": []}
+
+    uncrossed_tags = ", ".join(get_available_females_with_0_or_1_males(username_or_err))
+
+    return {"success": success, "data": {'uncrossed_tags': uncrossed_tags}}
 
 
 @cross_fish.route('/cross_fish/remove_completed_cross', methods=(['POST']))
@@ -116,13 +122,18 @@ def remove_completed_cross():
         return {"success": False, "level": "danger", "message": err_msg}
 
     deleted_record_cnt = remove_family_by_tags(username_or_err, request_params['f_tag'], request_params['m_tag'])
+    result = {"success": True}
     if deleted_record_cnt != 1:
         if not deleted_record_cnt:
             deleted_record_cnt = 0
-        return {"success": False, "level": "warning",
-                "message": f"Expected deletion of 1 family record, {deleted_record_cnt} record" 
-                           f"{' was' if deleted_record_cnt == 1 else 's were'} deleted."}
-    return {"success": True}
+
+        result = {"success": False, "level": "warning",
+                  "message": f"Expected deletion of 1 family record, {deleted_record_cnt} record" 
+                             f"{' was' if deleted_record_cnt == 1 else 's were'} deleted."}
+
+    uncrossed_tags = ", ".join(get_available_females_with_0_or_1_males(username_or_err))
+    result["data"] = {'uncrossed_tags': uncrossed_tags}
+    return result
 
 
 @cross_fish.route('/cross_fish/set_available_females_from_file', methods=(['POST']))
@@ -167,9 +178,10 @@ def get_available_f_tags():
     if isinstance (username_or_err, dict): # noqa
         return username_or_err
 
-    f_tags = select_available_female_tags(username_or_err)
+    f_tags = get_available_female_tags_str(username_or_err)
+    uncrossed_tags = ", ".join(get_available_females_with_0_or_1_males(username_or_err))
 
-    return {'success': {'f_tags': f_tags}}
+    return {'success': {'f_tags': f_tags, 'uncrossed_tags': uncrossed_tags}}
 
 
 @cross_fish.route('/cross_fish/get_completed_crosses', methods=(['POST']))
