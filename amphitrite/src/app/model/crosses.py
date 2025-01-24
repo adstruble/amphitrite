@@ -128,7 +128,11 @@ def get_possible_crosses(username, query_params):
             """
     records_sql = f"""FROM possible_cross as pc
                     JOIN animal as x ON pc.female = x.id
-                    JOIN animal as y ON y.family = pc.male AND NOT y.id = ANY(SELECT parent_2 FROM family f WHERE NOT f.cross_failed AND cross_year = date_part('year', CURRENT_DATE))
+                    JOIN animal as y ON y.family = pc.male AND (NOT y.id = ANY( -- only include males that haven't been refuge crossed yet or were crossed with this female
+                         SELECT parent_2 FROM family f WHERE NOT f.cross_failed AND cross_year = date_part('year', CURRENT_DATE))
+                         OR EXISTS(select id from family where parent_1 = x.id and parent_2 = y.id 
+                                    UNION 
+                                   select id from supplementation_family where parent_1 = x.id and parent_2 = y.id))
                     JOIN family as xf ON x.family = xf.id
                     JOIN family as yf on yf.id = pc.male
                     JOIN refuge_tag rtx ON rtx.animal = x.id
@@ -317,6 +321,7 @@ def add_completed_cross(username, f_tag, m_tag, f, cross_date_str, table_name, r
             JOIN animal ma ON ma.id = rtm.animal
            WHERE rtm.tag = \'{m_tag}' AND rtf.tag = \'{f_tag}\'
              AND rtm.year = date_part('year', CURRENT_DATE) AND rtf.year = date_part('year', CURRENT_DATE)
+             AND parent_f_fam = '{fam_ids[0]}' and parent_m_fam = '{fam_ids[1]}' AND cross_date IS NULL
 """
 
     if execute_statements([insert_completed_sql, update_req_cross_sql], username, ResultType.RowCount).row_cnts[0] < 1:
@@ -397,7 +402,10 @@ def get_available_females_with_0_or_1_males(username):
         # If it's a refuge cross we need at least 2 males selected.
         if m_cnt >= 2:
             for f_tag in f_tags:
-                available_female_dict.pop(f_tag)
+                try:
+                    available_female_dict.pop(f_tag)
+                except KeyError:
+                    pass
 
     # If it's supplementation, we need 2 males for every female.
     requested_supplementation_females = """SELECT distinct array_agg(distinct rtf.tag), count(distinct m.id), 
@@ -442,8 +450,10 @@ def _maybe_remove_female(f_tags: list, males: dict, available_female_dict):
         needed_males = needed_males - (1 if cnt == 1 else 2)
     if needed_males <= 0:
         for f_tag in f_tags:
-            available_female_dict.pop(f_tag)
-
+            try:
+                available_female_dict.pop(f_tag)
+            except KeyError:
+                pass
 
 def set_available_females(username:str, females: list):
     """

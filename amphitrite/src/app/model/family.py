@@ -38,7 +38,8 @@ def remove_family_by_tags(username, f_tag, m_tag):
         JOIN refuge_tag rtm ON TRUE
         JOIN animal fa ON fa.id = rtf.animal
         JOIN animal ma ON ma.id = rtm.animal
-       WHERE rtm.tag = \'{m_tag}' AND rtf.tag = \'{f_tag}\'"""
+       WHERE rtm.tag = \'{m_tag}' AND rtf.tag = \'{f_tag}\'
+         AND parent_f = rtf.animal AND parent_m = rtm.animal"""
     execute_statements(update_req_cross_sql, username, ResultType.RowCount)
 
     return deleted_record_cnt
