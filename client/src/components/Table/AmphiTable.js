@@ -33,7 +33,8 @@ export default function AmphiTable({tableDataUrl,
                                        fetchParams,
                                        includeSearch=true,
                                        filter=null,
-                                   LIMIT=50}){
+                                   LIMIT=50,
+                                   dataFetchCallback=null}){
     const {getUsername} = useToken();
     const [headerCols, setHeaderCols] = useState(headerDataStart.cols);
     const [headerRows, setHeaderRows] = useState(headerDataStart.rows);
@@ -176,6 +177,9 @@ export default function AmphiTable({tableDataUrl,
             setCurrElementCnt(tableData['size'])
         }else{
             setCurrElementCnt(params.offset + LIMIT)
+        }
+        if(dataFetchCallback){
+            dataFetchCallback(tableData, params);
         }
     };
 

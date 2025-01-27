@@ -218,6 +218,30 @@ def get_completed_crosses_by_family_api():
     return {"success": {'data': completed_crosses, 'size': completed_crosses_cnt}}
 
 
+@cross_fish.route('/cross_fish/get_completed_crosses_by_family_cnt', methods=(['POST']))
+def get_completed_crosses_by_family_cnt():
+    LOGGER.info("Get Completed Crosses by Family Count")
+
+    username_or_err = maybe_get_username(request.headers, "getting completed crosses by family")
+    if isinstance (username_or_err, dict): # noqa
+        return username_or_err
+
+    query_params = request.get_json()
+    fam_ids = query_params.pop('fam_ids')
+
+    results = {'refuge':{}, 'supplementation':{}}
+    for fam_id in fam_ids:
+        query_params['fam_id'] = fam_id
+        query_params['refuge'] = True
+        _, completed_crosses_cnt = get_completed_crosses_by_family(username_or_err, query_params, True)
+        results['refuge'][fam_id] = completed_crosses_cnt
+        query_params['refuge'] = False
+        _, completed_crosses_cnt = get_completed_crosses_by_family(username_or_err, query_params, True)
+        results['supplementation'][fam_id] = completed_crosses_cnt
+
+    return {"success": results}
+
+
 @cross_fish.route('/cross_fish/set_mfg', methods=(['POST']))
 def set_family_mfg_api():
     LOGGER.info("Setting family MFG")

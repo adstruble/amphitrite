@@ -517,12 +517,12 @@ def determine_and_insert_possible_crosses(username_or_err, cleaned_f_tags):
     return insert_cnt
 
 
-def get_completed_crosses_by_family(username, query_params):
+def get_completed_crosses_by_family(username, query_params, cnt_only=False):
     filter_str = 'xf.id = :fam_id or yf.id = :fam_id'
-    return get_completed_crosses(username, query_params, 'ORDER BY cross_date', filter_str)
+    return get_completed_crosses(username, query_params, 'ORDER BY cross_date', filter_str, cnt_only)
 
 
-def get_completed_crosses(username, query_params, order_by_clause, filter_str):
+def get_completed_crosses(username, query_params, order_by_clause, filter_str, cnt_only=False):
     like_filter_str = ""
     if query_params.get('like_filter'):
         like_filter_str = f" AND ("
@@ -543,24 +543,25 @@ def get_completed_crosses(username, query_params, order_by_clause, filter_str):
         filter_str = f" {filter_str} AND ({' AND '.join(exact_filters)})"
 
     family_table = 'family' if query_params.get('refuge', True) else 'supplementation_family'
-    columns_sql = f"""
-        SELECT completed_cross.id as id,
-            completed_cross.group_id as group_id,
-            completed_cross.mfg as mfg,
-            xf.id p1_fam_id,
-            yf.id p2_fam_id,
-            CASE WHEN xf.group_id < 0 THEN 'WT' ELSE xf.group_id::text END x_gid,
-            CASE WHEN yf.group_id < 0 THEN 'WT' ELSE yf.group_id::text END y_gid,
-            rtx.tag f_tag,
-            rty.tag as m_tag,   
-            (SELECT count(1) FROM {family_table} next_gen_fam_f JOIN animal a ON (next_gen_fam_f.parent_1 = a.id OR next_gen_fam_f.parent_2 = a.id) WHERE a.family = xf.id AND NOT next_gen_fam_f.cross_failed) as x_crosses,
-            (SELECT count(1) FROM {family_table} next_gen_fam_f JOIN animal a ON (next_gen_fam_f.parent_1 = a.id OR next_gen_fam_f.parent_2 = a.id) WHERE a.family = yf.id AND NOT next_gen_fam_f.cross_failed) as y_crosses,
-            completed_cross.f,
-            completed_cross.di,
-            completed_cross.cross_date::date,
-            completed_cross.cross_failed,
-            (SELECT count(1) FROM supplementation_family sf WHERE sf.parent_1 = x.id AND sf.parent_2 = y.id) as supplementation,
-            coalesce(note.content, '') notes
+    if not cnt_only:
+        columns_sql = f"""
+            SELECT completed_cross.id as id,
+                completed_cross.group_id as group_id,
+                completed_cross.mfg as mfg,
+                xf.id p1_fam_id,
+                yf.id p2_fam_id,
+                CASE WHEN xf.group_id < 0 THEN 'WT' ELSE xf.group_id::text END x_gid,
+                CASE WHEN yf.group_id < 0 THEN 'WT' ELSE yf.group_id::text END y_gid,
+                rtx.tag f_tag,
+                rty.tag as m_tag,
+                (SELECT count(1) FROM {family_table} next_gen_fam_f JOIN animal a ON (next_gen_fam_f.parent_1 = a.id OR next_gen_fam_f.parent_2 = a.id) WHERE a.family = xf.id AND NOT next_gen_fam_f.cross_failed) as x_crosses,
+                (SELECT count(1) FROM {family_table} next_gen_fam_f JOIN animal a ON (next_gen_fam_f.parent_1 = a.id OR next_gen_fam_f.parent_2 = a.id) WHERE a.family = yf.id AND NOT next_gen_fam_f.cross_failed) as y_crosses,
+                completed_cross.f,
+                completed_cross.di,
+                completed_cross.cross_date::date,
+                completed_cross.cross_failed,
+                (SELECT count(1) FROM supplementation_family sf WHERE sf.parent_1 = x.id AND sf.parent_2 = y.id) as supplementation,
+                coalesce(note.content, '') notes
             """
 
     records_sql = f""" FROM {family_table} as completed_cross
@@ -573,11 +574,13 @@ def get_completed_crosses(username, query_params, order_by_clause, filter_str):
                LEFT JOIN {family_table}_note note on completed_cross.id = note.family
                    WHERE {filter_str} {like_filter_str}"""
 
-    order_by = f" {order_by_clause} {'OFFSET :offset' if 'offset' in query_params else ''} " + \
-               f"{'LIMIT :limit' if 'limit' in query_params else ''}"
+    completed_crosses = None
+    if not cnt_only:
+        order_by = f" {order_by_clause} {'OFFSET :offset' if 'offset' in query_params else ''} " + \
+                   f"{'LIMIT :limit' if 'limit' in query_params else ''}"
 
-    completed_crosses = execute_statements((columns_sql + records_sql + order_by, query_params),
-                                           username).get_as_list_of_dicts()
+        completed_crosses = execute_statements((columns_sql + records_sql + order_by, query_params), # noqa
+                                               username).get_as_list_of_dicts()
 
     cnt_sql = 'SELECT count(*) '
 
