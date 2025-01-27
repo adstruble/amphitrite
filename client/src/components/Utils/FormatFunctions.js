@@ -52,7 +52,7 @@ export const formatCheckbox = (checked, item, format_args) => {
         <Label check>
             <Input defaultChecked={selected} type="checkbox"
                    onChange={(e) => rowCheckedCallback(e, item)}
-                            id={item['id'] + rowCheckedCallback.name}
+                            id={item['id'] + rowCheckedCallback(null, null, true)}
                     />
                     <span className={classnames("form-check-sign", "form-check-sign-table")} />
                 </Label>
@@ -119,20 +119,29 @@ export const formatArrayToStrTags = (tags, requested_cross, m_f) => {
         requested_cross_tag = requested_cross['completed' + m_f].slice(0, -4);
     }
     tags.sort(function (a, b){return sort_by_completed(a, b, requested_cross_tag)});
+    if (tags[tags.length -1] === null){
+        tags.pop();
+    }
+
     if (requested_cross_tag !== ""){
+
         if (tags.length === 1 && requested_cross_tag !== tags[0]){
             return (<div><span className='text-muted'>{tags[0]} </span><span className='text-primary'>({requested_cross_tag})</span></div>);
         }
-        return (tags.map((tag, index) => {
+        let tag_array = (tags.map((tag, index) => {
                 let comma = index < tags.length - 1 ? ", " : ""
                 if (tag === requested_cross_tag) {
                     return(<span className='text-primary'>{tag}{comma}</span>);
                 }
                 return(<span className='text-muted'>{tag}{comma}</span>)
-
             }
         ));
+        return [tag_array, tag_array]
     }else{
+        if (tags.length === 0){
+            return [<span className='text-danger'>No male fish available for supplementation!!</span>,
+                "All of the fish in this family have been previously crossed for supplementation, only a refuge cross may be selected"]
+        }
         return formatArrayToStr(tags)
     }
 }

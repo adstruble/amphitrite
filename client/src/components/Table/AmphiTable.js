@@ -43,9 +43,9 @@ export default function AmphiTable({tableDataUrl,
     const [tableSize, setTableSize] = useState(0);
     const [currElementCnt, setCurrElementCnt] = useState(0);
     const [currPage, setCurrPage] = useState(0);
-    const [filterState, setFilterState] = useState({})
+    const [filterState, setFilterState] = useState(filter === null ? {} : null)
     const [filterStateHolder, setFilterStateHolder] = useState({})
-    const [exactFilter, setExactFilter] = useState({});
+
     const Filter = filter;
     const filterWidth = "550px"; //matchWidthElementId ? parseInt(getComputedStyle(document.getElementById(matchWidthElementId))['width'])/2 : "100%";
 
@@ -153,14 +153,19 @@ export default function AmphiTable({tableDataUrl,
 
     const doGetTableData = React.useCallback(async () => {
         const newOrderBy = determineOrderBy()
+        if (filterState ===  null){
+            // Don't fetch data until filter state has been set
+            return;
+        }
         let params = {...fetchParams, ...{
                 offset: currPage * LIMIT,
                 limit: LIMIT,
                 order_by: newOrderBy,
                 return_size: true,
                 like_filter: search,
-                exact_filters: filterState
+                exact_filters: filterState,
             }};
+
         fetchData(tableDataUrl, getUsername(), params, setTableData);
     }, [fetchData, search, currPage, fetchParams, headerCols, filterState]);
 
@@ -308,6 +313,12 @@ export default function AmphiTable({tableDataUrl,
                                              key={item.id} item={item}>
                                             {headerCols.map((header) => {
                                                 let txt = () => {return(header['format_fn'](item[header.key], item, header.format_args, handleExpand, header.key))};
+                                                let tooltip = txt();
+                                                let content = tooltip
+                                                if (Array.isArray(tooltip)){
+                                                    tooltip = tooltip[1];
+                                                    content = content[0]
+                                                }
                                                 return (
                                                     <Cell id={'id' + item.id + header.key}
                                                           key={item.id + header.key}
@@ -315,9 +326,9 @@ export default function AmphiTable({tableDataUrl,
                                                         {header.tooltip && <UncontrolledTooltip
                                                             placement={"top-start"}
                                                             target={'id' + item.id + header.key}>
-                                                            {txt()}
+                                                            {tooltip}
                                                         </UncontrolledTooltip>}
-                                                        {txt()}
+                                                        {content}
 
                                                     </Cell>
                                                    );})

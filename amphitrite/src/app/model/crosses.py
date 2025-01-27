@@ -128,16 +128,24 @@ def get_possible_crosses(username, query_params):
             """
     records_sql = f"""FROM possible_cross as pc
                     JOIN animal as x ON pc.female = x.id
-                    JOIN animal as y ON y.family = pc.male AND (NOT y.id = ANY( -- only include males that haven't been refuge crossed yet or were crossed with this female
-                         SELECT parent_2 FROM family f WHERE NOT f.cross_failed AND cross_year = date_part('year', CURRENT_DATE))
-                         OR EXISTS(select id from family where parent_1 = x.id and parent_2 = y.id 
-                                    UNION 
-                                   select id from supplementation_family where parent_1 = x.id and parent_2 = y.id))
                     JOIN family as xf ON x.family = xf.id
+                    LEFT JOIN requested_cross ON xf.id = requested_cross.parent_f_fam AND pc.male = requested_cross.parent_m_fam
+                    JOIN animal as y ON y.family = pc.male AND (NOT y.id = ANY(
+                    -- Only include males that haven't been refuge crossed yet and were not crossed with this female
+                    -- IF this possible cross is being used for supplementation don't allow a male that was previously used for supplementation to be used again
+                             SELECT parent_m FROM requested_cross rc_completed WHERE rc_completed.parent_m is not null AND NOT rc_completed.supplementation
+                             )
+                         OR requested_cross.parent_m = y.id)
+
                     JOIN family as yf on yf.id = pc.male
                     JOIN refuge_tag rtx ON rtx.animal = x.id
-                    JOIN refuge_tag rty on rty.animal = y.id
-               LEFT JOIN requested_cross ON xf.id = requested_cross.parent_f_fam AND pc.male = requested_cross.parent_m_fam
+
+                LEFT JOIN refuge_tag rty ON rty.animal = y.id
+
+                         AND NOT rty.animal = ANY( SELECT parent_m FROM requested_cross rc_completed
+                        WHERE rc_completed.parent_m is not null AND (NOT rc_completed.supplementation or requested_cross.supplementation)
+                            AND NOT (rc_completed.parent_m = requested_cross.parent_m and rc_completed.id = requested_cross.id))
+
                    WHERE x.sex = 'F' AND y.sex = 'M' AND x.alive AND y.alive {filter_str}
                 GROUP BY xf.group_id, yf.group_id, pc.male, xf.id, xf.cross_year, yf.cross_year, requested_cross.id, requested_cross.supplementation, pc.f, pc.di"""
 
