@@ -380,18 +380,22 @@ def cleanup_previous_available_females(username: str, female_tags: set):
 
 
 def get_available_female_tags_str(username):
-    f_tags = select_available_female_tags_list(username)
-    return ", ".join(f_tags)
+    results = select_available_female_tags_list(username)
+    available_female_tag_to_gid = {row[0]:row[1] for row in results}
+    return _get_tag_str_grouped_by_fam(available_female_tag_to_gid)
 
 
 def select_available_female_tags_list(username):
-    results = execute_statements('SELECT distinct tag FROM possible_cross JOIN refuge_tag on animal = female',
+    results = execute_statements('''SELECT distinct tag, group_id FROM possible_cross
+                                 JOIN refuge_tag rt on animal = female
+                                 JOIN animal x ON x.id = rt.animal
+                                 JOIN family f ON f.id = x.family''',
                                  username).row_results
-    return [row[0] for row in results]
+    return results
 
 
 def get_available_females_with_0_or_1_males(username):
-    available_female_dict = {tag: True for tag in select_available_female_tags_list(username)}
+    available_female_tag_to_gid = {row[0]: row[1] for row in select_available_female_tags_list(username)}
     requested_refuge_females = """SELECT distinct array_agg(distinct rtf.tag), count(distinct m.id)  
                              FROM requested_cross rc 
                                JOIN family xf ON rc.parent_f_fam = xf.id
@@ -411,7 +415,7 @@ def get_available_females_with_0_or_1_males(username):
         if m_cnt >= 2:
             for f_tag in f_tags:
                 try:
-                    available_female_dict.pop(f_tag)
+                    available_female_tag_to_gid.pop(f_tag)
                 except KeyError:
                     pass
 
@@ -431,7 +435,7 @@ def get_available_females_with_0_or_1_males(username):
     results = execute_statements(requested_supplementation_females, username).row_results
 
     if not results:
-        return available_female_dict.keys()
+        return available_female_tag_to_gid.keys()
 
     prev_f_fam = results[0][2]
     f_tags = results[0][0]
@@ -439,17 +443,42 @@ def get_available_females_with_0_or_1_males(username):
     for row in results:
         f_fam = row[2]
         if prev_f_fam != f_fam:
-            _maybe_remove_female(f_tags, males, available_female_dict)
+            _maybe_remove_female(f_tags, males, available_female_tag_to_gid)
             males = {}
+            prev_f_fam = f_fam
 
         f_tags = row[0]
         m_cnt = row[1]
         m_fam = row[3]
         males[m_fam] = m_cnt
 
-    _maybe_remove_female(f_tags, males, available_female_dict)
+    _maybe_remove_female(f_tags, males, available_female_tag_to_gid)
 
-    return available_female_dict.keys()
+    return _get_tag_str_grouped_by_fam(available_female_tag_to_gid)
+
+
+def _get_tag_str_grouped_by_fam(available_female_tag_to_gid):
+    tags = []
+    ftag_str = ''
+    round1 = True
+    for tag, group in sorted(available_female_tag_to_gid.items(), key=lambda item: item[1]):
+        if round1:
+            prev_group = group
+            round1 = False
+        if group != prev_group and tags: # noqa
+            if len(tags) > 1:
+                ftag_str = ftag_str + '(' + ', '.join(tags) + "), "
+            else:
+                ftag_str = ftag_str + tags[0] + ", "
+            tags = []
+        prev_group = group
+        tags.append(tag)
+
+    if len(tags) > 1:
+        ftag_str = ftag_str + '(' + ', '.join(tags) + ")"
+    elif tags:
+        ftag_str = ftag_str + tags[0]
+    return ftag_str
 
 
 def _maybe_remove_female(f_tags: list, males: dict, available_female_dict):
@@ -462,6 +491,7 @@ def _maybe_remove_female(f_tags: list, males: dict, available_female_dict):
                 available_female_dict.pop(f_tag)
             except KeyError:
                 pass
+
 
 def set_available_females(username:str, females: list):
     """
@@ -495,7 +525,7 @@ def set_available_females(username:str, females: list):
                 return return_val
     return_val['data'] = {}
     return_val['data']['f_tags'] = get_available_female_tags_str(username)
-    return_val['data']['uncrossed_tags'] = ", ".join(get_available_females_with_0_or_1_males(username))
+    return_val['data']['uncrossed_tags'] = get_available_females_with_0_or_1_males(username)
     return return_val
 
 

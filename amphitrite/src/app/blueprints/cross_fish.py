@@ -58,7 +58,7 @@ def add_selected_cross():
 
     requests = add_requested_cross(username_or_err, ids[0], ids[1], request_params['f'],
                                    request_params['supplementation'])
-    uncrossed_tags = ", ".join(get_available_females_with_0_or_1_males(username_or_err))
+    uncrossed_tags = get_available_females_with_0_or_1_males(username_or_err)
     return {"success": requests == 1, "data": {"uncrossed_tags": uncrossed_tags}}
 
 
@@ -73,7 +73,7 @@ def remove_selected_cross():
     ids = request_params['cross_id'].split("__")
 
     requests = remove_requested_cross(username_or_err, ids[0], ids[1])
-    uncrossed_tags = ", ".join(get_available_females_with_0_or_1_males(username_or_err))
+    uncrossed_tags = get_available_females_with_0_or_1_males(username_or_err)
     return {"success": requests == 1, "data": {"uncrossed_tags": uncrossed_tags}}
 
 
@@ -104,7 +104,7 @@ def set_cross_completed():
                                   'supplementation_family' if request_params['supplementation'] else 'family',
                                   request_params['requested_cross'])
 
-    uncrossed_tags = ", ".join(get_available_females_with_0_or_1_males(username_or_err))
+    uncrossed_tags = get_available_females_with_0_or_1_males(username_or_err)
 
     return {"success": success, "data": {'uncrossed_tags': uncrossed_tags}}
 
@@ -131,7 +131,7 @@ def remove_completed_cross():
                   "message": f"Expected deletion of 1 family record, {deleted_record_cnt} record" 
                              f"{' was' if deleted_record_cnt == 1 else 's were'} deleted."}
 
-    uncrossed_tags = ", ".join(get_available_females_with_0_or_1_males(username_or_err))
+    uncrossed_tags = get_available_females_with_0_or_1_males(username_or_err)
     result["data"] = {'uncrossed_tags': uncrossed_tags}
     return result
 
@@ -179,7 +179,7 @@ def get_available_f_tags():
         return username_or_err
 
     f_tags = get_available_female_tags_str(username_or_err)
-    uncrossed_tags = ", ".join(get_available_females_with_0_or_1_males(username_or_err))
+    uncrossed_tags = get_available_females_with_0_or_1_males(username_or_err)
 
     return {'success': {'f_tags': f_tags, 'uncrossed_tags': uncrossed_tags}}
 

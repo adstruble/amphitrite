@@ -213,7 +213,7 @@ export default function CrossFish() {
                 {}, (success) => {
                     let availableFemales = success['f_tags'].length > 0 ? success['f_tags'] : "None"
                     setAvailableFTags(availableFemales);
-                    setUserSetFTags(availableFemales);
+                    setUserSetFTags(availableFemales.replaceAll("(","").replaceAll(")",""));
                     setUncrossedFTags(success['uncrossed_tags']);
                 }, null, null, setAlertLevel, setAlertText);
         }
@@ -425,10 +425,10 @@ export default function CrossFish() {
                         </Row>
                         <Row>
                             <Col>
-                                <span>Females with 0 or 1 selected males:</span>
+                                <span className={uncrossedFTags.length > 0 ? 'text-danger' : 'text-success'}>Females with 0 or 1 selected males:</span>
                             </Col>
                             <Col>
-                            <span style={{marginRight:"20px"}}>{uncrossedFTags}</span>
+                            <span style={{marginRight:"20px"}}>{uncrossedFTags.length === 0 ? 'None' : uncrossedFTags}</span>
                             </Col>
                         </Row>
                         <Row>
