@@ -307,15 +307,15 @@ CREATE TABLE family
 
 -- There are 35 cases where the same parents were bred in two different years. One of these cases is
 -- probably incorrect as one year is 2017 and one is 2007. However, the others seems legitimate.
--- Therefore we need to include cross_year in the constraint on unique parents
+-- Therefore we need to include cross_year in the constraint on unique parents and cross_failed in case same cross
+-- is attempted again
+-- Had to remove because this constraint was broken in 2024 crossings with families 256 & 300 (PUT CONSTRAINT BACK IN BECAUSE FAMILY 256 IS NOW GONE (?))
 ALTER TABLE family ADD CONSTRAINT unique_family_parents_year UNIQUE(parent_1, parent_2, cross_year);
 -- Here is the SQL to find them:
 -- select array_agg(f1.gen_id) as children_first_cross, family.group_id,family.cross_year, array_agg(f2.gen_id) as children_second_cross, family_2.group_id,family_2.cross_year from family join family as family_2 on family.parent_1 = family_2.parent_1 and family.id != family_2.id AND family.parent_2 = family_2.parent_2 join animal f1 on f1.family = family.id join animal f2 on f2.family = family_2.id where family.cross_year < family_2.cross_year group by family.group_id, family.cross_year, family_2.group_id, family_2.cross_year;
 CREATE INDEX family_parent_1_idx on family(parent_1);
 CREATE INDEX family_parent_2_idx on family(parent_2);
 
--- Had to remove because this constraint was broken in 2024 crossings with families 256 & 300
--- ALTER TABLE family ADD CONSTRAINT unique_parents UNIQUE (parent_1, parent_2, cross_year);
 ALTER TABLE family
     ADD CONSTRAINT different_parents CHECK (not (parent_1 = parent_2));
 CREATE TRIGGER history_trigger_row AFTER INSERT OR DELETE OR UPDATE ON family FOR EACH ROW EXECUTE FUNCTION history.if_modified_func('false');
@@ -325,8 +325,6 @@ CREATE OR REPLACE TRIGGER element_pre_update_t BEFORE UPDATE ON family FOR EACH 
 
 CREATE TABLE supplementation_family (LIKE family INCLUDING ALL);
 ALTER TABLE supplementation_family ADD CONSTRAINT unique_parents_supplementation_family UNIQUE (parent_1, parent_2, cross_year);
-ALTER TABLE supplementation_family
-    ADD CONSTRAINT different_parents_supplementation_family CHECK (not (parent_1 = parent_2));
 CREATE TRIGGER history_trigger_row AFTER INSERT OR DELETE OR UPDATE ON supplementation_family FOR EACH ROW EXECUTE FUNCTION history.if_modified_func('false');
 CREATE TRIGGER history_trigger_stm AFTER TRUNCATE ON supplementation_family FOR EACH STATEMENT EXECUTE FUNCTION history.if_modified_func('false');
 CREATE OR REPLACE TRIGGER element_pre_insert_t BEFORE INSERT ON supplementation_family FOR EACH ROW EXECUTE PROCEDURE element_pre_insert();

@@ -151,14 +151,14 @@ def get_possible_crosses(username, query_params):
 
     order_sql = f""" {_get_order_by_clause_for_possible_crosses(query_params['order_by'], ref_y_crosses_sql, 
                                                                ref_x_crosses_sql, sup_y_crosses_sql, sup_x_crosses_sql)}
-                 )q WHERE (completed_x IS NULL OR substr(completed_x, 1, length(completed_x)-4) = f_tags[1]) OFFSET :offset LIMIT :limit"""
+                 )q WHERE (completed_x IS NULL OR substr(completed_x, 1, length(completed_x)-4) = ANY(f_tags)) OFFSET :offset LIMIT :limit"""
 
     possible_crosses = execute_statements((columns_sql + records_sql + order_sql, query_params),
                                           username).get_as_list_of_dicts()
 
     cnt_sql = (f'''SELECT count(*) FROM (SELECT ({get_tag_crossed(False)}) as completed_x, 
                                                   array_agg(distinct rtx.tag) f_tags ''')
-    cnt_sql_end = ")q WHERE (completed_x IS NULL OR substr(completed_x,1, length(completed_x)-4) = f_tags[1])"
+    cnt_sql_end = ")q WHERE (completed_x IS NULL OR substr(completed_x,1, length(completed_x)-4) = ANY (f_tags))"
 
     possible_crosses_cnt = execute_statements((cnt_sql + records_sql + cnt_sql_end, query_params),
                                               username).get_single_result()
@@ -223,26 +223,51 @@ def get_requested_crosses_csv(username, csv_file):
     prev_female_group = ("", 0)
     refuge_header = False
     supplementation_header = False
+    ftag_idx = {}
+    fixed_req_crosses = []
     for idx, cross in enumerate(req_crosses):
+        if cross['f_group_id'] == prev_female_group[0] and (not cross['supplementation'] or len(cross['f_tags']) == 1):
+            fixed_req_crosses.append(cross)
+        elif cross['f_group_id'] == prev_female_group[0]:
+            ftag = cross['f_tags'][prev_female_group[1]]
+            new_f_tag_idx = 0 if len(cross['f_tags']) == prev_female_group[1] + 1 else prev_female_group[1] + 1
+            prev_female_group = (cross['f_group_id'], new_f_tag_idx)
+            cross['f_tags'] = [ftag]
+            if ftag in ftag_idx:
+                fixed_req_crosses.insert(ftag_idx[ftag] + 1, cross)
+            else:
+                fixed_req_crosses.append(cross)
+                ftag_idx[cross['f_tags'][0]] = len(fixed_req_crosses) - 1
+        elif (len(req_crosses) > idx + 1 and cross['supplementation'] and
+              req_crosses[idx + 1]['f_group_id'] == cross['f_group_id'] and len(cross['f_tags']) > 1):
+            cross['f_tags'] = [cross['f_tags'][0]]
+            fixed_req_crosses.append(cross)
+            ftag_idx[cross['f_tags'][0]] = len(fixed_req_crosses) - 1
+            prev_female_group = (cross['f_group_id'], 1)
+        else:
+            fixed_req_crosses.append(cross)
+            ftag_idx[cross['f_tags'][0]] = len(fixed_req_crosses) - 1
+            prev_female_group = (cross['f_group_id'], 1)
+
+    for idx, cross in enumerate(fixed_req_crosses):
         if not refuge_header and not cross['supplementation']:
             csv_file.write("Refuge Crosses,,,,,,,\n")
             refuge_header = True
         if not supplementation_header and cross['supplementation']:
             csv_file.write("Supplementation Crosses,,,,,,,\n")
             supplementation_header = True
-            prev_female_group = ("", 0)
-        if cross['f_group_id'] == prev_female_group[0] and (not cross['supplementation'] or len(cross['f_tags']) == 1):
+            prev_female_group = ""
+        if cross['f_group_id'] == prev_female_group and (not cross['supplementation'] or
+                                                         (len(cross['f_tags']) == 1 and cross['f_tags'][0] ==
+                                                          fixed_req_crosses[idx - 1]['f_tags'][0])):
             f_tags = ''
             cross['f_group_id'] = '(Alternate)'
-        elif cross['f_group_id'] == prev_female_group[0]:
-            f_tags = [cross['f_tags'][prev_female_group[1]]]
-            prev_female_group = (cross['f_group_id'], prev_female_group[1] + 1)
         else:
             f_tags = cross['f_tags']
-            prev_female_group = (cross['f_group_id'], 1)
+            prev_female_group = cross['f_group_id']
         pick_one_fem = '(pick one) '
         if (len(req_crosses) > idx + 1 and cross['supplementation'] and
-                req_crosses[idx + 1]['f_group_id'] == prev_female_group[0] and len(f_tags) > 1): # noqa
+                req_crosses[idx + 1]['f_group_id'] == prev_female_group and len(f_tags) > 1): # noqa
             # Don't indicate to pick one if this is a supplementation cross and there is more than one female, we will
             # cross both
             pick_one_fem = ''
@@ -259,14 +284,24 @@ def get_requested_crosses_csv(username, csv_file):
 
 def get_requested_crosses(username):
     requested_crosses_sql = """
-    SELECT array(select distinct unnest(array_agg ((select tag from refuge_tag where animal = f_parent.id order by f_parent.id)))) f_tags,
+    SELECT array(select distinct unnest(array_agg ((select tag from refuge_tag where animal = f_parent.id))) as tag order by tag) f_tags,
            f_family.group_id f_group_id,
-           count(distinct ngf.id) as x_ref_cross_cnt,
-           count(distinct ngsf.id) as x_sup_cross_cnt,
+           (select count(1) FROM family ngf WHERE ngf.parent_1 = ANY(SELECT id FROM animal WHERE family = f_family.id)
+                              OR ngf.parent_2 = ANY(SELECT id from animal WHERE family = f_family.id)
+                         AND NOT ngf.cross_failed) as x_ref_cross_cnt,
+           (select count(1) FROM supplementation_family ngf
+                           WHERE ngf.parent_1 = ANY(SELECT id FROM animal WHERE family = f_family.id)
+                              OR ngf.parent_2 = ANY(SELECT id from animal WHERE family = f_family.id)
+                         AND NOT ngf.cross_failed) as x_sup_cross_cnt,
            array(select distinct unnest(array_agg ((select tag from refuge_tag where animal = m_parent.id order by m_parent.id)))) m_tags,
            m_family.group_id m_group_id,
-           count(distinct ngm.id) as y_ref_cross_cnt,
-           count(distinct ngsm.id) as y_sup_cross_cnt,
+           (select count(1) FROM family ngf WHERE ngf.parent_1 = ANY(SELECT id FROM animal WHERE family = m_family.id) 
+                              OR ngf.parent_2 = ANY(SELECT id from animal WHERE family = m_family.id) 
+                         AND NOT ngf.cross_failed) as y_ref_cross_cnt,
+           (select count(1) FROM supplementation_family ngf 
+                           WHERE ngf.parent_1 = ANY(SELECT id FROM animal WHERE family = m_family.id) 
+                              OR ngf.parent_2 = ANY(SELECT id from animal WHERE family = m_family.id) 
+                         AND NOT ngf.cross_failed) as y_sup_cross_cnt,
            requested_cross.f,
            requested_cross.supplementation
        FROM requested_cross
@@ -278,17 +313,10 @@ def get_requested_crosses(username):
                                                                            AND NOT cross_failed AND cross_year = date_part('year', CURRENT_DATE))))
        JOIN family f_family on f_family.id = f_parent.family
        JOIN family m_family on m_family.id = parent_m_fam
-       LEFT JOIN family ngf ON ngf.parent_1 = ANY(SELECT id from animal where family = f_parent.family) OR 
-                               ngf.parent_2 = ANY(SELECT id from animal WHERE family = f_parent.family) AND NOT ngf.cross_failed
-       LEFT JOIN family ngm ON ngm.parent_1 = ANY(SELECT id from animal where family = m_parent.family) OR 
-                               ngm.parent_2 = ANY(SELECT id from animal WHERE family = m_parent.family) AND NOT ngm.cross_failed
-       LEFT JOIN supplementation_family ngsf ON ngsf.parent_1 = ANY(SELECT id from animal where family = f_parent.family) OR 
-                               ngsf.parent_2 = ANY(SELECT id from animal WHERE family = f_parent.family) AND NOT ngsf.cross_failed
-       LEFT JOIN supplementation_family ngsm ON ngsm.parent_1 = ANY(SELECT id from animal where family = m_parent.family) OR 
-                               ngsm.parent_2 = ANY(SELECT id from animal WHERE family = m_parent.family) AND NOT ngsm.cross_failed
        WHERE f_parent.id IN (SELECT DISTINCT female from possible_cross) AND requested_cross.cross_date IS NULL
-       GROUP BY (requested_cross.f, f_family.group_id, m_family.group_id, requested_cross.supplementation)
-       ORDER BY requested_cross.supplementation, f_family.group_id, requested_cross.f;
+       GROUP BY (requested_cross.f, f_family.group_id, m_family.group_id, requested_cross.supplementation, f_family.id, m_family.id)
+       ORDER BY requested_cross.supplementation, f_family.group_id,
+       count(distinct m_parent.id) DESC, requested_cross.f;
     """
     return execute_statements(requested_crosses_sql, username).get_as_list_of_dicts()
 
@@ -381,7 +409,7 @@ def cleanup_previous_available_females(username: str, female_tags: set):
 
 def get_available_female_tags_str(username):
     results = select_available_female_tags_list(username)
-    available_female_tag_to_gid = {row[0]:row[1] for row in results}
+    available_female_tag_to_gid = {row[0]: row[1] for row in results}
     return _get_tag_str_grouped_by_fam(available_female_tag_to_gid)
 
 
@@ -406,6 +434,7 @@ def get_available_females_with_0_or_1_males(username):
                                                 AND NOT m.id = ANY (SELECT parent_2 FROM family 
                                                                      WHERE cross_year = date_part('year', CURRENT_DATE))
                                WHERE NOT supplementation
+                               AND (rc.cross_date IS NULL OR (rc.parent_f = rtf.animal))
                           GROUP BY xf.id"""
     results = execute_statements(requested_refuge_females, username).row_results
     for row in results:
@@ -431,11 +460,12 @@ def get_available_females_with_0_or_1_males(username):
                                                 AND NOT m.id = ANY (SELECT parent_2 FROM family 
                                                                      WHERE cross_year = date_part('year', CURRENT_DATE))
                                WHERE rc.supplementation
+                               AND (rc.cross_date IS NULL OR (rc.parent_f IN (SELECT female FROM possible_cross)))
                           GROUP BY xf.id, yf.id ORDER BY xf.id::text, count(distinct m.id)"""
     results = execute_statements(requested_supplementation_females, username).row_results
 
     if not results:
-        return available_female_tag_to_gid.keys()
+        return _get_tag_str_grouped_by_fam(available_female_tag_to_gid)
 
     prev_f_fam = results[0][2]
     f_tags = results[0][0]

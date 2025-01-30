@@ -38,7 +38,7 @@ export default function ViewCrosses(){
         {name: "Male Fish", key: "m_tag", visible: true, format_fn: formatStr, width:".8fr", format_args:'_y',
             order:null, order_direction:null, order_by: "m_tag"},
         {name: "Cross Date", key: "cross_date", visible: true, format_fn: formatDate, width: ".9fr",
-            order:null, order_direction:null, order_by: "cross_date"},
+            order:1, order_direction:"DESC", order_by: "cross_date"},
         {name: "F", key: "f", visible: true, format_fn: formatDoubleTo3, width:".9fr", className:"numberCell",
             order:null, order_direction:null, order_by: "f"},
         {name: "DI", key: "di", visible: true, format_fn: formatDoubleTo3, width:".9fr", className:"numberCell",
@@ -49,16 +49,16 @@ export default function ViewCrosses(){
             className:"numberCell", order:null, order_direction: null, order_by: "y_crosses"},
     ];
     const REFUGE_CROSSES_COLS = [{name: "Edit", key: "edit", visible: true, format_fn:formatTextWithIcon,
-        format_args:['icon-pencil', true, 'Show/Hide Edit details'], width:".3fr"},
+        format_args:['icon-pencil', true, 'Show/Hide Edit details'], width:".28fr"},
         {name: "PC/FSG", key: "group_id",  visible: true, format_fn: formatStr, width:".65fr",
-        className:"numberCell", order_direction: "ASC", order:1, order_by: "group_id"},
+        className:"numberCell", order_direction: null, order:null, order_by: "completed_cross.group_id"},
         {name: "MFG", key: "mfg",  visible: true, format_fn: formatStr, width:".55fr", className:"numberCell",
             order:null, order_direction:null, order_by: "mfg"}].concat(BOTH_CROSSES_COLS);
 
     const SUPPLEMENTATION_CROSSES_COLS = [{name: "Edit", key: "edit", visible: true, format_fn:formatTextWithIcon,
-        format_args:['icon-pencil', true, 'Show/Hide Edit details'], width:".25fr"},
+        format_args:['icon-pencil', true, 'Show/Hide Edit details'], width:".27fr"},
         {name: "Tank", key: "mfg",  visible: true, format_fn: formatStr,
-        width:".55fr", className:"numberCell", order:1, order_direction: "DESC", order_by: "mfg"}].concat(BOTH_CROSSES_COLS);
+        width:".55fr", className:"numberCell", order: null, order_direction: null, order_by: "mfg"}].concat(BOTH_CROSSES_COLS);
 
     const REFUGE_CROSSES_HEADER = {
         rows:{"getRowClass": getRowClass},
@@ -99,7 +99,8 @@ export default function ViewCrosses(){
             fileName = 'refuge_crosses.csv'
         }
         fetchFile("cross_fish/export_crosses", fileName, getUsername(),
-            {...tableFetchParams, ...{offset: 0}}, () =>{})
+            {...tableFetchParams, ...{offset: 0}}, () =>{},
+            (msg)=>{setAlertText(msg); setAlertLevel('danger')})
     };
 
     function changeCrossUse (refuge){

@@ -27,7 +27,8 @@ export const formatArrayToStr = (array) => {
 
 export const formatIcon = (val, item, format_args) => {
     // Use format_args[1] if val is True, otherwise use format_args[2]
-    return (<i className={classnames('tim-icons', val ? format_args[1] : format_args[2], 'amphi-cell', 'color-red')}
+    return (<i className={classnames('icon', 'tim-icons', val ? format_args[1] : format_args[2], 'amphi-cell',
+            format_args.length > 3 ? format_args[3](item) : '')}
                onClick={format_args[0]}/>
     );
 }
@@ -60,24 +61,34 @@ export const formatCheckbox = (checked, item, format_args) => {
 }
 
 export function formatTextWithIcon (txt, item, format_args, handleExpand, colName){
-    // First format_arg is the icon class, 2nd format_arg is True if clicking the icon should
-    // expand the row.3rd format_is is tooltip.
+    // First format_arg is the icon class,
+    // 2nd format_arg is True if clicking the icon should expand the row.
+    // 3rd format_arg is tooltip for icon
+    // 4th format_arg is True if tooltip for text should be included
     function onIconClick(event) {
         if (format_args[1]){
             handleExpand(item, event);
         }
     }
 
-    return (<div><i id={'id' + item['id'] + colName + 'i'}
+    const textTooltipId = 'id' + item['id'] + colName + 'span';
+    const iconTooltipId = 'id' + item['id'] + colName + 'i';
+    return (<div style={{overflowX:"hidden", textOverflow:"ellipsis"}}>
+                <i id={iconTooltipId}
                     onClick={onIconClick}
-                    className={classnames("tim-icons", format_args[0], "amphi-cell", "clickable")}
+                    className={classnames("tim-icons", format_args[0], "amphi-cell", "clickable", "icon")}
                     color="info"/>
-        {format_args[2] && <UncontrolledTooltip
-                    placement={"top-start"}
-                    target={'id' + item['id'] + colName + 'i'}>
-                    {format_args[2]}
+                {format_args[2] && <UncontrolledTooltip
+                        placement={"top-start"}
+                        target={iconTooltipId}>
+                        {format_args[2]}
                 </UncontrolledTooltip>}
-        <span>{txt}</span>
+                <span id={textTooltipId}>{txt}</span>
+                {format_args[3] && txt && <UncontrolledTooltip
+                    target={textTooltipId}
+                    placement={"top-start"}
+                >{txt}
+                </UncontrolledTooltip>}
     </div>);
 }
 
@@ -127,9 +138,11 @@ export const formatArrayToStrTags = (tags, requested_cross, m_f) => {
 
         if (tags.length === 1 && requested_cross_tag !== tags[0]){
             return (<div><span className='text-muted'>{tags[0]} </span><span className='text-primary'>({requested_cross_tag})</span></div>);
+        }else if(tags.length === 0) {
+            return (<span className='text-primary'>{requested_cross_tag}</span>);
         }
         let tag_array = (tags.map((tag, index) => {
-                let comma = index < tags.length - 1 ? ", " : ""
+            let comma = index < tags.length - 1 ? ", " : ""
                 if (tag === requested_cross_tag) {
                     return(<span className='text-primary'>{tag}{comma}</span>);
                 }

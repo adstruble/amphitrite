@@ -18,6 +18,7 @@ from importer.import_master import import_master_data
 from importer.import_pedigree import import_pedigree
 from importer.import_utils import get_import_resources_dir
 from model.fish import mark_all_fish_dead
+from utils.server_state import clean_jobs
 
 # Configurations
 bind = ['0.0.0.0:5001']
@@ -96,3 +97,6 @@ def on_starting(server: Arbiter) -> None:
         crosses_path = os.path.join(get_import_resources_dir(), "bulk_upload_crosses_2024.csv")
         import_crosses(crosses_path, 'amphiadmin', 2024)
         mark_all_fish_dead('amphiadmin')
+
+    # Clean the jobs in the server manager to start the clean job timer
+    clean_jobs()

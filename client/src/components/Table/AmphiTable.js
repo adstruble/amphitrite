@@ -20,6 +20,7 @@ import AmphiHeaderCell from "./AmphiHeaderCell";
 import classnames from "classnames";
 import AmphiPagination from "./AmphiPagination";
 import {onKeyupWithDelay} from "../Utils/General";
+import useScrollbarVisibility from "../Utils/ScrollbarVisibility";
 
 export const getExpandedDefault = () => {
     return (<tr className='expanded-row-contents'><td style={{display:"none"}}/></tr>);
@@ -50,6 +51,9 @@ export default function AmphiTable({tableDataUrl,
     const Filter = filter;
     const filterWidth = "550px"; //matchWidthElementId ? parseInt(getComputedStyle(document.getElementById(matchWidthElementId))['width'])/2 : "100%";
 
+    const [isScrollbarVisible, setIsScrollbarVisible] = useState(true);
+    const [checkScroll, setCheckScroll] = useState(0);
+    const elementRef = useScrollbarVisibility(setIsScrollbarVisible, checkScroll);
 
     const [tableNodes, setTableNodes] = useState({
         nodes: [],
@@ -172,6 +176,7 @@ export default function AmphiTable({tableDataUrl,
 
     const setTableData = (tableData, params) => {
         setTableNodes({nodes: tableData['data']});
+        setCheckScroll(checkScroll + 1);
         setTableSize(tableData['size']);
         if (tableData['size'] <= (params.offset + LIMIT)){
             setCurrElementCnt(tableData['size'])
@@ -265,6 +270,7 @@ export default function AmphiTable({tableDataUrl,
                                     <div style={{display:"flex", marginLeft:"auto"}}>
                                         <Button type="button" onClick={()=>{
                                             setShowFilterOptions(false);
+                                            setCurrPage(0);
                                             setFilterState(filterStateHolder);
                                         }}>Search</Button>
                                     </div>
@@ -280,13 +286,13 @@ export default function AmphiTable({tableDataUrl,
                                  tableSize={tableSize} currPage={currPage} currElementCnt={currElementCnt}/>}
             </div>
 
-            <div className='amphi-table-inner'>
+            <div className={classnames('amphi-table-inner',isScrollbarVisible && 'scrolling')}>
                 <div className='amphi-table-header'>
                     <Table data={{nodes: headerCols}} style={{marginBottom: "0px"}} theme={theme} >
                         {(headerData) => (
                             <>
                                 <Header>
-                                    <HeaderRow className='table-row'>
+                                    <HeaderRow className='table-row' id={"header_row"}>
                                         {headerData.map((header) => {
                                             return(<AmphiHeaderCell header={header} updateOrderBy={updateOrderBy}/>);
                                         })
@@ -298,7 +304,7 @@ export default function AmphiTable({tableDataUrl,
                     </Table>
                 </div>
                 <div className='amphi-table-contents'>
-                    <Table data={tableNodes} theme={theme} >
+                    <Table data={tableNodes} theme={theme} ref={elementRef}>
                     {(tableList) => (
                         <>
                             <Header>
@@ -310,11 +316,12 @@ export default function AmphiTable({tableDataUrl,
                             <Body>
                                 {tableList.map((item) => (
 
-                                    <React.Fragment key={item.id}>
+                                    <React.Fragment>
                                         <ReactTableRow className={
                                             classnames({'expanded': ids.includes(item.id) },
                                             'table-row', (headerRows.getRowClass) && headerRows.getRowClass(item))}
-                                             key={item.id} item={item}>
+                                                       key={item.id} item={item} id={'id' + item.id}
+                                        >
                                             {headerCols.map((header) => {
                                                 let txt = () => {return(header['format_fn'](item[header.key], item, header.format_args, handleExpand, header.key))};
                                                 let tooltip = txt();
@@ -326,9 +333,10 @@ export default function AmphiTable({tableDataUrl,
                                                 return (
                                                     <Cell id={'id' + item.id + header.key}
                                                           key={item.id + header.key}
+                                                          key={item.id + header.key}
                                                           className={header.className && header.className}>
                                                         {header.tooltip && <UncontrolledTooltip
-                                                            placement={"top-start"}
+                                                            placement={header.className === 'numberCell' ? "top-end" : "top-start"}
                                                             target={'id' + item.id + header.key}>
                                                             {tooltip}
                                                         </UncontrolledTooltip>}
@@ -341,7 +349,7 @@ export default function AmphiTable({tableDataUrl,
                                         {ids.includes(item.id) && (getExpandedRow(item))}
                                     </React.Fragment>
                                 ))}
-                                <ReactTableRow key='bottom' item={null}>
+                                <ReactTableRow key='bottom' item={null} id={'idlastrow'}>
                                     <Cell key='bottom-cell' className='table-bottom' gridColumnStart={1} gridColumnEnd={headerCols.length + 1}>&nbsp;</Cell>
                                 </ReactTableRow>
                             </Body>

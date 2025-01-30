@@ -44,7 +44,8 @@ export default function CrossFish() {
 
     const handleExportCrossesClick = async _ => {
         fetchFile("cross_fish/export_selected_crosses", 'request_crosses.csv', getUsername(),
-            {}, () =>{})
+            {}, () =>{},
+            (msg)=>{setAlertText(msg); setAlertLevel('danger');})
     };
 
 
@@ -343,7 +344,7 @@ export default function CrossFish() {
         {name: "M Ref Crosses", key: "y_crosses", visible: true, format_fn: formatStr, width:".77fr", className:"numberCell",
             header_tooltip:"Count of male family refuge crosses completed and requested",
             order:3, order_direction: "ASC", order_by: "m_ref_cross_count"},
-        {name: "M Sup Crosses", key: "sup_y_crosses", visible: true, format_fn: formatStr, width:".77fr", className:"numberCell",
+        {name: "M Sup Crosses", key: "sup_y_crosses", visible: true, format_fn: formatStr, width:".87fr", className:"numberCell",
             header_tooltip:"Count of male family supplementation crosses completed and requested",
             order:null, order_direction: null, order_by: "m_sup_cross_count"}
         ]};
@@ -352,9 +353,9 @@ export default function CrossFish() {
         <div className={classnames('wrapper', 'cross-fish', isLoading ? 'disabled' : '')}>
             <Modal onOpened={onSetAvailableFemalesOpened} isOpen={selectFemalesOpen}  modalClassName="modal-black" id="selectFemales">
                 <div className="modal-header justify-content-center">
-                    <Button className="btn-close" onClick={() => setSelectFemalesOpen(false)}>
+                    <button className="btn-close" onClick={() => setSelectFemalesOpen(false)}>
                         <i className="tim-icons icon-simple-remove text-white"/>
-                    </Button>
+                    </button>
                     <div className="text-muted text-center ml-auto mr-auto">
                         <h3 className="mb-0">Set Available Females</h3>
                         <h5 className="mb-0">Only crosses for available females will be recommended</h5>
@@ -484,7 +485,7 @@ export default function CrossFish() {
                     </div>
                 </div>
                 <div className="modal-body">
-                    <div>
+                    <div style={{paddingLeft:"15px"}}>
                         <RadioGroup items={requestedCross[possibleFishColumn]} radioSelectedCallback={onFishSelected}
                         selectedItem={(possibleFishColumn === 'm_tags') ? selectedMale : selectedFemale}></RadioGroup>
                     </div>

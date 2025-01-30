@@ -195,7 +195,7 @@ def get_completed_crosses_api():
     query_params = request.get_json()
 
     order_by_clause = validate_order_by(query_params['order_by'],
-                                        ['mfg', 'group_id', 'f', 'di', 'f_tag', 'm_tag',
+                                        ['mfg', 'completed_cross.group_id', 'f', 'di', 'f_tag', 'm_tag',
                                          'xf.group_id', 'yf.group_id', 'cross_date', 'x_crosses', 'y_crosses'],
                                         'cross_date')
 

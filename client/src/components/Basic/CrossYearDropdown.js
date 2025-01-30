@@ -33,7 +33,10 @@ export function CrossYearDropdown({yearSelectedCallback, includeAllYears=false,
             <span id="completedCrossesYear">{dropdownSelection}</span>
         </DropdownToggle>
         <DropdownMenu aria-labelledby="navbarDropdownMenuLink">
-            {includeAllYears && <DropdownItem onClick={() => yearSelectedCallback('All')}>
+            {includeAllYears && <DropdownItem onClick={() => {
+                yearSelectedCallback('All');
+                setDropdownSelection('All')
+            }}>
                 All
             </DropdownItem>}
             {years.map((year) => {

@@ -17,6 +17,7 @@ import fetchData from "../../server/fetchData";
 import useToken from "../../components/App/useToken";
 import ManageRowExpanded from "./ManageRowExpanded";
 import AmphiAlert from "../../components/Basic/AmphiAlert";
+import ExportSelected from "../../components/Download/ExportSelected";
 
 export default function ManageFish() {
     const {getUsername} = useToken();
@@ -25,18 +26,25 @@ export default function ManageFish() {
     const [setSpinning] = useOutletContext();
     const [alertText, setAlertText] = useState("");
     const [alertLevel, setAlertLevel] = useState("");
+    const [allStr, setAllStr] = useState("");
+    const [currentFilter, setCurrentFilter] = useState(null);
+    const [currentSearch, setCurrentSearch] = useState(null);
 
     const getExpandedRow = (fish) => {
         return (ManageRowExpanded({fish, saveNotes}))
     }
 
+    const getAliveIconColorClass = (fish) => {
+        return fish['alive'] ? '' : 'icon-danger'
+    }
+
     const FISH_HEADER = {
         rows: {},
         cols:[
-        {name: "", key: "alive", order_by: "alive", visible: true, order_direction: "ASC", order: 1,
-                format_fn: formatIcon, format_args:[null, "","icon-dead"], width: ".25fr"},
+        {name: "Alive", key: "alive", order_by: "alive", visible: true, order_direction: "DESC", order: 1,
+                format_fn: formatIcon, format_args:[null, "icon-fish","icon-fish-bone", getAliveIconColorClass], width: ".7fr"},
         {name: "Family ID", key: "group_id", order_by: "group_id", visible: true, order_direction: "ASC", order: 1,
-            format_fn: formatStr, className:"numberCell"},
+            format_fn: formatStr, className:"numberCell", width: ".8fr", tooltip:true},
         {name: "Parent Cross Date", key: "cross_date", order_by: "cross_date", visible: true, order_direction:null, order:null,
             format_fn: formatDate, className:"numberCell", width:"1.3fr"},
         {name: "F", key: "f", order_by: "f", visible: true, order_direction:null, order:null, format_fn: formatDoubleTo3,
@@ -50,11 +58,28 @@ export default function ManageFish() {
         {name: "Box", key: "box", order_by: "box", visible: true, order_direction:null, order:null, format_fn: formatStr,
             className:"numberCell"},
         {name: "Notes", key: "notes", order_by: "notes", visible: true, order_direction:null, order:null,
-            format_fn: formatTextWithIcon, format_args:['icon-pencil', true, 'Show/Hide Edit notes'], width:"4fr"}
+            format_fn: formatTextWithIcon, format_args:['icon-pencil', true, 'Show/Hide Edit notes', true],
+            width:"4fr"}
     ]};
+
+    const EXPORT_COLUMNS = [
+        {name: 'Tag', selected: true, field: 'tag'},
+        {name: 'Sex', selected: false, field: 'sex'},
+        {name:'BY FSG (PC)', selected: false, field:'group_id'},
+        {name:'Box', selected: false, field:'box'},
+        {name:'f', selected: false, field:'f'},
+        {name:'di', selected: false, field: 'di'},
+        {name: 'Notes', selected: false, field: 'notes'},
+        {name:'Alleles', selected: false, field: 'genotype'}]
 
     const handleFishUploadedCallback = () => {
         setReloadTable(reloadTable + 1);
+    }
+
+    function handleDataFetched(tableData, params){
+        setAllStr(tableData['size'].toString()+ " fish");
+        setCurrentFilter(params['exact_filters'])
+        setCurrentSearch(params['like_filter'])
     }
 
     function saveNotes(notes, fish){
@@ -89,14 +114,18 @@ export default function ManageFish() {
                                 setAlertLevel={setAlertLevel}
 
                     />
-                <FishDataUpload dataUploadUrl="manage_fish/upload_deaths"
-                                uploadCallback={()=>{}}
-                                formModalTitle="Upload Dead Fish"
-                                uploadButtonText="Upload Deaths"
+                <ExportSelected exportUrl="manage_fish/export_fish"
+                                exportCallback={()=>{}}
+                                formModalTitle="Export Fish"
+                                exportButtonText="Export Fish"
                                 setIsLoading={setIsLoading}
-                                fileNameStartText="File should specify one tag per line"
                                 setAlertText={setAlertText}
                                 setAlertLevel={setAlertLevel}
+                                exportColumns={EXPORT_COLUMNS}
+                                allStr={allStr}
+                                fileName={'fish.csv'}
+                                filter={currentFilter}
+                                search={currentSearch}
                 />
                 </Row>
                 <Row>
@@ -106,6 +135,7 @@ export default function ManageFish() {
                                 getExpandedRow={getExpandedRow}
                                 filter={ManageFishFilter}
                                 LIMIT={500}
+                                dataFetchCallback={handleDataFetched}
                     />
                 </Row>
             </Container>

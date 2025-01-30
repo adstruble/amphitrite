@@ -23,7 +23,7 @@ body{
 .amphi-table-container {
     flex-direction: column;
     display: flex;
-    height: 100vh;
+    height: 93vh;
     width: 100%;
 }
 .cross-fish .amphi-table-container{
@@ -173,6 +173,10 @@ div.row.input-area {
 .amphi-table-contents > table {
     overflow-x: hidden;
 }
+.amphi-table-contents > table > tbody >tr > td {
+    padding-right: 5px;
+    padding-left: 10px;
+}
 .inner-amphi-table h6{
     padding-left: 40px;
     padding-right: 40px;
@@ -183,7 +187,8 @@ div.row.input-area {
     font-size: 14px;
 }
 .table-row.tr-header th{
-    padding-left:2px;
+    padding-left:7px;
+    padding-right:0;
 }
 .table-row.tr-header {
     background-color: #2b3858!important;
@@ -192,7 +197,12 @@ div.row.input-area {
     border-radius:.2143rem 0 0 0 ;
 }
 .table-row.tr-header th:last-child{
-    border-radius: 0 .2143rem 0 0 ;
+    border-radius: 0 .2143rem 0 0
+}
+
+.amphi-table-inner.scrolling > div.amphi-table-header > table{
+    background-color: rgb(43, 56, 88);
+    padding-right: 10px;
 }
 .table-row{
     background-color: rgba(0, 0, 0, 0) !important; /* Need important to override react-table css class on same element */
@@ -242,14 +252,13 @@ td.table-bottom{
 }
 td.centerCell:last-child div{
     position: relative;
-   /* inset: 0 10px 0; We only want this if table has scrollbar */
 }
+
 label.amphi-cell{
     margin-bottom: 0;
 }
 i.amphi-cell:has(+ span){
     float:left;
-    line-height: 1.5;
     padding-right: 5px;
     color: #1d8cf8;
 }
@@ -258,13 +267,18 @@ i.amphi-icon.clickable:hover{
     color: #0772db;
     cursor: pointer;
 }
+i.icon.amphi-cell{
+    font-size: 21px;
+}
+i.icon.amphi-cell.icon-hide{
+    line-height: 23px; /* this is to account for eyeball not being a vertically centered image*/
+}
 i.amphi-icon.clickable{
     color: #1d8cf8;
     opacity: initial;
 }
 div:has(> i.amphi-cell:only-child){
     margin-left:-5px;
-    color: var(--red);
 }
 .cross-fish .table > thead > tr > th {
     padding-bottom: 3px;
@@ -338,6 +352,12 @@ ul.pagination .item-count{
 }
 .modal-content .modal-footer button{
     padding: 8px 20px
+}
+.modal-body .row{
+    margin:0;
+}
+.modal-body.export > div:first-child{
+    margin-bottom: 10px;
 }
 .form-group.setting{
     padding: 0;

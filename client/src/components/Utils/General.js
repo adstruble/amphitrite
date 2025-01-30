@@ -1,4 +1,3 @@
-import {number} from "prop-types";
 
 export const range = (start, end) => {
     let a = Array.from(
@@ -16,3 +15,6 @@ export function onKeyupWithDelay(fn, ms) {
         timer = setTimeout(fn.bind(this, ...args), ms || 0)
     }
 }
+
+export const ConditionalWrapper = ({ condition, wrapper, children }) =>
+    condition ? wrapper(children) : children;

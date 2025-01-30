@@ -2,7 +2,7 @@ import inspect
 import threading
 import uuid
 from enum import Enum
-from multiprocessing.managers import BaseManager, BaseProxy, NamespaceProxy
+from multiprocessing.managers import BaseManager, NamespaceProxy
 from typing import Dict
 
 from amphi_logging.logger import get_logger
@@ -36,13 +36,15 @@ server_jobs_pinged: Dict[uuid.UUID, bool] = dict()
 
 
 def clean_jobs():
+    logger.info("Clean jobs outer")
     get_client_manager().clean_jobs()
 
 
 def clean_jobs_internal():
     global server_jobs
     global server_jobs_pinged
-    global job_cleaner_timer
+    logger.info("Server jobs pinged: " + str(server_jobs_pinged))
+
     to_remove = []
     for job_id in server_jobs:
         if job_id not in server_jobs_pinged:
@@ -50,13 +52,10 @@ def clean_jobs_internal():
             to_remove.append(job_id)
     for remove_id in to_remove:
         server_jobs.pop(remove_id)
+    logger.info("Reset server jobs pinged")
     server_jobs_pinged = dict()
     job_cleaner_timer = threading.Timer(300, clean_jobs)
     job_cleaner_timer.start()
-
-
-job_cleaner_timer: threading.Timer = threading.Timer(300, clean_jobs)
-job_cleaner_timer.start()
 
 
 def add_server_job(job_id):
@@ -71,6 +70,7 @@ def add_server_job_internal(job_id):
     server_jobs_pinged[job_id] = True
     server_jobs[job_id] = ServerJob()
     logger.info("Added job internal:" + job_id + " " + str(server_jobs))
+    logger.info("Server jobs pinged: " + str(server_jobs_pinged))
 
 
 def check_job(job_id) -> (JobState, [str, dict]):
@@ -87,7 +87,8 @@ def check_job_internal(job_id):
     """
     global server_jobs
     global server_jobs_pinged
-    logger.info("checking job internal:" + job_id + " " + str(server_jobs))
+    logger.info("checking job internal:" + job_id + " " + str(server_jobs) + " " + str(server_jobs_pinged))
+
     job = server_jobs.get(job_id)
     if job is None:
         job = ServerJob(JobState.NotFound.name)

@@ -99,3 +99,11 @@ Generated using nucleoapp.com
   content: "\ea04";
   font-family: "amphi", serif;
 }
+.icon-fish::before {
+  content: "\ea05";
+  font-family: "amphi", serif;
+}
+.icon-fish-bone::before {
+  content: "\ea06";
+  font-family: "amphi", serif;
+}
