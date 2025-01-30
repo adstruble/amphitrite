@@ -44,7 +44,10 @@ export default function ManageUsers(){
             });
     }
 
-    function handleDisabledChecked(evt, user){
+    function handleDisabledChecked(evt, user,getName ){
+        if (getName){
+            return "handleDisabledChecked";
+        }
         fetchData('users/disable_user', getUsername(),
             {'username': user['username'], 'enable':!evt.target.checked}, () => {
                 setAlertLevel("success");
