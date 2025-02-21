@@ -59,8 +59,8 @@ def import_master_data(dir_name, username, job_id, year):
                 try:
                     sibling_birth_year, refuge_tag, group_id = maybe_correct_for_2_year_olds(year - 1, refuge_tag, csv_fam_id)
                 except:
-                    LOGGER.info(f"preinfo: {year}  -- {pr} -- {csv_fam_id}")
-                    LOGGER.info(f"info: {sibling_birth_year}  -- {refuge_tag} -- {group_id}")
+                    LOGGER.info(f"preinfo: {year}  -- {pr} -- {csv_fam_id} {e}")
+                    LOGGER.info(f"info: {sibling_birth_year}  -- {refuge_tag} -- {group_id} {e}")
                     # Don't include this fish as data integrity is in question
                     continue
                 if len(refuge_tag) > 6:
@@ -155,7 +155,7 @@ def import_master_data(dir_name, username, job_id, year):
                   JOIN animal_insert a_i ON a_i.genotype = a.genotype
                  WHERE rt_i.animal = a_i.id""")
             refuge_tag_data.set_insert_condition(""" WHERE animal = ANY (SELECT id from animal) ON CONFLICT (animal) DO UPDATE
-              SET (tag,year) = (EXCLUDED.tag, EXCLUDED.year)
+              SET (tag, year) = (EXCLUDED.tag, EXCLUDED.year)
             WHERE refuge_tag.animal = EXCLUDED.animal AND (refuge_tag.tag != EXCLUDED.tag)""")
 
             notes_data = InsertTableData('animal_note', notes)
@@ -166,7 +166,8 @@ def import_master_data(dir_name, username, job_id, year):
              WHERE n_i.animal = a_i.id""")
             notes_data.set_insert_condition(
                 """WHERE (content) NOT IN (SELECT content FROM animal_note n where animal_note_insert.animal = n.animal) 
-                AND animal = ANY(SELECT id FROM animal)""")
+                AND animal = ANY(SELECT id FROM animal) ON CONFLICT (animal) DO UPDATE SET content = EXCLUDED.content
+                WHERE animal_note.animal = EXCLUDED.animal""")
             table_data = [animal_table_data,
                           refuge_tag_data,
                           gene_table_data,
