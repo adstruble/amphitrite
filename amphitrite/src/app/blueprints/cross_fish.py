@@ -138,7 +138,7 @@ def remove_completed_cross():
 
 @cross_fish.route('/cross_fish/set_available_females_from_file', methods=(['POST']))
 def set_available_females_from_file():
-    LOGGER.info("Setting available females from file")
+    LOGGER.info("Setting available fish from file")
     username_or_err = maybe_get_username(request.headers, "bulk upload")
     if isinstance (username_or_err, dict): # noqa
         return username_or_err

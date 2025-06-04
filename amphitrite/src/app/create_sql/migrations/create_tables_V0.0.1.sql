@@ -496,5 +496,14 @@ CREATE TABLE version
     patch int NOT NULL
 );
 
+CREATE TABLE available_animal
+(
+    animal uuid REFERENCES animal (id) DEFERRABLE NOT NULL,
+    primary key (id)
+) INHERITS (element);
+CREATE INDEX f_available_animals_animal_idx ON available_animal (animal);
+CREATE OR REPLACE TRIGGER element_pre_insert_t BEFORE INSERT ON available_animal FOR EACH ROW EXECUTE PROCEDURE element_pre_insert();
+CREATE OR REPLACE TRIGGER element_pre_update_t BEFORE UPDATE ON available_animal FOR EACH ROW EXECUTE PROCEDURE element_pre_update();
+
 INSERT INTO version (major, minor, patch)
 VALUES (0, 0, 1);

@@ -18,7 +18,7 @@ def clear_requested_crosses(username):
                        username, ResultType.NoResult)
 
 
-def get_new_possible_crosses_for_females(username, f_tags):
+def get_new_possible_crosses_for_fish(username, fish_tags):
     clear_requested_crosses(username)
 
     new_possible_crosses_sql = """SELECT * FROM (
@@ -27,25 +27,26 @@ def get_new_possible_crosses_for_females(username, f_tags):
             x.id female,
             (xf.di + yf.di) / 2 + 1 di
     FROM refuge_tag rtx
+            JOIN refuge_tag rty ON rty.tag = ANY(:fish_tags)
             JOIN animal as x on x.id = rtx.animal
-            JOIN animal as y ON TRUE
+            JOIN animal as y ON y.id = rty.animal
             JOIN family as xf ON x.family = xf.id
             JOIN family as yf ON y.family = yf.id
                              AND yf.id NOT IN (SELECT family FROM animal
                                                              JOIN refuge_tag ON animal.id = refuge_tag.animal
-                                                                            AND tag = ANY(:f_tags)
+                                                                            AND animal.sex = 'F'
+                                                                            AND tag = ANY(:fish_tags)
                                                                             AND year = date_part('year', CURRENT_DATE))
-            JOIN refuge_tag rty ON rty.animal = y.id
        LEFT JOIN possible_cross pc ON pc.female = rtx.animal
        --LEFT JOIN family next_gen_fam ON next_gen_fam.parent_1 = ANY(SELECT id FROM animal WHERE family = xf.id) 
        --                             AND next_gen_fam.parent_2 = ANY(SELECT id FROM animal WHERE family = yf.id)
       -- LEFT JOIN family next_gen_fam2 ON next_gen_fam2.parent_2 = ANY(SELECT id FROM animal WHERE family = xf.id) 
       --                              AND  next_gen_fam2.parent_1 = ANY(SELECT id FROM animal WHERE family = yf.id)
-           WHERE x.sex = 'F' AND y.sex = 'M' AND x.alive AND y.alive AND pc.id is NULL AND rtx.tag = ANY (:f_tags)
+           WHERE x.sex = 'F' AND y.sex = 'M' AND x.alive AND y.alive AND pc.id is NULL AND rtx.tag = ANY (:fish_tags)
            AND rtx.year = date_part('year', CURRENT_DATE)
 
     GROUP BY rtx.id, x.id, yf.id, xf.id)q"""
-    return execute_statements([(new_possible_crosses_sql, {'f_tags': list(f_tags)})],
+    return execute_statements([(new_possible_crosses_sql, {'fish_tags': list(fish_tags)})],
                               username).get_as_list_of_dicts()
 
 
@@ -136,12 +137,12 @@ def get_possible_crosses(username, query_params):
                              SELECT parent_m FROM requested_cross rc_completed WHERE rc_completed.parent_m is not null AND NOT rc_completed.supplementation
                              )
                          OR requested_cross.parent_m = y.id)
+                         AND y.id IN (SELECT animal from available_animal)
 
                     JOIN family as yf on yf.id = pc.male
                     JOIN refuge_tag rtx ON rtx.animal = x.id
 
                 LEFT JOIN refuge_tag rty ON rty.animal = y.id
-
                          AND NOT rty.animal = ANY( SELECT parent_m FROM requested_cross rc_completed
                         WHERE rc_completed.parent_m is not null AND (NOT rc_completed.supplementation or requested_cross.supplementation)
                             AND NOT (rc_completed.parent_m = requested_cross.parent_m and rc_completed.id = requested_cross.id))
@@ -381,30 +382,31 @@ def insert_possible_crosses(username: str, possible_crosses: list):
             return num_inserts
 
 
-def cleanup_previous_available_females(username: str, female_tags: set):
+def cleanup_previous_available_fish(username: str, female_tags: set):
     """
-    Deletes previous females used for determining possible crosses if they are no longer in the given
-    female_tags list.
-    Deletes requested crosses that haven't been completed and the females are no longer available
+    Deletes previous fish used for determining possible crosses.
+    Deletes requested crosses that haven't been completed
+    Deletes all from available_animal
     :param username: User responsible for removal of old possible female
     :param female_tags: Refuge tags of females to use to determine possible crosses
     :return:
     """
-    delete_pcs = ('''DELETE FROM possible_cross pc USING refuge_tag rt 
-                                                 JOIN animal x on x.id =rt.animal
-                                                 JOIN family xf on xf.id = x.family
-                                                 JOIN family yf on yf.group_id = xf.group_id
-     WHERE not (tag = ANY(:f_tags)) AND female = animal
-                  OR yf.id = pc.male''',
-                  {"f_tags": list(female_tags)})
+    delete_pcs = ('DELETE FROM possible_cross pc', {})
 
-    delete_req_crosses = ('''DELETE FROM requested_cross rc USING refuge_tag rt
-                                                             JOIN animal x on x.id = rt.animal
-                                                             JOIN family xf on xf.id = x.family
-                                WHERE NOT (tag = ANY(:f_tags) AND rc.parent_f_fam = xf.id) 
-                                  AND NOT (rc.cross_date IS NOT NULL)''',
-                          {"f_tags": list(female_tags)}) # noqa
-    execute_statements([delete_pcs, delete_req_crosses], username, ResultType.NoResult)
+    delete_available_animals = ('DELETE FROM available_animal', {})
+
+    delete_req_crosses = ('DELETE FROM requested_cross rc WHERE rc.cross_date IS NULL',
+                          {"f_tags": list(female_tags   )}) # noqa
+    execute_statements([delete_pcs, delete_available_animals, delete_req_crosses],
+                       username, ResultType.NoResult)
+
+
+def insert_new_available(username, f_tags):
+    insert_sql = ("INSERT INTO available_animal (id, animal) "
+                  "SELECT gen_random_uuid() as id, animal "
+                  "  FROM refuge_tag "
+                  " WHERE tag = ANY(:fish_tags) AND year = date_part('year', CURRENT_DATE)")
+    execute_statements((insert_sql, {'fish_tags': list(f_tags)}), username, ResultType.NoResult)
 
 
 def get_available_female_tags_str(username):
@@ -545,7 +547,7 @@ def set_available_females(username:str, females: list):
             f_tags_len = len(females)
             return_val['warning'] = \
                 f"{'' if possible_females_cnt == 0 else 'Only '}{possible_females_cnt} female fish are available for " \
-                f"crossing, however you supplied a list of {f_tags_len} female tag{'' if f_tags_len == 1 else 's'}. " \
+                f"crossing, you supplied a list of {f_tags_len} fish tag{'' if f_tags_len == 1 else 's'}. " \
                 "Confirm all tags were specified correctly and all the fish for the entered tags have previously " \
                 "been uploaded and are present in the Manage Fish UI. "
             if possible_females_cnt == 0:
@@ -560,9 +562,10 @@ def set_available_females(username:str, females: list):
 
 
 def determine_and_insert_possible_crosses(username_or_err, cleaned_f_tags):
-    cleanup_previous_available_females(username_or_err, cleaned_f_tags)
+    cleanup_previous_available_fish(username_or_err, cleaned_f_tags)
+    insert_new_available(username_or_err, cleaned_f_tags)
 
-    possible_crosses = get_new_possible_crosses_for_females(username_or_err, cleaned_f_tags)
+    possible_crosses = get_new_possible_crosses_for_fish(username_or_err, cleaned_f_tags)
 
     if len(possible_crosses):
         f_matrix = build_matrix_from_existing(username_or_err)

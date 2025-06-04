@@ -167,9 +167,9 @@ def prepare_copy_table_for_bulk_insert(table: InsertTableData, cursor, custom_al
     # df.to_csv(buffer, index=False, header=False, sep=",", quoting=csv.QUOTE_MINIMAL, na_rep="\\N")
     buffer.seek(0)
 
-    cursor.execute(f"CREATE TABLE IF NOT EXISTS {table.name}_insert"
+    cursor.execute(f"DROP TABLE IF EXISTS {table.name}_insert")
+    cursor.execute(f"CREATE TABLE {table.name}_insert"
                    f" (LIKE {table.name} INCLUDING DEFAULTS EXCLUDING INDEXES)")
-    cursor.execute(f"TRUNCATE TABLE {table.name}_insert")
     for alter_statement in custom_alters:
         cursor.execute(alter_statement)
     cursor.execute(f"SELECT drop_null_constraints('{table.name}_insert')")

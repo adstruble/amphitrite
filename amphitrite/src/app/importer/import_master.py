@@ -30,7 +30,8 @@ def import_master_data(dir_name, username, job_id, year):
     animals = []
     genes = []
     notes = []
-
+    genotypes = {}
+    genotype_dupes = {}
     try:
         header = ""
         with open(os.path.join(dir_name, f'bulk_upload_{job_id}'), mode='r', encoding='utf-8-sig') as master_data:
@@ -100,6 +101,14 @@ def import_master_data(dir_name, username, job_id, year):
                                   "group_id_temp": group_id})
                     genotype_string = f'{genotype_string}{line[col]}{line[col+1]}'
 
+                if genotype_string in genotypes:
+                    genotype_dupes[genotype_string] = True
+                    genotypes[genotype_string].append((line[MasterDataCols.Id.value],line[MasterDataCols.Family_Id.value],
+                                                       line[MasterDataCols.Box.value]))
+                else:
+                    genotypes[genotype_string] = [(line[MasterDataCols.Id.value],line[MasterDataCols.Family_Id.value],
+                                                   line[MasterDataCols.Box.value])]
+
                 try:
                     box = int(line[MasterDataCols.Box.value])
                 except Exception: # noqa:
@@ -123,6 +132,18 @@ def import_master_data(dir_name, username, job_id, year):
                             "sibling_birth_year_temp": sibling_birth_year.year,
                             "group_id_temp": group_id,}
                     notes.append(note)
+
+            if genotype_dupes:
+                error = "Duplicate genotypes:"
+                for genotype in genotype_dupes:
+                    dupes = []
+                    for idx, (tag, family, box) in enumerate(genotypes[genotype]):
+                        dupes.append(f"[Tag:{tag} Family:{family} Box:{box}]")
+
+                    error += f"\n{f', '.join(dupes)} have same genotype: {genotype}"
+                LOGGER.error(error)
+                complete_job(job_id, JobState.Failed.name, {"error": str(error)})
+                return
 
             animal_table_data = InsertTableData('animal', animals)
             animal_table_data.add_temp_table_update("""UPDATE animal_insert a_i SET (family) = (

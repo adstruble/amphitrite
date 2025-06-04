@@ -78,10 +78,13 @@ def on_starting(server: Arbiter) -> None:
     for f in sorted(os.listdir(create_sql_dir)):
         try:
             migration_version = create_sql_utils.get_version_from_migration_filename(f)
-            if migration_version['major'] <= version['major']:  # noqa
-                if migration_version['minor'] <= version['minor']:
-                    if migration_version['patch'] <= version['patch']:
-                        continue
+            if migration_version['major'] < version['major']:
+                continue
+            if migration_version['major'] == version['major'] and migration_version['minor'] < version['minor']:
+                continue
+            if (migration_version['major'] == version['major'] and migration_version['minor'] == version['minor']
+                    and migration_version['patch'] <= version['patch']):
+                continue
             apply_sql_migration(os.path.join(create_sql_dir, f))
             logger.info(f"Applied sql migration: {migration_version}")
             version = migration_version

@@ -61,6 +61,7 @@ def import_crosses(crosses_file, username, job_id, year=datetime.datetime.now().
 
             families = []
             requested_crosses = []
+            requested_crosses_fams = {}
             for line_num, line in enumerate(csv.reader(rec_crosses)):
                 date_str = ""
                 try:
@@ -103,6 +104,8 @@ def import_crosses(crosses_file, username, job_id, year=datetime.datetime.now().
                                      'mfg': '\\N' if not line[RecCrossesDataCols.MFG] else line[RecCrossesDataCols.MFG],
                                      'f': f,
                                      'di': di})
+                    duplicate = requested_crosses_fams.get(str(parent_1['family']) + str(parent_2['family']), False)
+                    requested_crosses_fams[str(parent_1['family']) + str(parent_2['family'])] = True
                     requested_crosses.append({
                         'id': str(uuid.uuid4()),
                         'parent_f': parent_1['animal'],
@@ -110,7 +113,8 @@ def import_crosses(crosses_file, username, job_id, year=datetime.datetime.now().
                         'parent_f_fam': parent_1['family'],
                         'parent_m_fam': parent_2['family'],
                         'cross_date': cross_date,
-                        'f': f
+                        'f': f,
+                        'known_duplicate': duplicate
                     })
                 except Exception as e: # noqa
                     LOGGER.exception(f'Error processing date: "{date_str}" '
@@ -125,7 +129,7 @@ def import_crosses(crosses_file, username, job_id, year=datetime.datetime.now().
                 LOGGER.info(f"{family_inserts} crosses from {cross_date.year} inserted.")
                 rc_inserts, rc_updates = insert_table_data(
                     'requested_cross', requested_crosses, cursor,
-                    'ON CONFLICT (parent_f_fam, parent_m_fam, supplementation) DO UPDATE SET '
+                    'ON CONFLICT (parent_f_fam, parent_m_fam, supplementation, known_duplicate) DO UPDATE SET '
                     '(cross_date, parent_f, parent_m) = (EXCLUDED.cross_date, EXCLUDED.parent_f, EXCLUDED.parent_m)')
                 LOGGER.info(f"{rc_inserts} requested_crosses from {cross_date.year} inserted.")
                 complete_job(job_id, JobState.Complete.name, {"success": {'inserts': {'Family': family_inserts,

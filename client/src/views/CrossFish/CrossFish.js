@@ -357,8 +357,8 @@ export default function CrossFish() {
                         <i className="tim-icons icon-simple-remove text-white"/>
                     </button>
                     <div className="text-muted text-center ml-auto mr-auto">
-                        <h3 className="mb-0">Set Available Females</h3>
-                        <h5 className="mb-0">Only crosses for available females will be recommended</h5>
+                        <h3 className="mb-0">Set Available Fish</h3>
+                        <h5 className="mb-0">Only crosses for available fish will be recommended</h5>
                     </div>
                 </div>
                 <div className="modal-body">
@@ -388,12 +388,12 @@ export default function CrossFish() {
                         <TabPane tabId="tab1">
                             <Input className="" type="file" name="file" id="file_input" onChange={handleFileChange}/>
                             <label htmlFor="file_input">Choose File</label>
-                            <span>File should specify one female tag per line</span>
+                            <span>File should specify one fish tag per line</span>
                             <div style={{minHeight:"26.6px"}}>{availableFemalesFileName}</div>
                         </TabPane>
                         <TabPane tabId="tab2">
                             <div>
-                                <span>Provide available female tags as a comma separated list</span>
+                                <span>Provide available fish tags as a comma separated list</span>
                             </div>
                             <div>
                                 <Input type="textarea" className="form-control" id="selectFemalesFormArea" rows="3"/>
@@ -421,7 +421,7 @@ export default function CrossFish() {
                             <Col>
                                 <span style={{marginRight:"20px"}}>{availableFTags}</span>
                                 <Button  className="btn setting" color="default" type="button"
-                                        onClick={handleSetAvailableFemalesClick}>Set Available Females</Button>
+                                        onClick={handleSetAvailableFemalesClick}>Set Available Fish</Button>
                             </Col>
                         </Row>
                         <Row>

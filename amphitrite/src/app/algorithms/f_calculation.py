@@ -163,7 +163,7 @@ class FMatrix:
             if row.get_animal() == parent_1:
                 parents_val = row.get_row_val(parent_2)
                 return parents_val/2
-            elif row.get_animal == parent_2:
+            elif row.get_animal() == parent_2:
                 parents_val = row.get_row_val(parent_1)
                 return parents_val/2
 
