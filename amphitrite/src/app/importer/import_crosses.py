@@ -25,6 +25,7 @@ class RecCrossesDataCols(object):
     Female_Sibling_Group = 4
     SFG = 7
     MFG = 6
+    SUPPLEMENTATION = 8
 
 
 def import_crosses(crosses_file, username, job_id, year=datetime.datetime.now().year):

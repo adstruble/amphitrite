@@ -2,6 +2,9 @@ body{
     overflow-y:hidden;
     color: hsla(0, 0%, 100%, .6);
 }
+.danger{
+    color: #fd5d93;
+}
 .navbar-nav{
     align-items: center;
 }
