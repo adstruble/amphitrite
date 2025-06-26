@@ -30,12 +30,14 @@ def maybe_authenticate_user(username, p):
     if not (username and p):
         return None
     else:
-        if execute_statements(('''SELECT enabled FROM amphi_user 
-                             WHERE username = :u
-                               AND password = :p''', {'u': username, 'p': p}),
+        try:
+            if execute_statements(('''SELECT enabled FROM amphi_user 
+                                 WHERE username = :u
+                                   AND password = :p''', {'u': username, 'p': p}),
                                   username=username).get_single_result():
-            return username
-    return None
+                return username
+        except: # noqa
+            return None
 
 
 def save_users_password(username, params: dict):

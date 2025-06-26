@@ -14,16 +14,17 @@ logger = get_logger('login')
 
 @login.route('/login', methods=(['POST']))
 def start_session():
-    data ={'username':'amphiadmin','password':'amphiadmin'}# request.get_json()
+    data = request.get_json()
     username = data['username']
     password = data['password']
 
     logger.info(f"Logging in user {username}")
     user_id = maybe_authenticate_user(username, password)
-    logger.info(f"logged in {user_id}")
     if not user_id:
-        logger.warning("Authentication failed returning empty token")
+        logger.warning("Authentication failed or user is disabled returning empty token")
         return {}
+
+    logger.info(f"Logged in {user_id}")
 
     token = encode_auth_token(user_id, current_app.config.get('SECRET_KEY'))
     logger.info(f"Authentication succeeded")

@@ -35,6 +35,7 @@ export default function Login({setToken}) {
     const [passwordFocus, setPasswordFocus] = useState(false);
     const [squares7and8, setSquares7and8] = React.useState("");
     const [passwordInputType, setPasswordInputType] = React.useState("password");
+    const [showError, setShowError] = useState(false);
 
     const handleBreedClick = async e => {
         e.preventDefault();
@@ -42,6 +43,9 @@ export default function Login({setToken}) {
             username,
             password
         });
+        if (!('token' in token)){
+            setShowError(true);
+        }
         setToken(token);
     }
 
@@ -122,6 +126,7 @@ export default function Login({setToken}) {
                                                 </div>
                                             </InputGroup>
                                         </Form>
+                                        {showError && <div className="danger">Failed to authenticate.</div>}
                                     </CardBody>
                                     <CardFooter>
                                         <Button className="btn-round" color="primary" size="lg" onClick={handleBreedClick}>
