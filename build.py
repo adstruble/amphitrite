@@ -43,21 +43,19 @@ def _build_component(component, forcerm: bool):
     client = docker.from_env()
     version = _get_version_tag()
     dockerfile_path = os.path.join(os.path.dirname(__file__), config['home_dir'])
-    print(dockerfile_path)
+
     try:
         client.images.build(path=dockerfile_path, tag=f"amphitrite/{component}:{version}", rm=True, forcerm=forcerm)
     except BuildError as e:
-        print("Error during build:" + str(e))
         build_log = ""
         for log in e.build_log:
             build_log += log.get('stream', '')
         print(build_log)
 
 
-
 def _get_version_tag():
     with open('VERSION', 'r') as version_file:
-        return version_file.read()
+        return version_file.read().rstrip('\r\n')
 
 
 if __name__ == '__main__':

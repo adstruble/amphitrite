@@ -20,7 +20,7 @@ services:
   server:
     environment:
       AMPHI_JWT_SECRET_KEY: ${AMPHI_JWT_SECRET_KEY-}
-    image: amphitrite/server:0.0.1
+    image: amphitrite/server:0.1.0
     networks:
       web_app:
         aliases:
@@ -31,7 +31,7 @@ services:
   client:
     environment:
       AMPHI_JWT_SECRET_KEY: ${AMPHI_JWT_SECRET_KEY-}
-    image: amphitrite/client:0.0.1
+    image: amphitrite/client:0.1.0
     networks:
       web_app:
         aliases:
@@ -39,7 +39,7 @@ services:
     ports:
       - "80:80"
   datastore:
-    image: amphitrite/datastore:0.0.1
+    image: amphitrite/datastore:0.1.0
     networks:
       datastore:
         aliases:

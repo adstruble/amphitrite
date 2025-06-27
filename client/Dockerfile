@@ -1,4 +1,4 @@
-FROM node:18.9.0 as build-stage
+FROM node:24.0.0 as build-stage
 
 ENV PATH /app/node_modules/.bin:$PATH
 
