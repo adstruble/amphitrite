@@ -97,7 +97,7 @@ export const formatDoubleTo3 = (dbl) =>{
 }
 
 const formatDoubleToN = (dbl, n) =>{
-    if (dbl == 0){
+    if (dbl === 0){
         return dbl;
     }
     let multipliers = 0;

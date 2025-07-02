@@ -1,4 +1,4 @@
-import {Col, Container, Row} from "reactstrap";
+import {Container, Row} from "reactstrap";
 
 import FishDataUpload from "../../components/Upload/FishDataUpload";
 import React, {useState} from "react";
@@ -95,7 +95,7 @@ export default function ManageFish() {
         }else{
             setSpinning(false);
         }
-    }, [isLoading]);
+    }, [isLoading, setSpinning]);
 
     return (
 

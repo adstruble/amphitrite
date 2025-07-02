@@ -1,9 +1,7 @@
 import React, {useState} from "react";
 import PropTypes from "prop-types";
-import FishDataUpload from "../Upload/FishDataUpload";
 import {Button, Col, FormGroup, Input, Label, Modal, Row} from "reactstrap";
 import RadioGroup from "../Basic/RadioGroup";
-import {setSelectionRange} from "@testing-library/user-event/dist/utils";
 import classNames from "classnames";
 import fetchFile from "../../server/fetchFile";
 import useToken from "../App/useToken";
@@ -19,7 +17,6 @@ export default function ExportSelected({exportUrl, exportButtonText,
 ) {
     const {getUsername} = useToken();
     const [formModal, setFormModal] = useState(false);
-    const [exportDisabled, setExportDisabled] = useState(false)
     const exportSelectedOnlyLabel = 'Export selected only';
     const [exportSelectedOnly, setExportSelectedOnly] = useState(true);
     const [currentTableSelection, setCurrentTableSelection] = useState(null);
@@ -146,8 +143,7 @@ export default function ExportSelected({exportUrl, exportButtonText,
                 <Button color="default" className="btn" type="button"
                         onClick={cancelCallback}>Cancel</Button>
 
-                <Button color="success" type="button" onClick={handleModalExportClick}
-                        disabled={exportDisabled}>Export</Button>
+                <Button color="success" type="button" onClick={handleModalExportClick}>Export</Button>
             </div>
         </Modal>
         </>

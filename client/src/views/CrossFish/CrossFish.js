@@ -1,6 +1,6 @@
 import {Button, Container, FormGroup, Input, Row, Col, NavLink, NavItem, Nav, TabContent, TabPane} from "reactstrap";
 import {Modal} from "reactstrap";
-import React, {useState} from "react";
+import React, {useRef, useState} from "react";
 import AmphiTable from "../../components/Table/AmphiTable";
 import {
     formatStr,
@@ -21,6 +21,8 @@ import {CrossFishFilter} from "./CrossFishFilter";
 
 export default function CrossFish() {
     const {getUsername} = useToken();
+    const getUsernameRef = useRef(getUsername);
+    getUsernameRef.current = getUsername;
     const [reloadTable, setReloadTable] = useState(0);
     const [selectFishOpen, setSelectFishOpen] = useState(false);
     const [possibleFishColumn, setPossibleFishColumn] = useState("");
@@ -209,16 +211,14 @@ export default function CrossFish() {
 
     // Set the starting value for userSetFTags and availableFTags on page load.
     React.useEffect(() => {
-        if (availableFTags === "None") {
-            fetchData("cross_fish/get_available_f_tags", getUsername(),
-                {}, (success) => {
-                    let availableFemales = success['f_tags'].length > 0 ? success['f_tags'] : "None"
-                    setAvailableFTags(availableFemales);
-                    setUserSetFTags(availableFemales.replaceAll("(","").replaceAll(")",""));
-                    setUncrossedFTags(success['uncrossed_tags']);
-                }, null, null, setAlertLevel, setAlertText);
-        }
-    }, [getUsername]);
+        fetchData("cross_fish/get_available_f_tags", getUsernameRef.current(),
+            {}, (success) => {
+                let availableFemales = success['f_tags'].length > 0 ? success['f_tags'] : "None"
+                setAvailableFTags(availableFemales);
+                setUserSetFTags(availableFemales.replaceAll("(","").replaceAll(")",""));
+                setUncrossedFTags(success['uncrossed_tags']);
+            }, null, null, setAlertLevel, setAlertText);
+    }, []);
 
 
     React.useEffect(() =>{
@@ -227,7 +227,7 @@ export default function CrossFish() {
         }else{
             setSpinning(false);
         }
-    }, [isLoading]);
+    }, [isLoading, setSpinning]);
 
     const selectFemales = () => {
         // Tab 1 is file upload

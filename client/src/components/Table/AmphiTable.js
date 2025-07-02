@@ -8,13 +8,13 @@ import {
     Row as ReactTableRow,
     useCustom
 } from '@table-library/react-table-library/table';
-import React, {Fragment, useState} from "react";
+import React, {Fragment, useRef, useState} from "react";
 
 import fetchData from "../../server/fetchData";
 import useToken from "../App/useToken";
 import {useTheme} from "@table-library/react-table-library/theme";
 import {getTheme} from "@table-library/react-table-library/baseline";
-import PropTypes, {func} from "prop-types";
+import PropTypes from "prop-types";
 import {Button, Input, InputGroup, InputGroupText, Row, UncontrolledTooltip} from "reactstrap";
 import AmphiHeaderCell from "./AmphiHeaderCell";
 import classnames from "classnames";
@@ -37,6 +37,8 @@ export default function AmphiTable({tableDataUrl,
                                    LIMIT=50,
                                    dataFetchCallback=null}){
     const {getUsername} = useToken();
+    const getUsernameRef = useRef(getUsername);
+    getUsernameRef.current = getUsername;
     const [headerCols, setHeaderCols] = useState(headerDataStart.cols);
     const [headerRows, setHeaderRows] = useState(headerDataStart.rows);
     const [searchFocus, setSearchFocus] = useState(false);
@@ -121,17 +123,17 @@ export default function AmphiTable({tableDataUrl,
         setCurrPage(0)
     }
 
-    const determineOrderBy = () => {
+    const determineOrderBy = React.useCallback(async () => {
         // Clone the headerData so we don't change the order of the columns in the rendered table,
         // Shouldn't need to do a deep copy because we're not changing data on the headers themselves
         const headerDataClone = headerCols.slice(0);
         const sortedHeaders = (headerDataClone.sort((a, b) => {
-            if (!"order" in a && ! "order" in b) {
+            if (!("order" in a) && !("order" in b)) {
                 return 0;
             }
-            if (!"order" in a){
+            if (!("order" in a)){
                     return 1;
-            }if(!"order" in b){
+            }if(!("order" in b)){
                 return -1;
             }
             if (isNaN(a.order) && isNaN(b.order)){
@@ -154,9 +156,23 @@ export default function AmphiTable({tableDataUrl,
         }, newOrderBy);
 
         return newOrderBy
-    }
+    }, [headerCols]);
 
     const doGetTableData = React.useCallback(async () => {
+        const setTableData = (tableData, params) => {
+            setTableNodes({nodes: tableData['data']});
+            setCheckScroll(c => c + 1);
+            setTableSize(tableData['size']);
+            if (tableData['size'] <= (params.offset + LIMIT)){
+                setCurrElementCnt(tableData['size'])
+            }else{
+                setCurrElementCnt(params.offset + LIMIT)
+            }
+            if(dataFetchCallback){
+                dataFetchCallback(tableData, params);
+            }
+        };
+
         const newOrderBy = determineOrderBy()
         if (filterState ===  null){
             // Don't fetch data until filter state has been set
@@ -171,22 +187,9 @@ export default function AmphiTable({tableDataUrl,
                 exact_filters: filterState,
             }};
 
-        fetchData(tableDataUrl, getUsername(), params, setTableData);
-    }, [fetchData, search, currPage, fetchParams, headerCols, filterState]);
-
-    const setTableData = (tableData, params) => {
-        setTableNodes({nodes: tableData['data']});
-        setCheckScroll(checkScroll + 1);
-        setTableSize(tableData['size']);
-        if (tableData['size'] <= (params.offset + LIMIT)){
-            setCurrElementCnt(tableData['size'])
-        }else{
-            setCurrElementCnt(params.offset + LIMIT)
-        }
-        if(dataFetchCallback){
-            dataFetchCallback(tableData, params);
-        }
-    };
+        fetchData(tableDataUrl, getUsernameRef.current(), params, setTableData);
+    }, [search, currPage, fetchParams, filterState, LIMIT, determineOrderBy, tableDataUrl,
+    dataFetchCallback]);
 
     React.useEffect(() => {
         doGetTableData().then();
@@ -332,7 +335,6 @@ export default function AmphiTable({tableDataUrl,
                                                 }
                                                 return (
                                                     <Cell id={'id' + item.id + header.key}
-                                                          key={item.id + header.key}
                                                           key={item.id + header.key}
                                                           className={header.className && header.className}>
                                                         {header.tooltip && <UncontrolledTooltip

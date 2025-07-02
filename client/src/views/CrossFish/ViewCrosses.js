@@ -5,7 +5,7 @@ import {
     Container, Dropdown,
     DropdownItem,
     DropdownMenu,
-    DropdownToggle, FormGroup,
+    DropdownToggle,
     Row, UncontrolledTooltip
 } from "reactstrap";
 import AmphiAlert from "../../components/Basic/AmphiAlert";
@@ -22,8 +22,6 @@ import useToken from "../../components/App/useToken";
 import {CrossYearDropdown} from "../../components/Basic/CrossYearDropdown";
 import {ViewCrossesFilter} from "./ViewCrossesFilter";
 import FishDataUpload from "../../components/Upload/FishDataUpload";
-import ReactDatetime from "react-datetime";
-import moment from "moment/moment";
 import {useOutletContext} from "react-router-dom";
 
 
@@ -78,8 +76,7 @@ export default function ViewCrosses(){
     const [currentHeaders, setCurrentHeaders] = useState(REFUGE_CROSSES_HEADER);
     const [tableFetchParams, setTableFetchParams] = useState(
         {'year':completedCrossesYear, 'refuge':viewingRefugeCrosses})
-    const {_, __, getUsername} = useToken();
-    const [crossCompletionDate, setCrossCompletionDate] = useState(moment(new Date()).format("MM/DD/YYYY"));
+    const {getUsername} = useToken();
     const [setSpinning] = useOutletContext();
 
 
@@ -91,7 +88,7 @@ export default function ViewCrosses(){
         }else{
             setSpinning(false);
         }
-    }, [isLoading]);
+    }, [isLoading, setSpinning]);
     
     const handleExportCrossesClick = async e => {
         let fileName = 'supplementation_crosses.csv';
@@ -141,7 +138,7 @@ export default function ViewCrosses(){
         }
     }
 
-    const UserOptions = <Row style={{paddingBottom:10}}>
+   /* const UserOptions = <Row style={{paddingBottom:10}}>
             <Col style={{justifyContent:"right",paddingRight:0, maxWidth:"fit-content"}}>
                 <span>Date cross made:</span>
             </Col>
@@ -167,7 +164,7 @@ export default function ViewCrosses(){
                     </FormGroup>
                 </div>
             </Col>
-        </Row>
+        </Row>*/
 
     const uploadBtnText = "Upload Completed Crosses";
     return (
