@@ -140,5 +140,10 @@ dmypy.json
 **/.yarn/cache/
 .pnp.js
 
-# Directories used by runnig application
+# Directories used by running application
 /amphitrite/src/app/exports/
+
+# Generated files
+docker-compose-dev.yaml
+docker-commpose-prod.yaml
+docker-compose-postgres.yaml

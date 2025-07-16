@@ -1,6 +1,3 @@
-import uuid
-from time import sleep
-
 from flask import Blueprint, request
 
 from amphi_logging.logger import get_logger

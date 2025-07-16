@@ -4,7 +4,7 @@ import datetime
 from algorithms.f_calculation import build_matrix_from_existing
 from amphi_logging.logger import get_logger
 from db_utils.core import execute_statements, ResultType
-from db_utils.db_connection import get_connection, DEFAULT_DB_PARAMS, make_connection_kwargs
+from db_utils.db_connection import get_connection, make_connection_kwargs, get_default_database_params
 from db_utils.insert import insert_table_data
 
 LOGGER = get_logger('cross-fish')
@@ -376,7 +376,7 @@ def insert_possible_crosses(username: str, possible_crosses: list):
     :return: Number of available females inserted
 
 """
-    with get_connection(**make_connection_kwargs(DEFAULT_DB_PARAMS, username=username)) as conn:
+    with get_connection(**make_connection_kwargs(get_default_database_params(), username=username)) as conn:
         with conn.connection.cursor() as cursor:
             num_inserts, _ = insert_table_data('possible_cross', possible_crosses, cursor)
             return num_inserts

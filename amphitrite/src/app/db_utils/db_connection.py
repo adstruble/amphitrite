@@ -1,3 +1,4 @@
+import os
 from contextlib import contextmanager
 
 import sqlalchemy
@@ -6,12 +7,9 @@ from sqlalchemy.engine import Connection
 
 from amphi_logging.logger import get_logger
 
-DEFAULT_DB_PARAMS = {"host": "datastore.datastore",
-                     "database": "amphitrite",
-                     'user': 'amphiuser',
-                     'password': 'amphiuser'}
+DEFAULT_POSTGRES_SERVER_HOSTNAME = "datastore.datastore"
+POSTGRES_SERVER_HOSTNAME_ENV = "POSTGRES_SERVER_HOSTNAME"
 
-AMPHIADMIN_DB_PARAMS = DEFAULT_DB_PARAMS | {'user': 'amphiadmin', 'password': 'amphiadmin'}
 SET_SESSION_TEMPLATE: str = "SET SESSION %s = '%s';"
 
 LOGGER = get_logger('db_utils')
@@ -61,7 +59,7 @@ def get_connection(**kwargs) -> Connection:
             LOGGER.info("yield 3")
             return
     except Exception as e:
-        LOGGER.info("Got an e: " +str(e))
+        LOGGER.info("Got an e: " + str(e))
         raise e
     if abort:
         yield 3
@@ -86,8 +84,23 @@ def _setup_transaction(conn, username):
     conn.exec_driver_sql(f"SELECT session_add_user('{username}')")
 
 
+def get_default_database_params() -> dict:
+    return {"host": get_postgres_hostname(),
+            "database": "amphitrite",
+            'user': 'amphiuser',
+            'password': 'amphiuser'}
+
+
+def get_amphiadmin_db_params() -> dict:
+    return get_default_database_params() | {'user': 'amphiadmin', 'password': 'amphiadmin'}
+
+
 def get_engine_user_postgres() -> Engine:
     return _PGConnections().get_engine({'database': 'postgres',
                                         'user': 'postgres',
-                                        'host': 'datastore.datastore',
+                                        'host': get_postgres_hostname(),
                                         'password': 'postgres'})
+
+
+def get_postgres_hostname():
+    return os.getenv(POSTGRES_SERVER_HOSTNAME_ENV, DEFAULT_POSTGRES_SERVER_HOSTNAME)

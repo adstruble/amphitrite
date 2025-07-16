@@ -1,10 +1,9 @@
-import logging
 from enum import Enum
 
 import sqlalchemy
 
 from amphi_logging.logger import get_logger
-from db_utils.db_connection import get_connection, DEFAULT_DB_PARAMS, AMPHIADMIN_DB_PARAMS, make_connection_kwargs
+from db_utils.db_connection import get_connection, make_connection_kwargs, get_default_database_params
 
 LOGGER = get_logger('db_utils')
 
@@ -46,7 +45,7 @@ class ExecuteSqlResult:
         return total_rows
 
     def get_as_list_of_dicts(self) -> list:
-        def to_dict_result (vals):
+        def to_dict_result(vals):
             dict_result = {}
             for col_idx, c in enumerate(self.cols):
                 dict_result[c] = vals[col_idx]
@@ -71,7 +70,7 @@ def execute_statements(stmt_param_tuples, username: str,
         stmt_param_tuples = [stmt_param_tuples]
 
     results = ExecuteSqlResult()
-    with get_connection(**make_connection_kwargs(DEFAULT_DB_PARAMS, username, abort=abort)) as conn:
+    with get_connection(**make_connection_kwargs(get_default_database_params(), username, abort=abort)) as conn:
         if abort:
             return
         for maybe_stmt_tuple in stmt_param_tuples:

@@ -10,7 +10,7 @@ networks:
       driver: default
 services:
   datastore:
-    image: amphitrite/datastore:0.1.0
+    image: ${DATASTORE_IMAGE}
     networks:
       datastore:
         aliases:

@@ -1,16 +1,16 @@
 import os
 
-from importer.import_pedigree import import_pedigree, PedigreeImportState
+from importer.import_pedigree import maybe_import_pedigree, PedigreeImportState
 
 
 def test_import_whole_pedigree():
 
-    import_pedigree()
+    maybe_import_pedigree()
 
 
 def test_import_pedigree1():
 
-    import_pedigree(pedigree_file_path=
+    maybe_import_pedigree(pedigree_file_path=
                     os.path.join(os.path.abspath(os.path.dirname(__file__)), "resources",
                                  'import', 'test_pedigree1.csv'))
 

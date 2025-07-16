@@ -1,4 +1,4 @@
-FROM postgres:14.6-alpine
+FROM postgres:16.3-alpine
 ENV POSTGRES_PASSWORD postgres
 
 COPY postgres_config/psqlrc    /tmp/psqlrc

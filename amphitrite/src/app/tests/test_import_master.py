@@ -1,7 +1,7 @@
 import os
 from db_utils.core import execute_statements, ResultType
 from importer.import_master import import_master_data
-from importer.import_pedigree import import_pedigree
+from importer.import_pedigree import maybe_import_pedigree
 
 
 def test_import_masterdata():

@@ -7,9 +7,13 @@ from enum import Enum
 from amphi_logging.logger import get_logger
 from algorithms.f_calculation import FMatrix
 from db_utils.core import execute_statements
-from db_utils.db_connection import get_connection, DEFAULT_DB_PARAMS, make_connection_kwargs
+from db_utils.db_connection import get_connection, make_connection_kwargs, get_default_database_params
 from db_utils.insert import insert_table_data
 from exceptions.exceptions import WildTypeCrossedWithRefugeInWild
+from importer.import_crosses import import_crosses
+from importer.import_master import import_master_data
+from importer.import_utils import get_import_resources_dir
+from model.fish import mark_all_fish_dead
 
 from utils.data import get_group_id_from_parent
 
@@ -57,7 +61,7 @@ class PedigreeImportState:
     f_matrix = FMatrix()
 
 
-def import_pedigree(pedigree_file_path=None):
+def maybe_import_pedigree(pedigree_file_path=None):
     if pedigree_exists():
         LOGGER.info("Pedigree previously imported, skipping pedigree import.")
         return False
@@ -85,15 +89,15 @@ def pedigree_exists():
 def ingest_pedigree_data(ped_state):
     results = dict()
     try:
-        with get_connection(**make_connection_kwargs(DEFAULT_DB_PARAMS, 'amphiadmin')) as conn:
+        with get_connection(**make_connection_kwargs(get_default_database_params(), 'amphiadmin')) as conn:
             with conn.connection.cursor() as cursor:
                 # Insert all the child family groups
                 results['family'], _ = insert_table_data('family', list(ped_state.families.values()), cursor)
 
                 # Insert the animal to animal table
                 results['animal'], _ = insert_table_data('animal',
-                                                      list(ped_state.wt_animal.values()) +
-                                                      list(ped_state.bred_animal.values()), cursor)
+                                                         list(ped_state.wt_animal.values()) +
+                                                         list(ped_state.bred_animal.values()), cursor)
                 # Make a list of all pedigrees
                 all_pedigrees = []
                 for pedigrees in ped_state.pedigrees.values():
