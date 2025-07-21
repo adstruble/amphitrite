@@ -391,12 +391,11 @@ def cleanup_previous_available_fish(username: str, female_tags: set):
     :param female_tags: Refuge tags of females to use to determine possible crosses
     :return:
     """
-    delete_pcs = ('DELETE FROM possible_cross pc', {})
+    delete_pcs = 'DELETE FROM possible_cross pc'
 
-    delete_available_animals = ('DELETE FROM available_animal', {})
+    delete_available_animals = 'DELETE FROM available_animal'
 
-    delete_req_crosses = ('DELETE FROM requested_cross rc WHERE rc.cross_date IS NULL',
-                          {"f_tags": list(female_tags   )}) # noqa
+    delete_req_crosses = 'DELETE FROM requested_cross rc WHERE rc.cross_date IS NULL'
     execute_statements([delete_pcs, delete_available_animals, delete_req_crosses],
                        username, ResultType.NoResult)
 

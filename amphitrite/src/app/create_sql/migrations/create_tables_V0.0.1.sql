@@ -366,7 +366,7 @@ CREATE OR REPLACE TRIGGER element_pre_update_t BEFORE UPDATE ON requested_cross 
 CREATE INDEX rc_parent_fams_idx ON requested_cross(parent_f_fam, parent_m_fam);
 ALTER TABLE requested_cross ADD CONSTRAINT unique_requested_cross_parents_type UNIQUE(parent_f_fam, parent_m_fam, supplementation);
 ALTER TABLE requested_cross
-    ADD CONSTRAINT different_parent_families CHECK (not (parent_m_fam != parent_f_fam));
+    ADD CONSTRAINT different_parent_families CHECK (parent_m_fam != parent_f_fam);
 
 CREATE TABLE possible_cross
 (

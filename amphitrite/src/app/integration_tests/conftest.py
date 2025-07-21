@@ -1,11 +1,15 @@
+import inspect
 import os
 import subprocess
 import uuid
+from unittest.mock import patch
 
 import pytest
 
-from create_sql.initialize_db import wait_for_postgres_and_upgrade
+from create_sql.initialize_db import wait_for_postgres_and_upgrade, load_seed_data
+from db_utils.core import ResultType, execute_statements
 from db_utils.db_connection import POSTGRES_SERVER_HOSTNAME_ENV, get_postgres_hostname
+from importer.import_master import import_master_data
 
 POSTGRES_DOCKER_CONTAINER = "POSTGRES_DOCKER_CONTAINER"
 dockerContainerName = os.getenv(POSTGRES_DOCKER_CONTAINER)
@@ -21,14 +25,46 @@ def pytest_sessionstart(session): # noqa
     setup_postgres()
     os.environ[POSTGRES_SERVER_HOSTNAME_ENV] = 'localhost'
     print(f"Postgres Hostname: {get_postgres_hostname()}\n")
-    print(f"Exodus log dir: {os.getenv('LOG_BASE_DIR', '/tmp')}")
+    print(f"Log dir: {os.getenv('LOG_BASE_DIR', '/tmp')}")
 
     wait_for_postgres_and_upgrade()
+
+    cleanup_last_test()
 
 
 @pytest.hookimpl(trylast=True)  # Needed so that sessionfinish is called after other fixtures finish their yield work.
 def pytest_sessionfinish(session, exitstatus):
     cleanup_postgres(exitstatus)
+
+
+@pytest.fixture(autouse=True, scope='session')
+def seed_pedigree():
+    # Need to patch complete_job in both the master and requested crosses importers because both imports
+    # are done to seed spawning season 2024
+    with patch('importer.import_master.complete_job') as _:
+        with patch('importer.import_crosses.complete_job') as __:
+            load_seed_data()
+
+
+@pytest.fixture(autouse=True, scope='session')
+def load_2025_master(seed_pedigree):
+    with patch('importer.import_master.complete_job') as _:
+        import_master_data(os.path.join(os.path.dirname(__file__), 'resources'), 'amphiadmin', '2025.csv', 2025)
+
+
+@pytest.fixture()
+def set_cleanup_sql_fn():
+    # During cleanup, which is executed at session start up after postgres is set up and migrated (setup and migration
+    # will not actually occur if the container is already up, which is why cleanup is necessary),
+    # test cleanup-sql will be executed in the order it was added.
+    def set_cleanup_sql(cleanup_sql):
+        test_fn = inspect.stack()[1].function
+        execute_statements(["DROP TABLE IF EXISTS cleanup_sql",
+                            "CREATE TABLE cleanup_sql (test_fn text, cleanup_sql text, created_at TIMESTAMPTZ DEFAULT NOW())", # noqa
+                            ("INSERT INTO cleanup_sql (test_fn, cleanup_sql) VALUES (:test_fn, :sql)",
+                             {'test_fn': test_fn, 'sql': cleanup_sql})], 'amphiadmin', ResultType.NoResult)
+
+    return set_cleanup_sql
 
 
 def setup_postgres():
@@ -40,13 +76,24 @@ def setup_postgres():
         if pg_hostname:
             return
 
-    print(f"POSTGES_DOCKER_CONTAINER Envvar: {os.getenv(POSTGRES_DOCKER_CONTAINER)}")
+    print(f"POSTGRES_DOCKER_CONTAINER Env var: {os.getenv(POSTGRES_DOCKER_CONTAINER)}")
     print(f"Container name: {get_docker_container_name()}")
 
     print("Spinning up postgres container")
     spinup_postgres_container()
 
     return
+
+
+def cleanup_last_test():
+    # If the cleanup_sql table exists, iterate over its rows, executing all the sql commands.
+    if execute_statements("SELECT count(*) FROM information_schema.tables WHERE table_name = 'cleanup_sql'",
+                          'amphiadmin').get_single_result():
+        for cleanup_sql in execute_statements(["SELECT test_fn, cleanup_sql FROM cleanup_sql ORDER BY created_at"],
+                                              'amphiadmin', ResultType.RowResults).row_results:
+            print(f'Cleaning up from test: {cleanup_sql[0]}')
+            execute_statements([cleanup_sql[1]], 'amphiadmin',
+                               ResultType.NoResult)
 
 
 def get_docker_container_name():

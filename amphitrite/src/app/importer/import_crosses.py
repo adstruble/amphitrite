@@ -2,6 +2,7 @@ import csv
 import datetime
 import os
 import re
+import sys
 import uuid
 from datetime import date
 
@@ -25,7 +26,7 @@ class RecCrossesDataCols(object):
     Female_Sibling_Group = 4
     SFG = 7
     MFG = 6
-    SUPPLEMENTATION = 8
+    SUPPLEMENTATION = sys.maxsize
 
 
 def import_crosses(crosses_file, username, job_id, year=datetime.datetime.now().year):
@@ -37,23 +38,26 @@ def import_crosses(crosses_file, username, job_id, year=datetime.datetime.now().
                 csv_lines = csv.reader(rec_crosses)
                 header = next(csv_lines, None)
                 # Check that we actually have recommended crosses by looking for correct column headers
-                correct_fields = []
+                correct_required_fields = []
                 sfg_re = re.compile('^BY.*FSG.*$')
                 for col_idx, col_name in enumerate(header):
                     if col_name == 'Date':
                         RecCrossesDataCols.Date = col_idx
-                        correct_fields.append('Date')
+                        correct_required_fields.append('Date')
                     elif col_name == 'Male':
                         RecCrossesDataCols.Male = col_idx
-                        correct_fields.append('Male')
+                        correct_required_fields.append('Male')
                     elif col_name == 'Female':
                         RecCrossesDataCols.Female = col_idx
-                        correct_fields.append('Female')
+                        correct_required_fields.append('Female')
                     elif sfg_re.match(col_name):
                         RecCrossesDataCols.SFG = col_idx
-                        correct_fields.append('SFG')
-                if len(correct_fields) != 4:
-                    raise UploadCrossesError.bad_csv_format(correct_fields)
+                        correct_required_fields.append('SFG')
+                    elif col_name == 'Supplementation':
+                        # Not required don't add it to correct_required_fields list
+                        RecCrossesDataCols.SUPPLEMENTATION = col_idx
+                if len(correct_required_fields) < 4:
+                    raise UploadCrossesError.bad_csv_format(correct_required_fields)
             except UploadCrossesError as upload_e:
                 raise upload_e
             except Exception as any_e: # noqa

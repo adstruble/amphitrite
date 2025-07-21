@@ -7,7 +7,7 @@ from configs.gunicorn_conf_common import on_starting
 
 @patch('importer.import_master.complete_job')
 @patch('utils.server_state.get_client_manager')
-def test_on_startup(mock_complete_job, _):
+def test_on_startup_already_seeded(mock_complete_job, _):
     on_starting(None) # noqa
 
     element_cnt = execute_statements(["SELECT count(*) FROM element"],
