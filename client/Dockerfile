@@ -7,12 +7,6 @@ WORKDIR /app
 COPY package.json yarn.lock /app/
 RUN yarn install
 
-RUN yarn global add react-scripts@5.0.1
-
-RUN yarn global add sass-embedded@1.56.1
-RUN yarn global add reactstrap@9.1.5
-RUN yarn global add classnames@2.3.2
-
 COPY . ./
 
 RUN yarn build

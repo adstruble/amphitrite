@@ -47,6 +47,10 @@ body{
 .inner-amphi-table .amphi-table-inner{
     display: block;
 }
+.amphi-table-inner > div.amphi-table-header > table{
+    background-color: rgb(43, 56, 88);
+    padding-right: 10px;
+}
 .amphi-table-header{
     flex: 1;
     display: flex;
@@ -203,10 +207,6 @@ div.row.input-area {
     border-radius: 0 .2143rem 0 0
 }
 
-.amphi-table-inner.scrolling > div.amphi-table-header > table{
-    background-color: rgb(43, 56, 88);
-    padding-right: 10px;
-}
 .table-row{
     background-color: rgba(0, 0, 0, 0) !important; /* Need important to override react-table css class on same element */
     text-align: start;
