@@ -27,6 +27,7 @@ class RecCrossesDataCols(object):
     SFG = 7
     MFG = 6
     SUPPLEMENTATION = sys.maxsize
+    COMMENT = sys.maxsize
 
 
 def import_crosses(crosses_file, username, job_id, year=datetime.datetime.now().year):
@@ -56,6 +57,9 @@ def import_crosses(crosses_file, username, job_id, year=datetime.datetime.now().
                     elif col_name == 'Supplementation':
                         # Not required don't add it to correct_required_fields list
                         RecCrossesDataCols.SUPPLEMENTATION = col_idx
+                    elif col_name == 'Comment':
+                        # Not required don't add it to correct_required_fields list
+                        RecCrossesDataCols.COMMENT = col_idx
                 if len(correct_required_fields) < 4:
                     raise UploadCrossesError.bad_csv_format(correct_required_fields)
             except UploadCrossesError as upload_e:
@@ -67,6 +71,8 @@ def import_crosses(crosses_file, username, job_id, year=datetime.datetime.now().
             supplementation_families = []
             requested_crosses = []
             requested_crosses_fams = {}
+            family_notes = []
+            supplementation_family_notes = []
             supplementation = False
             for line_num, line in enumerate(csv.reader(rec_crosses)):
                 date_str = ""
@@ -101,9 +107,18 @@ def import_crosses(crosses_file, username, job_id, year=datetime.datetime.now().
 
                     try:
                         supp_str = line[RecCrossesDataCols.SUPPLEMENTATION]
-                        supplementation = bool(supp_str)
+                        supplementation = bool(int(supp_str))
                     except: # noqa If any error getting supplementation value, assume it's not
-                        pass
+                        supplementation = False
+
+                    fam_id = str(uuid.uuid4())
+                    try:
+                        note = line[RecCrossesDataCols.COMMENT]
+                        note = {"id": str(uuid.uuid4()),
+                                "content": note.strip(),
+                                "family": fam_id}
+                    except: # noqa If any error getting comment just ignore
+                        note = None
 
                     di = (parent_1['di'] + parent_2['di']) / 2 + 1
                     f = f_matrix.calculate_f_for_potential_cross(parent_1['family'], parent_2['family'])
@@ -113,14 +128,18 @@ def import_crosses(crosses_file, username, job_id, year=datetime.datetime.now().
                     family_list = families
                     if supplementation:
                         family_list = supplementation_families
-                    family_list.append({'id': str(uuid.uuid4()),
+                        if note:
+                            supplementation_family_notes.append(note)
+                    elif note:
+                        family_notes.append(note)
+                    family_list.append({'id': fam_id,
                                         'parent_1': parent_1['animal'],
                                         'parent_2': parent_2['animal'],
                                         'cross_date': cross_date,
                                         'group_id': line[RecCrossesDataCols.SFG],
                                         'mfg': '\\N' if not line[RecCrossesDataCols.MFG] else line[RecCrossesDataCols.MFG], # noqa
                                         'f': f,
-                                           'di': di})
+                                        'di': di})
                     duplicate = requested_crosses_fams.get(str(parent_1['family']) + str(parent_2['family']), False)
                     requested_crosses_fams[str(parent_1['family']) + str(parent_2['family'])] = True
                     requested_crosses.append({
@@ -158,6 +177,14 @@ def import_crosses(crosses_file, username, job_id, year=datetime.datetime.now().
                     'ON CONFLICT (parent_f_fam, parent_m_fam, supplementation, known_duplicate) DO UPDATE SET '
                     '(cross_date, parent_f, parent_m) = (EXCLUDED.cross_date, EXCLUDED.parent_f, EXCLUDED.parent_m)')
                 LOGGER.info(f"{rc_inserts} requested_crosses from {cross_date.year} inserted.")
+
+                if family_notes:
+                    note_inserts, _ = insert_table_data('family_note', family_notes, cursor)
+                    LOGGER.info(f"{note_inserts} family notes inserted.")
+                if supplementation_family_notes:
+                    note_inserts, _ = insert_table_data('supplementation_family_note', supplementation_family_notes, cursor) # noqa
+                    LOGGER.info(f"{note_inserts} supplementation family notes inserted.")
+
                 complete_job(job_id, JobState.Complete.name, {"success": {'inserts': {'Family': family_inserts,
                                                                                       'Requested Cross': rc_inserts},
                                                                           'updates': {'Family': family_updates,

@@ -57,11 +57,14 @@ def set_cleanup_sql_fn():
     # During cleanup, which is executed at session start up after postgres is set up and migrated (setup and migration
     # will not actually occur if the container is already up, which is why cleanup is necessary),
     # test cleanup-sql will be executed in the order it was added.
+    execute_statements([
+        "DROP TABLE IF EXISTS cleanup_sql",
+        "CREATE TABLE cleanup_sql (test_fn text, cleanup_sql text, created_at TIMESTAMPTZ DEFAULT NOW())"],
+        'amphiadmin', ResultType.NoResult)
+
     def set_cleanup_sql(cleanup_sql):
         test_fn = inspect.stack()[1].function
-        execute_statements(["DROP TABLE IF EXISTS cleanup_sql",
-                            "CREATE TABLE cleanup_sql (test_fn text, cleanup_sql text, created_at TIMESTAMPTZ DEFAULT NOW())", # noqa
-                            ("INSERT INTO cleanup_sql (test_fn, cleanup_sql) VALUES (:test_fn, :sql)",
+        execute_statements([("INSERT INTO cleanup_sql (test_fn, cleanup_sql) VALUES (:test_fn, :sql)",
                              {'test_fn': test_fn, 'sql': cleanup_sql})], 'amphiadmin', ResultType.NoResult)
 
     return set_cleanup_sql
@@ -91,7 +94,7 @@ def cleanup_last_test():
                           'amphiadmin').get_single_result():
         for cleanup_sql in execute_statements(["SELECT test_fn, cleanup_sql FROM cleanup_sql ORDER BY created_at"],
                                               'amphiadmin', ResultType.RowResults).row_results:
-            print(f'Cleaning up from test: {cleanup_sql[0]}')
+            print(f'Cleaning up from test: {cleanup_sql[0]}, executing: {cleanup_sql[1]}')
             execute_statements([cleanup_sql[1]], 'amphiadmin',
                                ResultType.NoResult)
 
