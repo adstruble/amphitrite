@@ -1,6 +1,5 @@
 import React from "react";
 import PropTypes from "prop-types";
-import Login from "../../views/User/Login";
 
 export default function Squares({setSquares7and8, classToggle}) {
     const [squares1to6, setSquares1to6] = React.useState("");

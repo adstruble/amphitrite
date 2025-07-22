@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from "react";
+import React, {useEffect, useRef} from "react";
 import PropTypes from "prop-types";
 
 function useOutsideAlerter(ref, clickedOutsideCallback) {

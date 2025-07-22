@@ -1,3 +1,4 @@
+import React from 'react';
 import {ReactSVG} from "react-svg";
 import { default as fish_spinner } from '../../assets/img/fish_spinner.svg';
 import classnames from "classnames";

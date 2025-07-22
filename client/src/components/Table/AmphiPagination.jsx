@@ -1,5 +1,5 @@
 import {Pagination, PaginationItem, PaginationLink} from "reactstrap";
-import React, {useState} from "react";
+import React from "react";
 
 import {usePagination} from "@table-library/react-table-library/pagination";
 

@@ -72,7 +72,7 @@ export default function TopNavbar() {
             <Nav>
 
                 <NavItem>
-                    <NavLink to={Link} to="/usersettings">
+                    <NavLink tag={Link} to="/usersettings">
                         <i className="tim-icons icon-settings-gear-63"/>
                     </NavLink>
                 </NavItem>

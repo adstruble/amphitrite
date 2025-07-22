@@ -4,7 +4,7 @@ import {
     RouterProvider,
 } from "react-router-dom";
 import './App.css';
-import Login from './views/User/Login.js'
+import Login from './views/User/Login.jsx'
 import useToken from "./components/App/useToken";
 import Squares from "./components/Styles/Squares";
 import ManageFish from "./views/ManageFish/ManageFish";

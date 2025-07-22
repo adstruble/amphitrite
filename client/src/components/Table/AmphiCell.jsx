@@ -1,5 +1,5 @@
 import {Cell} from "@table-library/react-table-library/table";
-import {useState} from "react";
+import React from 'react';
 import PropTypes from "prop-types";
 
 export default function AmphiCell(cellValue, id_key){

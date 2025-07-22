@@ -17,6 +17,8 @@ import classnames from "classnames";
 import PropTypes from "prop-types";
 import Squares from "../../components/Styles/Squares";
 
+import squarePurpleImg from "../../assets/img/square-purple-1.png";
+
 async function loginUser(credentials) {
 
     return fetch('/amphitrite/login',{
@@ -71,7 +73,7 @@ export default function Login({setToken}) {
                                     <CardHeader>
                                         <CardImg
                                             alt="..."
-                                            src={require("../../assets/img/square-purple-1.png")}
+                                            src={squarePurpleImg}
                                         />
                                         <CardTitle tag="h4">Login</CardTitle>
                                     </CardHeader>

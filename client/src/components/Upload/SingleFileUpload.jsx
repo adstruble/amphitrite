@@ -56,7 +56,7 @@ export default function FileUploadSingle({fileUploadUrl,
                 }
             }) .then((res) => res.json())
                 .then((data) => {
-                    if(!"state" in data){
+                    if(!("state" in data)){
                         console.error("Unexpected response while waiting for job: " + jobId + " to complete.");
                     }
                     if(data['state'] === "NotFound") {

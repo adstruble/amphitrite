@@ -1,29 +1,29 @@
 import {
-    Button,
     Col,
-    Dropdown, DropdownItem,
-    DropdownMenu,
-    DropdownToggle,
     Input,
     Row
 } from "reactstrap";
 import PropTypes from "prop-types";
 import React, {useState} from "react";
-import {CrossYearDropdown} from "../../components/Basic/CrossYearDropdown";
-import ClickOutsideAlerter from "../../components/Utils/ClickOutsiderAlerter";
 
-export function ViewCrossesFilter({setFilterParent}) {
+export function CrossFishFilter({setFilterParent}) {
     const [initLoad, setInitLoad] = useState(true);
 
     React.useEffect(()=>{setFilter(); setInitLoad(false)}, [])
-
     function setFilter(){
         let filter = {}
-        getIntFilter('groupId', 'completed_cross.group_id', filter, false);
-        getIntFilter('mfg', 'completed_cross.mfg', filter, false);
-        getIntFilter('fGroupId', "xf.group_id", filter);
-        getIntFilter('mGroupId', "yf.group_id", filter);
-
+        const fGroupId = document.getElementById("fGroupId").value.trim()
+        if (fGroupId !== ""){
+            if(!isNaN(parseInt(fGroupId))){
+                filter['xf.group_id'] = parseInt(fGroupId);
+            }
+        }
+        const mGroupId = document.getElementById("mGroupId").value.trim()
+        if (mGroupId !== ""){
+            if(!isNaN(parseInt(mGroupId))){
+                filter['yf.group_id'] = parseInt(mGroupId);
+            }
+        }
         const fTag = document.getElementById("fTag").value.trim()
         if (fTag !== ""){
             filter['rtx.tag'] = fTag;
@@ -35,37 +35,8 @@ export function ViewCrossesFilter({setFilterParent}) {
         setFilterParent(filter, initLoad);
     }
 
-    function getIntFilter(elementId, sqlSelector, filter, allowWT=true){
-        const elemVal = document.getElementById(elementId).value.trim()
-        if (elemVal !== ""){
-            if(!isNaN(parseInt(elemVal))){
-                filter[sqlSelector] = parseInt(elemVal);
-            }else if(allowWT && elemVal === "WT"){
-                filter[sqlSelector] = -1;
-            }else{
-                filter[sqlSelector] = 0;
-            }
-        }
-    }
-
     return (
         <div className="input-area">
-            <Row>
-                <Col>
-                    <span>PC/FSG:</span>
-                </Col>
-                <Col>
-                    <Input id="groupId" style={{width:"auto"}} onChange={()=>setFilter()}/>
-                </Col>
-            </Row>
-            <Row>
-                <Col>
-                    <span>MFG:</span>
-                </Col>
-                <Col>
-                    <Input id="mfg" style={{width:"auto"}} onChange={()=>setFilter()}/>
-                </Col>
-            </Row>
             <Row>
                 <Col>
                     <span>Female PC/FSG:</span>
@@ -102,6 +73,6 @@ export function ViewCrossesFilter({setFilterParent}) {
     )
 }
 
-ViewCrossesFilter.propTypes = {
+CrossFishFilter.apropTypes = {
     setFilterParent: PropTypes.func.isRequired
 }

@@ -21,7 +21,7 @@ docker-compose -f docker-compose-postgres.yaml up -d
 
 ### Server from amphitrite/amphitrite
 Run from amphitrite/amphitrite dir as this is the directory the app is run from when in the docker container.
-sh boot.sh dev
+sh src/app/boot.sh dev
 
 To hit server endpoints: http://127.0.0.1:5001/
 For example:
@@ -34,3 +34,6 @@ To login point browser to: http://localhost:3000/
 
 Note: Using yarn start uses the react dev server client/src/setupProxy.js fixes the URLs to remove the /amphitrite that the amphitrite server does note expect as part of the URL string 
 
+### Debugging client from intellij
+(1) Create a run/debug configuration of the JavaScript Debug type
+(2) Specify http://localhost:3000 as URL
