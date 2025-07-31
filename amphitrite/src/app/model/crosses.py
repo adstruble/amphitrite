@@ -707,3 +707,22 @@ def get_exported_crosses_csv(username, params, csv_file):
                        f"{mfg}"
                        f"{cross_notes}\n")
     return
+
+
+def get_population_f(username, year, pop_type):
+    """
+    Returns the population wide inbreeding coefficient for the given year and population type. The popluation wide
+    inbreeding coefficient is the average of all the families f values
+    :param username:
+    :param year:
+    :param pop_type: refuge or supplementation
+    :return: avg inbreeding coefficient for the population
+    """
+    table = 'family'
+    if pop_type == 'supplementation':
+        table = 'supplementation_family'
+
+    return execute_statements((f"""SELECT avg(f) as pop_f FROM {table}
+                                                     WHERE extract(YEAR from cross_date) = :year""", {'year': year}),
+                              username,
+                              ResultType.RowResults).get_single_result()

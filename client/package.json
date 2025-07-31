@@ -12,6 +12,7 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@lottiefiles/dotlottie-react": "^0.14.3",
+    "@popperjs/core": "^2.11.8",
     "@table-library/react-table-library": "^4.1.15",
     "bootstrap": "^5.3.7",
     "classnames": "^2.5.1",

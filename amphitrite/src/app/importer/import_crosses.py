@@ -9,7 +9,7 @@ from datetime import date
 from algorithms.f_calculation import build_matrix_from_existing
 from amphi_logging.logger import get_logger
 from db_utils.db_connection import get_connection, make_connection_kwargs, get_default_database_params
-from db_utils.insert import insert_table_data
+from db_utils.insert import insert_table_data, InsertTableData, prepare_copy_table_for_bulk_insert, copy_to_final_table
 from exceptions.exceptions import UploadCrossesError
 from importer.import_utils import maybe_correct_for_2_year_olds
 from model.family import get_ids_and_di_for_tag
@@ -73,7 +73,6 @@ def import_crosses(crosses_file, username, job_id, year=datetime.datetime.now().
             requested_crosses_fams = {}
             family_notes = []
             supplementation_family_notes = []
-            supplementation = False
             for line_num, line in enumerate(csv.reader(rec_crosses)):
                 date_str = ""
                 try:
@@ -111,12 +110,15 @@ def import_crosses(crosses_file, username, job_id, year=datetime.datetime.now().
                     except: # noqa If any error getting supplementation value, assume it's not
                         supplementation = False
 
-                    fam_id = str(uuid.uuid4())
                     try:
                         note = line[RecCrossesDataCols.COMMENT]
                         note = {"id": str(uuid.uuid4()),
                                 "content": note.strip(),
-                                "family": fam_id}
+                                "parent_1": parent_1['animal'],
+                                "parent_2": parent_2['animal'],
+                                "cross_date": cross_date,
+                                "family": str(uuid.uuid4())}
+
                     except: # noqa If any error getting comment just ignore
                         note = None
 
@@ -132,7 +134,7 @@ def import_crosses(crosses_file, username, job_id, year=datetime.datetime.now().
                             supplementation_family_notes.append(note)
                     elif note:
                         family_notes.append(note)
-                    family_list.append({'id': fam_id,
+                    family_list.append({'id': str(uuid.uuid4()),
                                         'parent_1': parent_1['animal'],
                                         'parent_2': parent_2['animal'],
                                         'cross_date': cross_date,
@@ -178,12 +180,30 @@ def import_crosses(crosses_file, username, job_id, year=datetime.datetime.now().
                     '(cross_date, parent_f, parent_m) = (EXCLUDED.cross_date, EXCLUDED.parent_f, EXCLUDED.parent_m)')
                 LOGGER.info(f"{rc_inserts} requested_crosses from {cross_date.year} inserted.")
 
+                def insert_family_notes(family_type, notes):
+                    table = InsertTableData(f'{family_type}_note', notes)
+                    table.temp_table_updates = [f"""UPDATE {family_type}_note_insert fni set family = (
+                        SELECT id FROM {family_type} f WHERE f.parent_1 = fni.parent_1 AND f.parent_2 = fni.parent_2 AND
+                         f.cross_date = fni.cross_date)"""]
+                    alter_sqls = []
+                    for col, col_type in [('parent_1', 'uuid'), ('parent_2', 'uuid'), ('cross_date', 'date')]:
+                        alter_sqls.append(f'ALTER TABLE {family_type}_note_insert ADD COLUMN {col} {col_type}')
+                    prepare_copy_table_for_bulk_insert(table, cursor, alter_sqls)
+
+                    table.insert_condition = f"""WHERE (content) NOT IN (
+                        SELECT content FROM {family_type}_note n where {family_type}_note_insert.family = n.family)
+                        AND family = ANY(SELECT id FROM {family_type})
+                    ON CONFLICT (family) DO UPDATE SET content = {family_type}_note.content || ' ' || EXCLUDED.content
+                          WHERE {family_type}_note.family = EXCLUDED.family"""
+                    note_inserts, note_updates = copy_to_final_table(table, cursor, "id, content, family")
+                    LOGGER.info(f"{note_inserts} {family_type} notes inserted. "
+                                f"{note_updates} {family_type} notes updated")
+
                 if family_notes:
-                    note_inserts, _ = insert_table_data('family_note', family_notes, cursor)
-                    LOGGER.info(f"{note_inserts} family notes inserted.")
+                    insert_family_notes('family', family_notes)
+
                 if supplementation_family_notes:
-                    note_inserts, _ = insert_table_data('supplementation_family_note', supplementation_family_notes, cursor) # noqa
-                    LOGGER.info(f"{note_inserts} supplementation family notes inserted.")
+                    insert_family_notes('supplementation_family', supplementation_family_notes)
 
                 complete_job(job_id, JobState.Complete.name, {"success": {'inserts': {'Family': family_inserts,
                                                                                       'Requested Cross': rc_inserts},
@@ -218,7 +238,7 @@ def count_sibling_groups(t_file_dir, job_id):
     sibling_groups = set()
     try:
         header = ""
-        with open(os.path.join(t_file_dir.name, f'bulk_upload_{job_id}'), mode='r', encoding='utf-8-sig') as rec_crosses:
+        with open(os.path.join(t_file_dir.name, f'bulk_upload_{job_id}'), mode='r', encoding='utf-8-sig') as rec_crosses: # noqa
             try:
                 csv_lines = csv.reader(rec_crosses)
                 header = next(csv_lines, None)

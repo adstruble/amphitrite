@@ -1,6 +1,7 @@
 import {FormGroup, Input, Label, UncontrolledTooltip} from "reactstrap";
 import classnames from "classnames";
 import React from "react";
+import AmphiTooltip from "../Basic/AmphiTooltip.jsx";
 
 export const formatDate = (date) => {
     date = new Date(date);
@@ -78,17 +79,13 @@ export function formatTextWithIcon (txt, item, format_args, handleExpand, colNam
                     onClick={onIconClick}
                     className={classnames("tim-icons", format_args[0], "amphi-cell", "clickable", "icon")}
                     color="info"/>
-                {format_args[2] && <UncontrolledTooltip
-                        placement={"top-start"}
-                        target={iconTooltipId}>
-                        {format_args[2]}
-                </UncontrolledTooltip>}
+                {format_args[2] && <AmphiTooltip
+                        target={iconTooltipId}
+                content={format_args[2]}/>}
                 <span id={textTooltipId}>{txt}</span>
-                {format_args[3] && txt && <UncontrolledTooltip
+                {format_args[3] && txt && <AmphiTooltip
                     target={textTooltipId}
-                    placement={"top-start"}
-                >{txt}
-                </UncontrolledTooltip>}
+                    content={txt}/>}
     </div>);
 }
 

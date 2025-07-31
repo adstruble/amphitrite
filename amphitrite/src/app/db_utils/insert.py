@@ -98,50 +98,6 @@ def copy_to_final_table(table: InsertTableData, cursor, col_str=None):
     return end_cnt - start_cnt, changed - (end_cnt - start_cnt)
 
 
-def batch_insert_cross_data(table: InsertTableData, username):
-    try:
-        results = {}
-        with get_connection(**make_connection_kwargs(get_default_database_params(), username)) as conn:
-            with conn.connection.cursor() as cursor:
-                custom_alters = [
-                    f"ALTER TABLE family_insert ADD COLUMN IF NOT EXISTS parent_1_tag_temp varchar(12)",
-                    f"ALTER TABLE family_insert ADD COLUMN IF NOT EXISTS parent_2_tag_temp varchar(12)",
-                    f"ALTER TABLE family_insert ADD COLUMN IF NOT EXISTS parent_1_birth_year_temp numeric",
-                    f"ALTER TABLE family_insert ADD COLUMN IF NOT EXISTS parent_2_birth_year_temp numeric",
-                    f"ALTER TABLE family_insert ADD COLUMN IF NOT EXISTS parent_1_temp uuid",
-                    f"ALTER TABLE family_insert ADD COLUMN IF NOT EXISTS parent_2_temp uuid",
-                    'ALTER TABLE family_insert drop column cross_year',
-                    'ALTER TABLE family_insert ADD COLUMN cross_year numeric GENERATED ALWAYS AS '
-                    '(extract(year from cross_date)) STORED']
-                prepare_copy_table_for_bulk_insert(table, cursor, custom_alters)
-
-                set_animal_id_update_template = """
-                UPDATE family_insert SET {parent} = animal.id
-                        FROM animal
-                        JOIN refuge_tag rt ON animal = animal.id
-                        JOIN family as fam ON animal.family = fam.id
-                        WHERE {parent}_tag_temp = rt.tag
-                        AND fam.cross_year = {parent}_birth_year_temp"""
-                cursor.execute(set_animal_id_update_template.format(parent='parent_1'))
-                cursor.execute(set_animal_id_update_template.format(parent='parent_2'))
-
-                insert_update_sibling_families = """INSERT INTO family (id, cross_date, group_id, parent_1, parent_2)
-                                            SELECT gen_random_uuid(),
-                                                   cross_date,
-                                                   group_id,
-                                                   parent_1,
-                                                   parent_2
-                                            FROM family_insert
-                """
-                cursor.execute(insert_update_sibling_families)
-                results = {'family': cursor.rowcount}
-                return {'success': results}
-
-    except Exception as e: # noqa
-        LOGGER.exception("Exception during batch insert of crosses")
-        return {"error": str(e)}
-
-
 def insert_table_data(table_name, data, cursor, insert_condition=None):
     table = InsertTableData(table_name, data, insert_condition)
     prepare_copy_table_for_bulk_insert(table, cursor, [])

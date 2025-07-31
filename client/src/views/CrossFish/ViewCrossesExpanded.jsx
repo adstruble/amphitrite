@@ -82,7 +82,8 @@ export default function ViewCrossesExpanded({item, reloadTable, refugeCrosses}) 
                     <span className="form-check-sign" id={'id' + item['id']+'supplcheck'}>
                         <UncontrolledTooltip
                             placement={"top-start"}
-                            target={'id' + item['id']+'supplcheck'}>
+                            target={'id' + item['id']+'supplcheck'}
+                            transition={{ timeout: 0 }}>
                             {'When selecting, all MFG families will be included in supplementation. To include only some families of a MFG, deselect those not included.'}
                         </UncontrolledTooltip>
                     Cross included in supplementation

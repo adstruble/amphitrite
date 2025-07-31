@@ -12,7 +12,7 @@ from model.crosses import add_requested_cross, remove_requested_cross, get_reque
     add_completed_cross, get_possible_crosses, \
     get_available_female_tags_str, get_completed_crosses, set_cross_failed, \
     set_use_for_supplementation, get_exported_crosses_csv, get_completed_crosses_by_family, set_available_females, \
-    get_available_females_with_0_or_1_males
+    get_available_females_with_0_or_1_males, get_population_f
 from model.family import remove_family_by_tags, set_family_mfg, save_family_notes
 from utils.data import validate_order_by
 
@@ -313,3 +313,16 @@ def save_family_notes_api():
     save_family_notes(username_or_err, table_name, query_params=params)
 
     return {"success": True}
+
+
+@cross_fish.route('/cross_fish/inbreeding-coefficient', methods=(['GET']))
+def get_population_inbreeding_coefficient():
+    LOGGER.info("Retrieving population inbreeding coefficient")
+    username_or_err = maybe_get_username(request.headers, "exporting crosses")
+    if isinstance (username_or_err, dict): # noqa
+        return username_or_err
+
+    year = request.args.get('year')
+    pop_type = request.args.get('pop_type').lower()
+
+    return {"success": get_population_f(username_or_err, year, pop_type)}

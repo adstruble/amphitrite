@@ -6,7 +6,7 @@ import {
     DropdownItem,
     DropdownMenu,
     DropdownToggle,
-    Row, UncontrolledTooltip
+    Row
 } from "reactstrap";
 import AmphiAlert from "../../components/Basic/AmphiAlert";
 import React,{useState} from "react";
@@ -23,6 +23,9 @@ import {CrossYearDropdown} from "../../components/Basic/CrossYearDropdown";
 import {ViewCrossesFilter} from "./ViewCrossesFilter";
 import FishDataUpload from "../../components/Upload/FishDataUpload";
 import {useOutletContext} from "react-router-dom";
+import {Header} from "@table-library/react-table-library/table";
+import getData from "../../server/getData.js";
+import AmphiTooltip from "../../components/Basic/AmphiTooltip.jsx";
 
 
 export default function ViewCrosses(){
@@ -78,6 +81,7 @@ export default function ViewCrosses(){
         {'year':completedCrossesYear, 'refuge':viewingRefugeCrosses})
     const {getUsername} = useToken();
     const [setSpinning] = useOutletContext();
+    const [meanF, setMeanF] = useState(0)
 
 
     const toggleCrossType = () => setCrossTypeDropdownOpen(prevState => !prevState)
@@ -89,7 +93,17 @@ export default function ViewCrosses(){
             setSpinning(false);
         }
     }, [isLoading, setSpinning]);
-    
+
+    const updateInbreedingCoefficient = () => {
+        getData('cross_fish/inbreeding-coefficient', getUsername(),
+            {'pop_type': viewingRefugeCrosses ? 'refuge' : 'supplementation', 'year': completedCrossesYear},
+            setMeanF, setAlertLevel, setAlertText);
+    };
+
+    React.useEffect(() => {
+        updateInbreedingCoefficient();
+    }, [viewingRefugeCrosses, completedCrossesYear]);
+
     const handleExportCrossesClick = async e => {
         let fileName = 'supplementation_crosses.csv';
         if (viewingRefugeCrosses){
@@ -175,9 +189,9 @@ export default function ViewCrosses(){
                 </Row>
                 <Row>
                     <Col>
-                        <Col>
+                        <Col style={{marginLeft: -15}}>
                             <Row>
-                                <Col style={{padding: 0, flexBasis: "fit-content", flexGrow: "0"}}>
+                                <Col style={{ padding: 0, flexBasis: "fit-content", flexGrow: "0"}}>
                                     <span>Cross Type:</span>
                                 </Col>
                                 <Col>
@@ -219,7 +233,7 @@ export default function ViewCrosses(){
                         justifyContent: "flex-end"
                     }}>
                         <FishDataUpload dataUploadUrl="cross_fish/upload_completed_crosses"
-                                        uploadCallback={()=>{setReloadTable(reloadTable + 1)}}
+                                        uploadCallback={()=>{setReloadTable(reloadTable + 1); updateInbreedingCoefficient();}}
                                         formModalTitle="Upload Completed Refuge Crosses"
                                         uploadButtonText={uploadBtnText}
                                         setIsLoading={setIsLoading}
@@ -228,12 +242,13 @@ export default function ViewCrosses(){
                                         /*UserOptions={UserOptions}
                                         uploadParams={{'cross_date': crossCompletionDate}}*/
                         />
-                        <UncontrolledTooltip target={uploadBtnText.replace(/ /g,'')}
-                            placement={"top-start"}>Upload completed crosses file (refuge only)</UncontrolledTooltip>
                         <Button className="btn" color="default" type="button" onClick={handleExportCrossesClick}>
                             Export Crosses
                         </Button>
                     </Col>
+                </Row>
+                <Row>
+                    <h4>Population Inbreeding Coefficient (Mean F): {meanF ? meanF.toFixed(6) : ''} </h4>
                 </Row>
                 <Row>
                     <AmphiTable tableDataUrl="cross_fish/get_completed_crosses"

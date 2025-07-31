@@ -20,14 +20,14 @@ export default function fetchData(fetchUrl, username, params, setData, fetchCall
     .then((res) => res.json())
     .then((data) => {
             if ('success' in data) {
-                if (!data['success'] && data['level']){
-                    setAlertLevel(data['level']);
-                    setAlertText(data['message']);
-                }
                 setData(data['success'], params);
                 if (fetchCallback) {
                     fetchCallback(data);
                 }
+            }
+            if (!data['success'] && data['level']){
+                setAlertLevel(data['level']);
+                setAlertText(data['message']);
             }
         } // TODO: Handle Failure
     )

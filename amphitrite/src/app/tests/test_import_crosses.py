@@ -12,5 +12,3 @@ class Test(TestCase):
 
         results = count_sibling_groups(MockTempDir(), 'crosses_job_id')
         self.assertEqual(1, len(results))
-
-    def test_import_crosses(self):

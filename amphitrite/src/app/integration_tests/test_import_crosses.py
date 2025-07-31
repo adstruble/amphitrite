@@ -2,15 +2,27 @@ import os
 from datetime import date
 from unittest.mock import patch
 
+import pytest
+
 from db_utils.core import execute_statements, ResultType
 from importer.import_crosses import import_crosses
 
 
-@patch('importer.import_crosses.complete_job')
-def test_import_2025_crosses(mock_complete_job, set_cleanup_sql_fn):
-
+@pytest.fixture
+def set_cleanup_sqls(set_cleanup_sql_fn):
+    set_cleanup_sql_fn('DELETE FROM supplementation_family_note sfn WHERE EXISTS('
+                       'SELECT 1 FROM supplementation_family '
+                       'WHERE id = sfn.family AND extract(YEAR FROM cross_date) = 2025)')
+    set_cleanup_sql_fn('DELETE FROM family_note fn WHERE EXISTS('
+                       'SELECT 1 FROM family '
+                       'WHERE id = fn.family AND extract(YEAR FROM cross_date) = 2025)')
     set_cleanup_sql_fn('DELETE FROM requested_cross WHERE extract(YEAR FROM cross_date) = 2025')
+    set_cleanup_sql_fn('DELETE FROM public.supplementation_family WHERE extract(YEAR FROM cross_date) = 2025')
     set_cleanup_sql_fn('DELETE FROM family WHERE extract(YEAR FROM cross_date) = 2025')
+
+
+@patch('importer.import_crosses.complete_job')
+def test_import_2025_crosses(mock_complete_job, set_cleanup_sqls):
 
     import_crosses(os.path.join(os.path.dirname(__file__), 'resources', '2025_all_refuge_crosses.csv'),
                    'amphiadmin', 'fake_job_id', 2025)
@@ -27,13 +39,7 @@ def test_import_2025_crosses(mock_complete_job, set_cleanup_sql_fn):
 
 
 @patch('importer.import_crosses.complete_job')
-def test_import_supplementation_crosses(mock_complete_job, set_cleanup_sql_fn):
-
-    set_cleanup_sql_fn('DELETE FROM supplementation_family_note sfn WHERE EXISTS('
-                       'SELECT 1 FROM supplementation_family '
-                       'WHERE id = sfn.family AND extract(YEAR FROM cross_date) = 2025)')
-    set_cleanup_sql_fn('DELETE FROM requested_cross WHERE extract(YEAR FROM cross_date) = 2025')
-    set_cleanup_sql_fn('DELETE FROM public.supplementation_family WHERE extract(YEAR FROM cross_date) = 2025')
+def test_import_supplementation_crosses(mock_complete_job, set_cleanup_sqls):
 
     import_crosses(os.path.join(os.path.dirname(__file__), 'resources', 'supplementation_crosses.csv'),
                    'amphiadmin', 'fake_job_id2', 2025)
@@ -56,16 +62,7 @@ def test_import_supplementation_crosses(mock_complete_job, set_cleanup_sql_fn):
 
 
 @patch('importer.import_crosses.complete_job')
-def test_import_supplementation_and_refuge_crosses(mock_complete_job, set_cleanup_sql_fn):
-
-    set_cleanup_sql_fn('DELETE FROM supplementation_family_note sfn WHERE EXISTS('
-                       'SELECT 1 FROM supplementation_family '
-                       'WHERE id = sfn.family AND extract(YEAR FROM cross_date) = 2025)')
-    set_cleanup_sql_fn('DELETE FROM supplementation_family WHERE extract(YEAR FROM cross_date) = 2025')
-    set_cleanup_sql_fn('DELETE FROM family_note fn WHERE EXISTS('
-                       'SELECT 1 FROM family WHERE id = fn.family AND extract(YEAR FROM cross_date) = 2025)')
-    set_cleanup_sql_fn('DELETE FROM family WHERE extract(YEAR FROM cross_date) = 2025')
-    set_cleanup_sql_fn('DELETE FROM requested_cross WHERE extract(YEAR FROM cross_date) = 2025')
+def test_import_supplementation_and_refuge_crosses(mock_complete_job, set_cleanup_sqls):
 
     import_crosses(os.path.join(os.path.dirname(__file__), 'resources', 'supplementation_and_refuge_crosses.csv'),
                    'amphiadmin', 'fake_job_id2', 2025)
@@ -89,6 +86,42 @@ def test_import_supplementation_and_refuge_crosses(mock_complete_job, set_cleanu
                        'm_tag': 'YJ17', 'cross_date': date.fromisoformat('2025-02-04'), 'group_id': 16} # noqa
     assert families[2] == {'content': 'Refuge no mfg', 'mfg': None, 'f_tag': 'RV44',
                        'm_tag': 'RF57', 'cross_date': date.fromisoformat('2025-05-20'), 'group_id': 347} # noqa
+
+    assert execute_statements([
+        "SELECT count(*) FROM requested_cross WHERE extract(YEAR FROM cross_date) = 2025"],
+        'amphiadmin', ResultType.RowResults).get_single_result() == 6
+
+
+@patch('importer.import_crosses.complete_job')
+def test_import_crosses_note_change(mock_complete_job, set_cleanup_sqls):
+
+    import_crosses(os.path.join(os.path.dirname(__file__), 'resources', 'supplementation_and_refuge_crosses.csv'),
+                   'amphiadmin', 'fake_job_id2', 2025)
+
+    mock_complete_job.assert_called_once()
+
+    import_crosses(os.path.join(os.path.dirname(__file__), 'resources', 'supplementation_and_refuge_crosses_note_change.csv'),
+                   'amphiadmin', 'fake_job_id2', 2025)
+
+    assert mock_complete_job.call_count == 2
+
+    families = get_families('supplementation_family', 'supplementation_family_note')
+
+    assert families[0] == {'content': 'Supplementation one note change suppl1', 'mfg': 5, 'f_tag': 'YP00',
+                           'm_tag': 'YN22', 'cross_date': date.fromisoformat('2025-02-28'), 'group_id': 1}
+    assert families[1] == {'content': '', 'mfg': 5, 'f_tag': 'YN80',
+                           'm_tag': 'YN04', 'cross_date': date.fromisoformat('2025-04-14'), 'group_id': 2} # noqa
+    assert families[2] == {'content': 'Supplementation three', 'mfg': 6, 'f_tag': 'YO60',
+                           'm_tag': 'YO58', 'cross_date': date.fromisoformat('2025-06-28'), 'group_id': 30} # noqa
+
+    families = get_families('family', 'family_note')
+
+    assert families[0] == {'content': 'refuge1', 'mfg': 2, 'f_tag': 'RM04',
+                           'm_tag': 'RJ07', 'cross_date': date.fromisoformat('2025-01-31'), 'group_id': 15}
+    assert families[1] == {'content': '', 'mfg': 2, 'f_tag': 'RC15',
+                           'm_tag': 'YJ17', 'cross_date': date.fromisoformat('2025-02-04'), 'group_id': 16} # noqa
+    assert families[2] == {'content': 'Refuge no mfg', 'mfg': None, 'f_tag': 'RV44',
+                           'm_tag': 'RF57', 'cross_date': date.fromisoformat('2025-05-20'), 'group_id': 347} # noqa
 
     assert execute_statements([
         "SELECT count(*) FROM requested_cross WHERE extract(YEAR FROM cross_date) = 2025"],

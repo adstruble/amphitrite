@@ -15,12 +15,13 @@ import useToken from "../App/useToken";
 import {useTheme} from "@table-library/react-table-library/theme";
 import {getTheme} from "@table-library/react-table-library/baseline";
 import PropTypes from "prop-types";
-import {Button, Input, InputGroup, InputGroupText, Row, UncontrolledTooltip} from "reactstrap";
+import {Button, Input, InputGroup, InputGroupText, Row} from "reactstrap";
 import AmphiHeaderCell from "./AmphiHeaderCell";
 import classnames from "classnames";
 import AmphiPagination from "./AmphiPagination";
 import {onKeyupWithDelay} from "../Utils/General";
 import useScrollbarVisibility from "../Utils/ScrollbarVisibility";
+import AmphiTooltip from "../Basic/AmphiTooltip.jsx";
 
 export const getExpandedDefault = () => {
     return (<tr className='expanded-row-contents'><td style={{display:"none"}}/></tr>);
@@ -173,7 +174,7 @@ export default function AmphiTable({tableDataUrl,
             }
         };
 
-        const newOrderBy = determineOrderBy()
+        const newOrderBy = await determineOrderBy()
         if (filterState ===  null){
             // Don't fetch data until filter state has been set
             return;
@@ -337,11 +338,11 @@ export default function AmphiTable({tableDataUrl,
                                                     <Cell id={'id' + item.id + header.key}
                                                           key={item.id + header.key}
                                                           className={header.className && header.className}>
-                                                        {header.tooltip && <UncontrolledTooltip
+                                                        {header.tooltip && <AmphiTooltip
                                                             placement={header.className === 'numberCell' ? "top-end" : "top-start"}
                                                             target={'id' + item.id + header.key}>
                                                             {tooltip}
-                                                        </UncontrolledTooltip>}
+                                                        </AmphiTooltip>}
                                                         {content}
 
                                                     </Cell>
