@@ -504,8 +504,11 @@ export default function CrossFish() {
                         </Row>
                     </Col>
                     <Col style={{padding: 0, textAlign: "right", flexGrow: "0", flexBasis: "fit-content"}}>
-                        <Button className="btn" color="default" type="button" onClick={handleExportCrossesClick}>
-                            Export Selected Crosses
+                        <Button className="nav-link" color="default" type="button" onClick={handleExportCrossesClick}>
+                            <div className="logout">
+                                <i className={classnames("amphi-icon", "icon-download")}/>
+                                <span>Export Selected Crosses</span>
+                            </div>
                         </Button>
                     </Col>
                 </Row>

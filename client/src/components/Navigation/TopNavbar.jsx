@@ -81,7 +81,7 @@ export default function TopNavbar() {
                             color="default"
                             onClick={handleLogoutClick}>
                         <div className="logout">
-                            <img alt="logout" src={Logout} className="logout"/>
+                            <img alt="logout" src={Logout} className="amphi-icon"/>
                             <span>Sign Out</span>
                         </div>
                     </Button>
