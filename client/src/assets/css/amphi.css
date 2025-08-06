@@ -116,6 +116,9 @@ div.input-area{
 .input-area .row{
     margin-bottom: 10px;
 }
+.cross-fish .input-area .row{
+    margin-bottom: 0;
+}
 .filter .input-area .nav-link{
     padding:initial;
 }

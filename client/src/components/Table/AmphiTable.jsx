@@ -340,9 +340,9 @@ export default function AmphiTable({tableDataUrl,
                                                           className={header.className && header.className}>
                                                         {header.tooltip && <AmphiTooltip
                                                             placement={header.className === 'numberCell' ? "top-end" : "top-start"}
-                                                            target={'id' + item.id + header.key}>
-                                                            {tooltip}
-                                                        </AmphiTooltip>}
+                                                            target={'id' + item.id + header.key}
+                                                            content={tooltip}/>
+                                                        }
                                                         {content}
 
                                                     </Cell>

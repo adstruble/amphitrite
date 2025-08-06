@@ -23,9 +23,7 @@ import {CrossYearDropdown} from "../../components/Basic/CrossYearDropdown";
 import {ViewCrossesFilter} from "./ViewCrossesFilter";
 import FishDataUpload from "../../components/Upload/FishDataUpload";
 import {useOutletContext} from "react-router-dom";
-import {Header} from "@table-library/react-table-library/table";
 import getData from "../../server/getData.js";
-import AmphiTooltip from "../../components/Basic/AmphiTooltip.jsx";
 
 
 export default function ViewCrosses(){

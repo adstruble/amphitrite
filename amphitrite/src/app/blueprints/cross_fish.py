@@ -1,4 +1,3 @@
-import csv
 import os
 import tempfile
 import threading
@@ -9,10 +8,10 @@ from amphi_logging.logger import get_logger
 from blueprints.utils import maybe_get_username, validate_and_create_upload_job, clean_str_array, validate_params
 from importer.import_crosses import import_crosses
 from model.crosses import add_requested_cross, remove_requested_cross, get_requested_crosses_csv, \
-    add_completed_cross, get_possible_crosses, \
-    get_available_female_tags_str, get_completed_crosses, set_cross_failed, \
-    set_use_for_supplementation, get_exported_crosses_csv, get_completed_crosses_by_family, set_available_females, \
-    get_available_females_with_0_or_1_males, get_population_f
+    add_completed_cross, get_possible_crosses, get_completed_crosses, set_cross_failed, \
+    set_use_for_supplementation, get_exported_crosses_csv, get_completed_crosses_by_family, \
+    get_available_females_with_0_or_1_males, get_population_f, get_available_tags_str, set_available_fish, \
+    get_population_f_with_requested
 from model.family import remove_family_by_tags, set_family_mfg, save_family_notes
 from utils.data import validate_order_by
 
@@ -136,27 +135,27 @@ def remove_completed_cross():
     return result
 
 
-@cross_fish.route('/cross_fish/set_available_females_from_file', methods=(['POST']))
-def set_available_females_from_file():
+@cross_fish.route('/cross_fish/set_available_from_file', methods=(['POST']))
+def set_available_from_file():
     LOGGER.info("Setting available fish from file")
     username_or_err = maybe_get_username(request.headers, "bulk upload")
     if isinstance (username_or_err, dict): # noqa
         return username_or_err
 
     try:
-        females = []
+        fish = []
         for line in request.files['file'].stream.read().splitlines():
             LOGGER.info(f"row: {line.decode('utf-8-sig').split('_')[0].strip()}")
-            females.append(line.decode('utf-8-sig').split('_')[0].strip())
+            fish.append(line.decode('utf-8-sig').split('_')[0].strip())
 
-        return set_available_females(username_or_err, females)
+        return set_available_fish(username_or_err, fish)
     except Exception as e:
         return {"success": False, "error": str(e)}
 
 
-@cross_fish.route('/cross_fish/set_available_females', methods=(['POST']))
-def set_available_females_from_comma_seperated_list():
-    LOGGER.info("Setting available females from list")
+@cross_fish.route('/cross_fish/available_fish', methods=(['POST']))
+def set_available_fish_from_comma_seperated_list():
+    LOGGER.info("Setting available fish from list")
 
     username_or_err = maybe_get_username(request.headers, "adding completed cross")
     if isinstance (username_or_err, dict): # noqa
@@ -164,24 +163,24 @@ def set_available_females_from_comma_seperated_list():
 
     request_params = request.get_json()
 
-    LOGGER.info(f"Setting available females: {request_params['f_tags']}")
-    cleaned_f_tags = clean_str_array(request_params['f_tags'])
+    LOGGER.info(f"Setting available fish: {request_params['tags']}")
+    cleaned_tags = clean_str_array(request_params['tags'])
 
-    return set_available_females(username_or_err, cleaned_f_tags)
+    return set_available_fish(username_or_err, cleaned_tags)
 
 
-@cross_fish.route('/cross_fish/get_available_f_tags', methods=(['POST']))
-def get_available_f_tags():
-    LOGGER.info("Get Available Female Tags")
+@cross_fish.route('/cross_fish/available', methods=(['GET']))
+def get_available_tags():
+    LOGGER.info("Get Available Tags")
 
     username_or_err = maybe_get_username(request.headers, "getting available ftags")
     if isinstance (username_or_err, dict): # noqa
         return username_or_err
 
-    f_tags = get_available_female_tags_str(username_or_err)
+    f_tags, m_tags = get_available_tags_str(username_or_err)
     uncrossed_tags = get_available_females_with_0_or_1_males(username_or_err)
 
-    return {'success': {'f_tags': f_tags, 'uncrossed_tags': uncrossed_tags}}
+    return {'success': {'f_tags': f_tags, 'uncrossed_tags': uncrossed_tags, 'm_tags': m_tags}}
 
 
 @cross_fish.route('/cross_fish/get_completed_crosses', methods=(['POST']))
@@ -229,7 +228,7 @@ def get_completed_crosses_by_family_cnt():
     query_params = request.get_json()
     fam_ids = query_params.pop('fam_ids')
 
-    results = {'refuge':{}, 'supplementation':{}}
+    results = {'refuge': {}, 'supplementation': {}}
     for fam_id in fam_ids:
         query_params['fam_id'] = fam_id
         query_params['refuge'] = True
@@ -250,7 +249,7 @@ def set_family_mfg_api():
     if isinstance (username_or_err, dict): # noqa
         return username_or_err
 
-    params= request.get_json()
+    params = request.get_json()
     try:
         mfg = int(params.get('mfg'))
     except: # noqa
@@ -326,3 +325,13 @@ def get_population_inbreeding_coefficient():
     pop_type = request.args.get('pop_type').lower()
 
     return {"success": get_population_f(username_or_err, year, pop_type)}
+
+
+@cross_fish.route('/cross_fish/mean-f', methods=(['GET']))
+def get_mean_f_with_requested():
+    LOGGER.info("Getting Mean F with requested crosses included")
+    username_or_err = maybe_get_username(request.headers, "exporting crosses")
+    if isinstance (username_or_err, dict): # noqa
+        return username_or_err
+
+    return {"success": {'f': get_population_f_with_requested(username_or_err)}}

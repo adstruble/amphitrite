@@ -49,7 +49,7 @@ def seed_pedigree():
 @pytest.fixture(autouse=True, scope='session')
 def load_2025_master(seed_pedigree):
     with patch('importer.import_master.complete_job') as _:
-        import_master_data(os.path.join(os.path.dirname(__file__), 'resources'), 'amphiadmin', '2025.csv', 2025)
+        import_master_data(os.path.join(os.path.dirname(__file__), 'resources', 'master_sheets'), 'amphiadmin', '2025.csv', 2025)
 
 
 @pytest.fixture()

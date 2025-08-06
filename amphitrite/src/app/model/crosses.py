@@ -197,9 +197,10 @@ def _get_order_by_clause_for_possible_crosses(order_bys:list, ref_y_crosses_sql,
     return f"ORDER BY {order_by_cols[:-2]}"
 
 
-def get_count_possible_females(username):
-    possible_females_cnt_sql = """SELECT count(distinct female) from possible_cross"""
-    return execute_statements(possible_females_cnt_sql, username).get_single_result()
+def get_count_possible_fish(username):
+    possible_fish_cnt_sql = """SELECT count(distinct female), count(distinct male)from possible_cross"""
+    result = execute_statements(possible_fish_cnt_sql, username).get_row(0)
+    return result[0] + result[1]
 
 
 def add_requested_cross(username, fam_f_id, fam_m_id, f, supplementation):
@@ -408,10 +409,13 @@ def insert_new_available(username, f_tags):
     execute_statements((insert_sql, {'fish_tags': list(f_tags)}), username, ResultType.NoResult)
 
 
-def get_available_female_tags_str(username):
+def get_available_tags_str(username):
     results = select_available_female_tags_list(username)
     available_female_tag_to_gid = {row[0]: row[1] for row in results}
-    return _get_tag_str_grouped_by_fam(available_female_tag_to_gid)
+    results = select_available_male_tags_list(username)
+    available_male_tag_to_gid = {row[0]: row[1] for row in results}
+    return (_get_tag_str_grouped_by_fam(available_female_tag_to_gid),
+            _get_tag_str_grouped_by_fam(available_male_tag_to_gid))
 
 
 def select_available_female_tags_list(username):
@@ -419,6 +423,16 @@ def select_available_female_tags_list(username):
                                  JOIN refuge_tag rt on animal = female
                                  JOIN animal x ON x.id = rt.animal
                                  JOIN family f ON f.id = x.family''',
+                                 username).row_results
+    return results
+
+
+def select_available_male_tags_list(username):
+    results = execute_statements('''SELECT distinct tag, y_fam.group_id FROM possible_cross
+                                 JOIN family y_fam ON y_fam.id = male
+                                 JOIN animal y ON y.family = y_fam.id
+                                 JOIN available_animal aa_y on aa_y.animal = y.id
+                                 JOIN refuge_tag ON refuge_tag.animal = aa_y.animal''',
                                  username).row_results
     return results
 
@@ -524,47 +538,50 @@ def _maybe_remove_female(f_tags: list, males: dict, available_female_dict):
                 pass
 
 
-def set_available_females(username:str, females: list):
+def set_available_fish(username:str, fish: list):
     """
-    Possible crosses along with their f values will be determined for the given available females.
-    These available females will replace any previous.
+    Possible crosses along with their f values will be determined for the given available fish.
+    These available fish will replace any previous.
     :param username: user who is setting the available females
-    :param females: The females to be set as available.
-    :return: result of the operation, either success with the list of available females, or error if
-    unable to set. A warning will also be included if the list included tags that weren't included in the set
-    of available females
+    :param fish: The fish to be set as available.
+    :return: result of the operation, either success with the list of available fish, or error if
+    unable to set. A warning will also be included if the given list included tags that weren't included in the tags
+    that are now considered as possible crosses
     """
     try:
-        insert_cnt = determine_and_insert_possible_crosses(username, females)
+        insert_cnt = determine_and_insert_possible_crosses(username, fish)
     except Exception as e:
         return {"success": False, "error": str(e)}
 
     return_val = {'success': True}
-    if insert_cnt < len(females):
-        possible_females_cnt = get_count_possible_females(username)
-        if len(females) > possible_females_cnt:
-            f_tags_len = len(females)
-            return_val['warning'] = \
-                f"{'' if possible_females_cnt == 0 else 'Only '}{possible_females_cnt} female fish are available for " \
-                f"crossing, you supplied a list of {f_tags_len} fish tag{'' if f_tags_len == 1 else 's'}. " \
-                "Confirm all tags were specified correctly and all the fish for the entered tags have previously " \
-                "been uploaded and are present in the Manage Fish UI. "
-            if possible_females_cnt == 0:
-                return_val['success'] = False
-                return_val['error'] = return_val['warning']
-                return_val.pop('warning')
-                return return_val
+    possible_fish_cnt = get_count_possible_fish(username)
+
+    if len(fish) > possible_fish_cnt:
+        tags_len = len(fish)
+        return_val['warning'] = \
+            f"{'' if possible_fish_cnt == 0 else 'Only '}{possible_fish_cnt} fish are available for " \
+            f"crossing, you supplied a list of {tags_len} fish tag{'' if tags_len == 1 else 's'}. " \
+            "Confirm all tags were specified correctly and all the fish for the entered tags have previously " \
+            "been uploaded and are present in the Manage Fish UI as alive fish. Male fish that are from the same " \
+            "family as an available female fish have also been excluded."
+        if possible_fish_cnt == 0:
+            return_val['success'] = False
+            return_val['error'] = return_val['warning']
+            return_val.pop('data')
+            return return_val
+    f_tags, m_tags = get_available_tags_str(username)
     return_val['data'] = {}
-    return_val['data']['f_tags'] = get_available_female_tags_str(username)
+    return_val['data']['f_tags'] = f_tags
+    return_val['data']['m_tags'] = m_tags
     return_val['data']['uncrossed_tags'] = get_available_females_with_0_or_1_males(username)
     return return_val
 
 
-def determine_and_insert_possible_crosses(username_or_err, cleaned_f_tags):
-    cleanup_previous_available_fish(username_or_err, cleaned_f_tags)
-    insert_new_available(username_or_err, cleaned_f_tags)
+def determine_and_insert_possible_crosses(username_or_err, cleaned_tags):
+    cleanup_previous_available_fish(username_or_err, cleaned_tags)
+    insert_new_available(username_or_err, cleaned_tags)
 
-    possible_crosses = get_new_possible_crosses_for_fish(username_or_err, cleaned_f_tags)
+    possible_crosses = get_new_possible_crosses_for_fish(username_or_err, cleaned_tags)
 
     if len(possible_crosses):
         f_matrix = build_matrix_from_existing(username_or_err)
@@ -726,3 +743,30 @@ def get_population_f(username, year, pop_type):
                                                      WHERE extract(YEAR from cross_date) = :year""", {'year': year}),
                               username,
                               ResultType.RowResults).get_single_result()
+
+
+def get_population_f_with_requested(username):
+    """
+     Returns the refuge population wide inbreeding coefficient for the current breeding year including the pairs that
+     are currently selected as requested.
+    :param username:
+    :return: avg inbreeding coefficient for the population including requested (but not yet completed) crosses
+    """
+
+    family_f_stats = execute_statements(("""SELECT CASE WHEN avg(f) is null then 0 else avg(f) END, count(f)
+                                              FROM family
+                                             WHERE extract(YEAR from cross_date) = date_part('year', CURRENT_DATE)"""),
+                                        username, ResultType.RowResults).get_row(0)
+    req_cross_f_stats = execute_statements('''SELECT CASE WHEN avg(f) is null then 0 else avg(f) END, count(f)
+                                                FROM requested_cross
+                                               WHERE cross_date is null
+                                                 AND NOT supplementation''', username, ResultType.RowResults).get_row(0)
+
+    total_pairs = family_f_stats[1] + req_cross_f_stats[1]
+    if total_pairs == 0:
+        return 0
+
+    avg_f = (family_f_stats[0] * (family_f_stats[1]/total_pairs) +
+             req_cross_f_stats[0] * (req_cross_f_stats[1]/total_pairs))
+
+    return avg_f

@@ -27,9 +27,8 @@ export default function AmphiHeaderCell({header, updateOrderBy}) {
                 <span id={"header" + header.key}>{header.name}</span>
                 {header.header_tooltip && <AmphiTooltip
                     placement={"top-start"}
-                    target={"header" + header.key}>
-                    {header.header_tooltip}
-                </AmphiTooltip>}
+                    target={"header" + header.key}
+                    content={header.header_tooltip}/>}
             </div>
         </th>
     );

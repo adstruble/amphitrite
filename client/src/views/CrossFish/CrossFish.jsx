@@ -18,6 +18,7 @@ import ReactDatetime from "react-datetime";
 import moment from "moment";
 import CrossFishExpanded from "./CrossFishExpanded";
 import {CrossFishFilter} from "./CrossFishFilter";
+import getData from "../../server/getData.js";
 
 export default function CrossFish() {
     const {getUsername} = useToken();
@@ -26,23 +27,26 @@ export default function CrossFish() {
     const [reloadTable, setReloadTable] = useState(0);
     const [selectFishOpen, setSelectFishOpen] = useState(false);
     const [possibleFishColumn, setPossibleFishColumn] = useState("");
-    const [selectFemalesOpen, setSelectFemalesOpen] = useState(false);
+    const [selectAvailableFishOpen, setSelectAvailableFishOpen] = useState(false);
     const [selectedMale, setSelectedMale] = useState("");
     const [selectedFemale, setSelectedFemale] = useState("");
     const [requestedCross, setRequestedCross] = useState({'m_tags':[]});
     const [alertText, setAlertText] = useState("");
     const [alertLevel, setAlertLevel] = useState("");
-    const [userSetFTags, setUserSetFTags] = useState("");
+    const [userSetTags, setUserSetTags] = useState("");
     const [availableFTags, setAvailableFTags] = useState("None");
+    const [availableMTags, setAvailableMTags] = useState("None");
     const [uncrossedFTags, setUncrossedFTags] = useState("")
 
     const [isLoading, setIsLoading] = useState(false);
     const [setSpinning] = useOutletContext();
     const [crossCompletionDate, setCrossCompletionDate] = useState(moment(new Date()).format("MM/DD/YYYY"));
 
-    const [availableFemalesFile, setAvailableFemalesFile] = useState(null);
-    const [availableFemalesFileName, setAvailableFemalesFileName] = useState("");
-    const [setFemaleTab, setSetFemaleTab] = useState(1);
+    const [availableFishFile, setAvailableFishFile] = useState(null);
+    const [availableFishFileName, setAvailableFishFileName] = useState("");
+    const [setFishTab, setSetFishTab] = useState(1);
+
+    const [meanF, setMeanF] = useState(0);
 
     const handleExportCrossesClick = async _ => {
         fetchFile("cross_fish/export_selected_crosses", 'request_crosses.csv', getUsername(),
@@ -52,7 +56,7 @@ export default function CrossFish() {
 
 
     const handleSetAvailableFemalesClick = async _ => {
-        setSelectFemalesOpen(true);
+        setSelectAvailableFishOpen(true);
     };
 
     function handleUseRefuge(e, item, getName){
@@ -73,13 +77,17 @@ export default function CrossFish() {
         if (e.target.checked){
             fetchData("cross_fish/add_selected_cross", getUsername(),
                 {cross_id: item['id'], f: item['f'], supplementation: supplementation}, () => {
-                    setReloadTable(reloadTable => reloadTable + 1)},
+                    setReloadTable(reloadTable => reloadTable + 1)
+                    updateMeanF();
+                },
                 (data) =>{setUncrossedFTags(data['data']['uncrossed_tags'])},
                 null, setAlertLevel, setAlertText)
         }else{
             fetchData("cross_fish/remove_selected_cross", getUsername(),
                 {cross_id: item['id']}, () => {
-                    setReloadTable(reloadTable => reloadTable + 1)},
+                    setReloadTable(reloadTable => reloadTable + 1)
+                    updateMeanF();
+                },
                 (data)=>{setUncrossedFTags(data['data']['uncrossed_tags'])},
                 null, setAlertLevel, setAlertText)
         }
@@ -114,10 +122,7 @@ export default function CrossFish() {
     const cantComplete = (item) => {
         // If the item has been completed, should always be able to uncomplete
         if (item['completed_x'] != null){
-            if(item['f_tags'][0] !== item['completed_x'].slice(0,-4)) {
-                return true;
-            }
-            return false;
+            return item['f_tags'][0] !== item['completed_x'].slice(0, -4);
         }
 
         // If all of the fish have been previously crossed for supplementation and this is a requested supplementation
@@ -171,7 +176,7 @@ export default function CrossFish() {
                 () => setReloadTable(reloadTable => reloadTable + 1),
                 null, null, setAlertLevel, setAlertText)
         }
-    };
+    }
 
     const selectFish = () => {
         setSelectFishOpen(false);
@@ -195,7 +200,7 @@ export default function CrossFish() {
                 requested_cross: requestedCross['id'],
       cross_completed_date: crossCompletionDate},
             () => {
-                setReloadTable(reloadTable => reloadTable + 1)
+                setReloadTable(reloadTable => reloadTable + 1);
             }, null, null, setAlertLevel, setAlertText
         );
 
@@ -211,13 +216,30 @@ export default function CrossFish() {
 
     // Set the starting value for userSetFTags and availableFTags on page load.
     React.useEffect(() => {
-        fetchData("cross_fish/get_available_f_tags", getUsernameRef.current(),
+        getData("cross_fish/available", getUsernameRef.current(),
             {}, (success) => {
-                let availableFemales = success['f_tags'].length > 0 ? success['f_tags'] : "None"
-                setAvailableFTags(availableFemales);
-                setUserSetFTags(availableFemales.replaceAll("(","").replaceAll(")",""));
-                setUncrossedFTags(success['uncrossed_tags']);
-            }, null, null, setAlertLevel, setAlertText);
+                    let availableFemales = success['f_tags'].length > 0 ? success['f_tags'] : "None";
+                    let availableMales = success['m_tags'].length > 0 ? success['m_tags'] : "None";
+                    setAvailableFTags(availableFemales);
+                    setAvailableMTags(availableMales);
+                    setUserSetTags(availableFemales.replaceAll("(","").replaceAll(")","")
+                        + (availableFemales.length > 0 ? ',' : '') +
+                        availableMales.replaceAll("(","").replaceAll(")",""));
+                    setUncrossedFTags(success['uncrossed_tags']);
+                }, setAlertLevel, setAlertText);
+    }, []);
+
+
+    const updateMeanF = () =>{
+        getData("cross_fish/mean-f", getUsernameRef.current(),
+            {}, (success) => {
+                setMeanF(success['f']);
+            }, setAlertLevel, setAlertText);
+    };
+
+
+    React.useEffect( () =>{
+        updateMeanF();
     }, []);
 
 
@@ -229,35 +251,35 @@ export default function CrossFish() {
         }
     }, [isLoading, setSpinning]);
 
-    const selectFemales = () => {
+    const selectAvailableFish = () => {
         // Tab 1 is file upload
-        if (setFemaleTab === 1){
-            if (!availableFemalesFile) {
+        if (setFishTab === 1){
+            if (!availableFishFile) {
                 return;
             }
-            setSelectFemalesOpen(false);
+            setSelectAvailableFishOpen(false);
             const formData = new FormData();
-            formData.append('file', availableFemalesFile);
+            formData.append('file', availableFishFile);
             setIsLoading(true);
-            fetchData("cross_fish/set_available_females_from_file", getUsername(),
+            fetchData("cross_fish/set_available_from_file", getUsername(),
                 null,
                 () => void 0,
                 (data) => {
                     setAvailableCallback(data);
                     setIsLoading(false);
-                    setUserSetFTags(data['data'])
+                    setUserSetTags(data['data'])
                 },
                 null, setAlertLevel, setAlertText, null, formData);
         }
         // Tab 2 is comma separated list in text area
-        if (setFemaleTab === 2) {
-            setSelectFemalesOpen(false);
-            const input = document.getElementById("selectFemalesFormArea");
-            const f_tags = input.value.split(",");
-            setUserSetFTags(f_tags)
+        if (setFishTab === 2) {
+            setSelectAvailableFishOpen(false);
+            const input = document.getElementById("selectFishFormArea");
+            const tags = input.value.split(",");
+            setUserSetTags(tags)
             setIsLoading(true);
-            fetchData("cross_fish/set_available_females", getUsername(),
-                {f_tags: f_tags},
+            fetchData("cross_fish/available_fish", getUsername(),
+                {tags: tags},
                 () => void 0,
                 (data) => {
                     setAvailableCallback(data);
@@ -268,8 +290,8 @@ export default function CrossFish() {
     }
 
     const onSetAvailableFemalesOpened = () => {
-        const input = document.getElementById("selectFemalesFormArea");
-        input.value = userSetFTags !== "None" ? userSetFTags : (availableFTags === 'None' ? '' : availableFTags);
+        const input = document.getElementById("selectFishFormArea");
+        input.value = userSetTags !== "None" ? userSetTags : (availableFTags === 'None' ? '' : availableFTags);
     }
 
     const setAvailableCallback = (data) => {
@@ -283,7 +305,12 @@ export default function CrossFish() {
                 setAlertText(data['warning']);
             }
         }
+        if ('warning' in data){
+            setAlertLevel('warning');
+            setAlertText(data['warning']);
+        }
         setAvailableFTags(data['data']['f_tags'])
+        setAvailableMTags(data['data']['m_tags'])
         setUncrossedFTags(data['data']['uncrossed_tags'])
         setReloadTable(reloadTable => reloadTable + 1)
     }
@@ -299,8 +326,8 @@ export default function CrossFish() {
     function handleFileChange(e){
         if (e.target.files) {
             if (e.target.value.length > 0) {
-                setAvailableFemalesFile(e.target.files[0]);
-                setAvailableFemalesFileName(e.target.value.split('\\').pop());
+                setAvailableFishFile(e.target.files[0]);
+                setAvailableFishFileName(e.target.value.split('\\').pop());
             }
         }
     }
@@ -351,9 +378,9 @@ export default function CrossFish() {
 
     return (
         <div className={classnames('wrapper', 'cross-fish', isLoading ? 'disabled' : '')}>
-            <Modal onOpened={onSetAvailableFemalesOpened} isOpen={selectFemalesOpen}  modalClassName="modal-black" id="selectFemales">
+            <Modal onOpened={onSetAvailableFemalesOpened} isOpen={selectAvailableFishOpen}  modalClassName="modal-black" id="selectFish">
                 <div className="modal-header justify-content-center">
-                    <button className="btn-close" onClick={() => setSelectFemalesOpen(false)}>
+                    <button className="btn-close" onClick={() => setSelectAvailableFishOpen(false)}>
                         <i className="tim-icons icon-simple-remove text-white"/>
                     </button>
                     <div className="text-muted text-center ml-auto mr-auto">
@@ -366,9 +393,9 @@ export default function CrossFish() {
                         <NavItem>
                             <NavLink
                                 className={classnames({
-                                    active: setFemaleTab === 1
+                                    active: setFishTab === 1
                                 })}
-                                onClick={(_) => setSetFemaleTab(1)}
+                                onClick={(_) => setSetFishTab(1)}
                             >
                                 Upload File
                             </NavLink>
@@ -376,35 +403,35 @@ export default function CrossFish() {
                         <NavItem>
                             <NavLink
                                 className={classnames({
-                                    active: setFemaleTab === 2
+                                    active: setFishTab === 2
                                 })}
-                                onClick={(_) => setSetFemaleTab(2)}
+                                onClick={(_) => setSetFishTab(2)}
                             >
                                 Enter List
                             </NavLink>
                         </NavItem>
                     </Nav>
-                    <TabContent className="tab-space" activeTab={"tab" + setFemaleTab}>
+                    <TabContent className="tab-space" activeTab={"tab" + setFishTab}>
                         <TabPane tabId="tab1">
                             <Input className="" type="file" name="file" id="file_input" onChange={handleFileChange}/>
                             <label htmlFor="file_input">Choose File</label>
                             <span>File should specify one fish tag per line</span>
-                            <div style={{minHeight:"26.6px"}}>{availableFemalesFileName}</div>
+                            <div style={{minHeight:"26.6px"}}>{availableFishFileName}</div>
                         </TabPane>
                         <TabPane tabId="tab2">
                             <div>
                                 <span>Provide available fish tags as a comma separated list</span>
                             </div>
                             <div>
-                                <Input type="textarea" className="form-control" id="selectFemalesFormArea" rows="3"/>
+                                <Input type="textarea" className="form-control" id="selectFishFormArea" rows="3"/>
                             </div>
                         </TabPane>
                     </TabContent>
                 </div>
                 <div className="modal-footer">
                     <Button color="default" className="btn" type="button"
-                            onClick={() => setSelectFemalesOpen(false)}>Cancel</Button>
-                    <Button color="success" type="button" onClick={selectFemales}>Select</Button>
+                            onClick={() => setSelectAvailableFishOpen(false)}>Cancel</Button>
+                    <Button color="success" type="button" onClick={selectAvailableFish}>Select</Button>
                 </div>
             </Modal>
             <Container>
@@ -422,6 +449,14 @@ export default function CrossFish() {
                                 <span style={{marginRight:"20px"}}>{availableFTags}</span>
                                 <Button  className="btn setting" color="default" type="button"
                                         onClick={handleSetAvailableFemalesClick}>Set Available Fish</Button>
+                            </Col>
+                        </Row>
+                        <Row>
+                            <Col>
+                                <span>Available male fish for crossing:</span>
+                            </Col>
+                            <Col>
+                                <span style={{marginRight:"20px"}}>{availableMTags}</span>
                             </Col>
                         </Row>
                         <Row>
@@ -459,6 +494,14 @@ export default function CrossFish() {
                                 </div>
                             </Col>
                         </Row>
+                        <Row>
+                            <Col>
+                                <span style={{lineHeight: '18px', textAlign: 'right'}}>{moment(new Date()).year()} Refuge Population Inbreeding Coefficient (Mean F):</span>
+                            </Col>
+                            <Col style={{position: 'relative'}}>
+                                <span style={{position: 'absolute', lineHeight: '18px', bottom: 0}}>{meanF ? meanF.toFixed(6) : '0.0'}</span>
+                            </Col>
+                        </Row>
                     </Col>
                     <Col style={{padding: 0, textAlign: "right", flexGrow: "0", flexBasis: "fit-content"}}>
                         <Button className="btn" color="default" type="button" onClick={handleExportCrossesClick}>
@@ -481,8 +524,7 @@ export default function CrossFish() {
                         <i className="tim-icons icon-simple-remove text-white"/>
                     </button>
                     <div className="text-muted text-center ml-auto mr-auto">
-                    <h3 className="mb-0">Select Crossed {(possibleFishColumn === 'm_tags') ? 'Male' : 'Female'}</h3>
-                    </div>
+                    <h3 className="mb-0">Select Crossed {(possibleFishColumn === 'm_tags') ? 'Male' : 'Female'}</h3></div>
                 </div>
                 <div className="modal-body">
                     <div style={{paddingLeft:"15px"}}>

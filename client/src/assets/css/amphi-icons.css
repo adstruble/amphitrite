@@ -107,3 +107,7 @@ Generated using nucleoapp.com
   content: "\ea06";
   font-family: "amphi", serif;
 }
+.icon-download::before {
+  content: "\ea07";
+  font-family: "amphi", serif;
+}
