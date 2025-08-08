@@ -24,6 +24,7 @@ import {ViewCrossesFilter} from "./ViewCrossesFilter";
 import FishDataUpload from "../../components/Upload/FishDataUpload";
 import {useOutletContext} from "react-router-dom";
 import getData from "../../server/getData.js";
+import {ImportExportDropdown} from "../../components/Basic/ImportExportDropdown.jsx";
 
 
 export default function ViewCrosses(){
@@ -79,8 +80,8 @@ export default function ViewCrosses(){
         {'year':completedCrossesYear, 'refuge':viewingRefugeCrosses})
     const {getUsername} = useToken();
     const [setSpinning] = useOutletContext();
-    const [meanF, setMeanF] = useState(0)
-
+    const [meanF, setMeanF] = useState(0);
+    const [showFishDataUpload, setShowFishDatUpload] = useState(false);
 
     const toggleCrossType = () => setCrossTypeDropdownOpen(prevState => !prevState)
 
@@ -142,11 +143,11 @@ export default function ViewCrosses(){
                                      refugeCrosses={viewingRefugeCrosses}/>)
     }
 
-    function getCrossTypeDropdownLabel(){
+    function getCrossTypeDropdownLabel(lower=false){
         if (viewingRefugeCrosses){
-            return "Refuge"
+            return lower ? "refuge" : "Refuge"
         }else{
-            return "Supplementation"
+            return lower ? "supplementation" : "Supplementation"
         }
     }
 
@@ -237,12 +238,16 @@ export default function ViewCrosses(){
                                         setIsLoading={setIsLoading}
                                         setAlertText={setAlertText}
                                         setAlertLevel={setAlertLevel}
+                                        showButton={false}
+                                        showFormModalFromParent={showFishDataUpload}
+                                        setShowFormModalFromParent={setShowFishDatUpload}
                                         /*UserOptions={UserOptions}
                                         uploadParams={{'cross_date': crossCompletionDate}}*/
                         />
-                        <Button className="btn" color="default" type="button" onClick={handleExportCrossesClick}>
-                            Export Crosses
-                        </Button>
+                        <ImportExportDropdown importExportItems={[
+                            {'name': 'Import completed ' + getCrossTypeDropdownLabel(true) + ' crosses','callback':()=>{setShowFishDatUpload(true)}, 'export':false},
+                            {'name': 'Export completed ' + getCrossTypeDropdownLabel(true) + ' crosses as pairs', 'callback':handleExportCrossesClick, 'export':true},
+                            {'name': 'Export single fish of completed ' + getCrossTypeDropdownLabel(true) + ' crosses (parentage analysis)', 'callback':handleExportCrossesClick, 'export':true}]}/>
                     </Col>
                 </Row>
                 <Row>

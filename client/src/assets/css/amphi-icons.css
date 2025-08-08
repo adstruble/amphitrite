@@ -111,3 +111,7 @@ Generated using nucleoapp.com
   content: "\ea07";
   font-family: "amphi", serif;
 }
+.icon-upload::before {
+  content: "\ea08";
+  font-family: "amphi", serif;
+}

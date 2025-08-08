@@ -33,6 +33,14 @@ button.nav-link .amphi-icon {
     display: inline-block;
     padding-left: 8px;
 }
+.dropdown-menu button.dropdown-item {
+    line-height: 12px;
+    font-size: 12px;
+}
+button.dropdown-item.amphi-icon{
+    float: left;
+    font-size: 12px;
+}
 .amphi-table-container {
     flex-direction: column;
     display: flex;

@@ -5,9 +5,10 @@ import PropTypes from "prop-types";
 
 
 export default function FishDataUpload({dataUploadUrl, uploadCallback, uploadButtonText,
-                                       formModalTitle, setIsLoading=null,
-                                       fileNameStartText='No file chosen',
-                                       setAlertText, setAlertLevel, UserOptions, uploadParams={}}
+                                           formModalTitle, setIsLoading=null,
+                                           fileNameStartText='No file chosen',
+                                           setAlertText, setAlertLevel, UserOptions, uploadParams={},
+                                           showFormModalFromParent, setShowFormModalFromParent}
 ) {
     const [formModal, setFormModal] = useState(false);
 
@@ -40,17 +41,23 @@ export default function FishDataUpload({dataUploadUrl, uploadCallback, uploadBut
 
     const fishDataUploadInProgress = () => {
         setFormModal(false);
+        if (setShowFormModalFromParent !== undefined){
+            setShowFormModalFromParent(false)
+        }
         setAlertText("Bulk upload in progress...");
         setAlertLevel("info");
     }
 
     const fishDataUploadCancel = () => {
         setFormModal(false);
+        if (setShowFormModalFromParent !== undefined){
+            setShowFormModalFromParent(false)
+        }
     }
 
     return (
         <>
-            <FileUploadSingle formModalProp={formModal} fileUploadUrl={dataUploadUrl}
+            <FileUploadSingle formModalProp={formModal || showFormModalFromParent} fileUploadUrl={dataUploadUrl}
                               submitReturnCallback={fishDataUploadCallback}
                               submitCallback={fishDataUploadInProgress}
                               cancelCallback={fishDataUploadCancel}
@@ -60,9 +67,9 @@ export default function FishDataUpload({dataUploadUrl, uploadCallback, uploadBut
                               UserOptions={UserOptions}
                               uploadParams={uploadParams}
             />
-            <Button id={uploadButtonText.replace(/ /g,'')} className="btn" color="default" type="button" onClick={handleUploadFishDataClick}>
+            {showFormModalFromParent === undefined  && <Button id={uploadButtonText.replace(/ /g,'')} className="btn" color="default" type="button" onClick={handleUploadFishDataClick}>
                 {uploadButtonText}
-            </Button>
+            </Button>}
         </>
     )
 

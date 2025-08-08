@@ -705,16 +705,15 @@ def get_exported_crosses_csv(username, params, csv_file):
     filter_str = 'completed_cross.cross_year = :year'
     crosses, _ = get_completed_crosses(username, params, "ORDER BY cross_date, group_id", filter_str)
     csv_file.write(
-        f"Date,Male,Male Family,Female,Female Family,PC/FSG,{'MFG,' if params['refuge'] else ''}Notes\n")
+        f"Date,Male,Male PC/FSG,Female,Female PC/FSG,PC/FSG,{'MFG' if params['refuge'] else 'Tank'},F,DI,"
+        "Female PC/FSG Crosses Completed,Male PC/FSG Crosses Completed,Notes\n")
     for cross in crosses:
-        cross_notes = ""
+        cross_notes = cross['notes']
         if cross['supplementation'] and params['refuge']:
             cross_notes += "Cross also used for supplementation."
         if cross['cross_failed']:
             cross_notes += "Cross failed."
-        mfg = ""
-        if params['refuge']:
-            f"{'Unknown' if not cross['mfg'] else cross['mfg']},"
+        mfg = f"{'Unknown' if not cross['mfg'] else cross['mfg']},"
         csv_file.write(f"{cross['cross_date']},"
                        f"{cross['m_tag']},"
                        f"{cross['y_gid']},"
@@ -722,6 +721,38 @@ def get_exported_crosses_csv(username, params, csv_file):
                        f"{cross['x_gid']},"
                        f"{cross['group_id']},"
                        f"{mfg}"
+                       f"{round(cross['f'], 5)},"
+                       f"{round(cross['di'], 1)},"
+                       f"{cross['x_crosses']},"
+                       f"{cross['y_crosses']},"
+                       f"{cross_notes}\n")
+    return
+
+
+def get_exported_crosses_as_single_fish_csv(username, params, csv_file):
+    filter_str = 'completed_cross.cross_year = :year'
+    crosses, _ = get_completed_crosses(username, params, "ORDER BY cross_date, group_id", filter_str)
+    csv_file.write(
+        f"Date,Male,Male PC/FSG,Female,Female PC/FSG,PC/FSG,{'MFG,' if params['refuge'] else 'Tank'},F,DI,"
+        "Female PC/FSG Crosses Completed,Male PC/FSG Crosses Completed,Notes\n")
+    for cross in crosses:
+        cross_notes = cross['notes']
+        if cross['supplementation'] and params['refuge']:
+            cross_notes += "Cross also used for supplementation."
+        if cross['cross_failed']:
+            cross_notes += "Cross failed."
+        mfg = f"{'Unknown' if not cross['mfg'] else cross['mfg']},"
+        csv_file.write(f"{cross['cross_date']},"
+                       f"{cross['m_tag']},"
+                       f"{cross['y_gid']},"
+                       f"{cross['f_tag']},"
+                       f"{cross['x_gid']},"
+                       f"{cross['group_id']},"
+                       f"{mfg}"
+                       f"{round(cross['f'], 5)},"
+                       f"{round(cross['di'], 1)},"
+                       f"{cross['x_crosses']},"
+                       f"{cross['y_crosses']},"
                        f"{cross_notes}\n")
     return
 
