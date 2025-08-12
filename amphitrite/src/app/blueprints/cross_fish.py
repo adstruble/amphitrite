@@ -11,7 +11,7 @@ from model.crosses import add_requested_cross, remove_requested_cross, get_reque
     add_completed_cross, get_possible_crosses, get_completed_crosses, set_cross_failed, \
     set_use_for_supplementation, get_exported_crosses_csv, get_completed_crosses_by_family, \
     get_available_females_with_0_or_1_males, get_population_f, get_available_tags_str, set_available_fish, \
-    get_population_f_with_requested
+    get_population_f_with_requested, get_exported_crosses_as_single_fish_csv
 from model.family import remove_family_by_tags, set_family_mfg, save_family_notes
 from utils.data import validate_order_by
 
@@ -296,6 +296,21 @@ def export_crosses_api():
     params = request.get_json()
     with tempfile.NamedTemporaryFile(mode='w') as temp_crosses_csv:
         get_exported_crosses_csv(username_or_err, params, temp_crosses_csv)
+        temp_crosses_csv.flush()
+        return send_file(temp_crosses_csv.name, as_attachment=True)
+
+
+@cross_fish.route('/cross_fish/parentage', methods=(['POST']))
+def export_parentage():
+    LOGGER.info("Exporting parentage")
+
+    username_or_err = maybe_get_username(request.headers, "exporting crosses")
+    if isinstance (username_or_err, dict): # noqa
+        return username_or_err
+
+    params = request.get_json()
+    with tempfile.NamedTemporaryFile(mode='w') as temp_crosses_csv:
+        get_exported_crosses_as_single_fish_csv(username_or_err, params, temp_crosses_csv)
         temp_crosses_csv.flush()
         return send_file(temp_crosses_csv.name, as_attachment=True)
 

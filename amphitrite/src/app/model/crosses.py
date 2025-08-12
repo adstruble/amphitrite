@@ -601,7 +601,9 @@ def get_completed_crosses_by_family(username, query_params, cnt_only=False):
     return get_completed_crosses(username, query_params, 'ORDER BY cross_date', filter_str, cnt_only)
 
 
-def get_completed_crosses(username, query_params, order_by_clause, filter_str, cnt_only=False):
+def get_completed_crosses(username, query_params, order_by_clause, filter_str, cnt_only=False,
+                          addl_cols=None):
+
     like_filter_str = ""
     if query_params.get('like_filter'):
         like_filter_str = f" AND ("
@@ -641,6 +643,7 @@ def get_completed_crosses(username, query_params, order_by_clause, filter_str, c
                 completed_cross.cross_failed,
                 (SELECT count(1) FROM supplementation_family sf WHERE sf.parent_1 = x.id AND sf.parent_2 = y.id) as supplementation,
                 coalesce(note.content, '') notes
+                {',' + ','.join(addl_cols) if addl_cols else ''}
             """
 
     records_sql = f""" FROM {family_table} as completed_cross
@@ -731,29 +734,31 @@ def get_exported_crosses_csv(username, params, csv_file):
 
 def get_exported_crosses_as_single_fish_csv(username, params, csv_file):
     filter_str = 'completed_cross.cross_year = :year'
-    crosses, _ = get_completed_crosses(username, params, "ORDER BY cross_date, group_id", filter_str)
+    crosses, _ = get_completed_crosses(username, params, "ORDER BY cross_date, group_id", filter_str,
+                                       addl_cols=['xf.cross_date x_fam_cross_date',
+                                                  'yf.cross_date y_fam_cross_date',
+                                                  'x.genotype x_genotype',
+                                                  'y.genotype y_genotype'])
     csv_file.write(
-        f"Date,Male,Male PC/FSG,Female,Female PC/FSG,PC/FSG,{'MFG,' if params['refuge'] else 'Tank'},F,DI,"
-        "Female PC/FSG Crosses Completed,Male PC/FSG Crosses Completed,Notes\n")
+        "Date,Generation ID,Tag,Self PC/FSG,Child PC/FSG,"
+        "Htr-GVL-001_0,Htr-GVL-001_1,Htr-GVL-002_0,Htr-GVL-002_1,Htr-GVL-003_0,Htr-GVL-003_1,Htr-GVL-004_0,Htr-GVL-004_1,Htr-GVL-005_0,Htr-GVL-005_1,Htr-GVL-006_0,Htr-GVL-006_1,Htr-GVL-007_0,Htr-GVL-007_1,Htr-GVL-008_0,Htr-GVL-008_1,Htr-GVL-009_0,Htr-GVL-009_1,Htr-GVL-010_0,Htr-GVL-010_1,Htr-GVL-011_0,Htr-GVL-011_1,Htr-GVL-012_0,Htr-GVL-012_1,Htr-GVL-013_0,Htr-GVL-013_1,Htr-GVL-014_0,Htr-GVL-014_1,Htr-GVL-015_0,Htr-GVL-015_1,Htr-GVL-016_0,Htr-GVL-016_1,Htr-GVL-017_0,Htr-GVL-017_1,Htr-GVL-018_0,Htr-GVL-018_1,Htr-GVL-019_0,Htr-GVL-019_1,Htr-GVL-020_0,Htr-GVL-020_1,Htr-GVL-021_0,Htr-GVL-021_1,Htr-GVL-022_0,Htr-GVL-022_1,Htr-GVL-023_0,Htr-GVL-023_1,Htr-GVL-024_0,Htr-GVL-024_1,Htr-GVL-025_0,Htr-GVL-025_1,Htr-GVL-026_0,Htr-GVL-026_1,Htr-GVL-027_0,Htr-GVL-027_1,Htr-GVL-028_0,Htr-GVL-028_1,Htr-GVL-029_0,Htr-GVL-029_1,Htr-GVL-030_0,Htr-GVL-030_1,Htr-GVL-031_0,Htr-GVL-031_1,Htr-GVL-032_0,Htr-GVL-032_1,Htr-GVL-033_0,Htr-GVL-033_1,Htr-GVL-034_0,Htr-GVL-034_1,Htr-GVL-035_0,Htr-GVL-035_1,Htr-GVL-036_0,Htr-GVL-036_1,Htr-GVL-037_0,Htr-GVL-037_1,Htr-GVL-038_0,Htr-GVL-038_1,Htr-GVL-039_0,Htr-GVL-039_1,Htr-GVL-040_0,Htr-GVL-040_1,Htr-GVL-041_0,Htr-GVL-041_1,Htr-GVL-042_0,Htr-GVL-042_1,Htr-GVL-043_0,Htr-GVL-043_1,Htr-GVL-044_0,Htr-GVL-044_1,Htr-GVL-045_0,Htr-GVL-045_1,Htr-GVL-046_0,Htr-GVL-046_1,Htr-GVL-047_0,Htr-GVL-047_1,Htr-GVL-048_0,Htr-GVL-048_1,Htr-GVL-049_0,Htr-GVL-049_1,Htr-GVL-050_0,Htr-GVL-050_1,Htr-GVL-051_0,Htr-GVL-051_1,Htr-GVL-052_0,Htr-GVL-052_1,Htr-GVL-053_0,Htr-GVL-053_1,Htr-GVL-054_0,Htr-GVL-054_1,Htr-GVL-055_0,Htr-GVL-055_1,Htr-GVL-056_0,Htr-GVL-056_1,Htr-GVL-057_0,Htr-GVL-057_1,Htr-GVL-058_0,Htr-GVL-058_1,Htr-GVL-059_0,Htr-GVL-059_1,Htr-GVL-060_0,Htr-GVL-060_1,Htr-GVL-061_0,Htr-GVL-061_1,Htr-GVL-062_0,Htr-GVL-062_1,Htr-GVL-063_0,Htr-GVL-063_1,Htr-GVL-064_0,Htr-GVL-064_1,Htr-GVL-065_0,Htr-GVL-065_1,Htr-GVL-066_0,Htr-GVL-066_1,Htr-GVL-067_0,Htr-GVL-067_1,Htr-GVL-068_0,Htr-GVL-068_1,Htr-GVL-069_0,Htr-GVL-069_1,Htr-GVL-070_0,Htr-GVL-070_1,Htr-GVL-071_0,Htr-GVL-071_1,Htr-GVL-072_0,Htr-GVL-072_1,Htr-GVL-073_0,Htr-GVL-073_1,Htr-GVL-074_0,Htr-GVL-074_1,Htr-GVL-075_0," # noqa
+        "Htr-GVL-075_1\n")
+
     for cross in crosses:
-        cross_notes = cross['notes']
-        if cross['supplementation'] and params['refuge']:
-            cross_notes += "Cross also used for supplementation."
-        if cross['cross_failed']:
-            cross_notes += "Cross failed."
-        mfg = f"{'Unknown' if not cross['mfg'] else cross['mfg']},"
+        # Write the female fish
         csv_file.write(f"{cross['cross_date']},"
-                       f"{cross['m_tag']},"
-                       f"{cross['y_gid']},"
+                       f"{str(int(cross['x_fam_cross_date'].year) - 2005)}{str(cross['group_id']).zfill(3)}1,"
                        f"{cross['f_tag']},"
                        f"{cross['x_gid']},"
                        f"{cross['group_id']},"
-                       f"{mfg}"
-                       f"{round(cross['f'], 5)},"
-                       f"{round(cross['di'], 1)},"
-                       f"{cross['x_crosses']},"
-                       f"{cross['y_crosses']},"
-                       f"{cross_notes}\n")
+                       f"{','.join(cross['x_genotype'])}\n")
+        # Write the male fish
+        csv_file.write(f"{cross['cross_date']},"
+                       f"{str(int(cross['y_fam_cross_date'].year) - 2005)}{str(cross['group_id']).zfill(3)}2,"
+                       f"{cross['m_tag']},"
+                       f"{cross['y_gid']},"
+                       f"{cross['group_id']},"
+                       f"{','.join(cross['y_genotype'])}\n")
     return
 
 

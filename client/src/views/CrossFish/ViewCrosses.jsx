@@ -103,7 +103,7 @@ export default function ViewCrosses(){
         updateInbreedingCoefficient();
     }, [viewingRefugeCrosses, completedCrossesYear]);
 
-    const handleExportCrossesClick = async e => {
+    const handleExportCrosses = async e => {
         let fileName = 'supplementation_crosses.csv';
         if (viewingRefugeCrosses){
             fileName = 'refuge_crosses.csv'
@@ -112,6 +112,14 @@ export default function ViewCrosses(){
             {...tableFetchParams, ...{offset: 0}}, () =>{},
             (msg)=>{setAlertText(msg); setAlertLevel('danger')})
     };
+
+    const handleExportParentage = async e => {
+        const fileName = 'parentage_analysis.csv'
+
+        fetchFile("cross_fish/parentage", fileName, getUsername(),
+            {...tableFetchParams, ...{offset: 0}}, () =>{},
+            (msg)=>{setAlertText(msg); setAlertLevel('danger')})
+    }
 
     function changeCrossUse (refuge){
         setViewingRefugeCrosses(refuge);
@@ -246,8 +254,8 @@ export default function ViewCrosses(){
                         />
                         <ImportExportDropdown importExportItems={[
                             {'name': 'Import completed ' + getCrossTypeDropdownLabel(true) + ' crosses','callback':()=>{setShowFishDatUpload(true)}, 'export':false},
-                            {'name': 'Export completed ' + getCrossTypeDropdownLabel(true) + ' crosses as pairs', 'callback':handleExportCrossesClick, 'export':true},
-                            {'name': 'Export single fish of completed ' + getCrossTypeDropdownLabel(true) + ' crosses (parentage analysis)', 'callback':handleExportCrossesClick, 'export':true}]}/>
+                            {'name': 'Export completed ' + getCrossTypeDropdownLabel(true) + ' crosses as pairs', 'callback':handleExportCrosses, 'export':true},
+                            {'name': 'Export single fish of completed ' + getCrossTypeDropdownLabel(true) + ' crosses (parentage analysis)', 'callback':handleExportParentage, 'export':true}]}/>
                     </Col>
                 </Row>
                 <Row>

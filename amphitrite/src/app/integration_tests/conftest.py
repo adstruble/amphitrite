@@ -7,6 +7,7 @@ from unittest.mock import patch
 import pytest
 
 from create_sql.initialize_db import wait_for_postgres_and_upgrade, load_seed_data
+from db_utils.common_selects import get_version
 from db_utils.core import ResultType, execute_statements
 from db_utils.db_connection import POSTGRES_SERVER_HOSTNAME_ENV, get_postgres_hostname
 from importer.import_master import import_master_data
@@ -138,7 +139,7 @@ def spinup_postgres_container():
            "--name", get_docker_container_name(),
            "--rm",
            "--shm-size=1g",
-           "amphitrite/datastore:0.1.0"]
+           "amphitrite/datastore:" + _get_version_tag()]
 
     # start and block until done
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -146,6 +147,11 @@ def spinup_postgres_container():
 
     if p.wait(timeout=120):
         assert False, f"Failure spinning up postgres stderr:{stderr.decode()}, stdout:{stdout.decode()}"
+
+
+def _get_version_tag():
+    with open('../../../../VERSION', 'r') as version_file:
+        return version_file.read().rstrip('\r\n')
 
 
 def cleanup_postgres(exitstatus):

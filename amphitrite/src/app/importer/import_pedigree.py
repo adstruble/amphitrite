@@ -10,10 +10,6 @@ from db_utils.core import execute_statements
 from db_utils.db_connection import get_connection, make_connection_kwargs, get_default_database_params
 from db_utils.insert import insert_table_data
 from exceptions.exceptions import WildTypeCrossedWithRefugeInWild
-from importer.import_crosses import import_crosses
-from importer.import_master import import_master_data
-from importer.import_utils import get_import_resources_dir
-from model.fish import mark_all_fish_dead
 
 from utils.data import get_group_id_from_parent
 

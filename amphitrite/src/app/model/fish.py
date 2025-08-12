@@ -134,7 +134,6 @@ def get_fish_csv(username, query_params, csv_file):
         csv_file.write("\n")
 
 
-
 def get_fish_f_values(fish_ids: list, username):
     """
     :param username
