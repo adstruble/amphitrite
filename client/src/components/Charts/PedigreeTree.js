@@ -15,14 +15,8 @@ export default function PedigreeTree({fish, setAlertLevel, setAlertText}) {
     /** @type {React.MutableRefObject<echarts.ECharts | null>} */
     const chartInstance = useRef(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [pedigreeData, setPedigreeData] = useState([])
+    const [pedigreeData, setPedigreeData] = useState( [])
 
-   /* $.get(ROOT_PATH + '/data/asset/data/flare.json', function (data) {
-        myChart.hideLoading();
-        data.children.forEach(function (datum, index) {
-            index % 2 === 0 && (datum.collapsed = true);
-        });
-    });*/
 
     useEffect(() => {
         if (chartInstance.current) {
@@ -37,6 +31,8 @@ export default function PedigreeTree({fish, setAlertLevel, setAlertText}) {
     useEffect(() => {
         if (chartRef.current && !chartInstance.current) {
             chartInstance.current = echarts.init(chartRef.current);
+            loadNodeChildren(fish.id, 0, []);
+            setupLazyLoading();
         }
         return () => {
             if (chartInstance.current) {
@@ -86,9 +82,20 @@ export default function PedigreeTree({fish, setAlertLevel, setAlertText}) {
     }
 
 
+    useEffect( () => {
+        let max = 0;
+        function traverse(node) {
+            if (node.value > max) max = node.value;
+            if (node.children) {
+                node.children.forEach(traverse);
+            }
+        }
+        pedigreeData.forEach(traverse);
+    }, [pedigreeData])
+
+
     useEffect(() => {
         if (chartInstance.current && pedigreeData && !isLoading) {
-
             // Set chart options
             const option = {
                 tooltip: {
@@ -100,7 +107,7 @@ export default function PedigreeTree({fish, setAlertLevel, setAlertText}) {
                 series: [
                     {
                         type: 'tree',
-                        data: [pedigreeData],
+                        data: pedigreeData,
                         top: '1%',
                         left: '7%',
                         bottom: '1%',
@@ -108,10 +115,11 @@ export default function PedigreeTree({fish, setAlertLevel, setAlertText}) {
                         symbolSize: 7,
                         label: {
                             position: 'left',
-                            verticalAlign: 'middle',
+                            verticalAlign: 'bottom',
                             align: 'right',
-                            fontSize: 9,
-                            color: 'white',
+                            fontSize: 10,
+                            fontWeight: '600',
+                            color: '#1d8cf8',
                             textBorderWidth: 0,
                             textShadowBlur: 0
                         },
@@ -128,9 +136,6 @@ export default function PedigreeTree({fish, setAlertLevel, setAlertText}) {
                         expandAndCollapse: true,
                         animationDuration: 550,
                         animationDurationUpdate: 750,
-                        animation: true,
-                        animationThreshold: 10000,
-                        initialTreeDepth: 5
                     }
                 ]
             }
@@ -140,19 +145,48 @@ export default function PedigreeTree({fish, setAlertLevel, setAlertText}) {
 
     }, [pedigreeData, isLoading]);
 
-    // Fetch data
-    useEffect(() => {
-        setIsLoading(true);
+    function loadNodeChildren(fishId, fishGeneration, treeData) {
         getData("manage_fish/pedigree", getUsernameRef.current(),
-            {'start_id': fish.id}, (success) => {
+            {'start_id': fishId, 'start_generation': fishGeneration}, (success) => {
             if ('data' in success) {
-                setPedigreeData(success['data'])
+                const newPedigreeData = updateTreeNode(treeData, fishId, success['data']);
+                setPedigreeData(newPedigreeData);
             }
                 setIsLoading(false);
             }, setAlertLevel, setAlertText, () =>{
                 setIsLoading(false);
             });
-    }, []);
+    }
+
+    function updateTreeNode(data, targetId, openedTree) {
+        if (data.length === 0){
+            return [openedTree];
+        }
+        return data.map(node => {
+            if (node.id === targetId) {
+                return {
+                    ...node,
+                    children: openedTree['children'],
+                    loaded: true,
+                    collapsed: false,
+                };
+            } else if (node.children && node.children.length > 0) {
+                return {
+                    ...node,
+                    children: updateTreeNode(node.children, targetId, openedTree)
+                };
+            }
+            return node;
+        });
+    }
+
+    const setupLazyLoading = () => {
+        chartInstance.current.on('click', async function (params) {
+            if (params.data.has_children && !params.data.loaded) {
+                await loadNodeChildren(params.data.id, params.data.value, chartInstance.current.getOption().series[0]['data']);
+            }
+        });
+    };
 
     return <div ref={chartRef} style={{ width: 'inherit', height: '400px'}}/>;
 }

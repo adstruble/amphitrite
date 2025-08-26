@@ -171,28 +171,33 @@ def mark_fish_dead(username, dead_fish):
     return marked_fish
 
 
-def get_pedigree_tree(user, start_id):
+def get_pedigree_tree(user, start_id, start_generation):
     # Get the full pedigree for the fish from the db
-    animal_pedigree = get_pedigree_tree_data(user, start_id)
+    animal_pedigree = get_pedigree_tree_data(user, start_id, 2)
 
     # Create a dict of the first animal
     animal = animal_pedigree.pop(0)
-    pedigree_tree = _create_pedigree_animal_dict(animal)
+    pedigree_tree = _create_pedigree_animal_dict(animal, True, start_generation)
 
     # Keep track of children list for an animal. we will add the parents for this animal as we find them in the results
-    parents_by_child_id = {str(animal['id']): pedigree_tree['children']}
+    parents_by_child_id = {str(animal['id']): pedigree_tree}
 
-    # Add remainder of parents to the tree (note that the children in teh pedigree tree is mean to indicate the
+    # Add remainder of parents to the tree (note that the children in the pedigree tree is meant to indicate the
     # children in tree, which are actually parents of animals
     for animal in animal_pedigree:
-        animal_dict = _create_pedigree_animal_dict(animal)
-        parents_by_child_id[str(animal['id'])] = animal_dict['children']
-        parents_by_child_id[animal['child_id']].append(animal_dict)
+        if animal['generation_level'] < 2:
+            animal_dict = _create_pedigree_animal_dict(animal, False, start_generation)
+            parents_by_child_id[str(animal['id'])] = animal_dict
+            parents_by_child_id[animal['child_id']]['children'].append(animal_dict)
+
+        # For the last generation only mark as true that there are children, don't actually include
+        # the children
+        parents_by_child_id[animal['child_id']]['has_children'] = True
 
     return pedigree_tree
 
 
-def _create_pedigree_animal_dict(sql_row):
+def _create_pedigree_animal_dict(sql_row, loaded, start_generation):
     if sql_row['child_group_id'] and sql_row['child_group_id'] < 0:
         generation_id = 'WT'
     else:
@@ -200,12 +205,13 @@ def _create_pedigree_animal_dict(sql_row):
                          f"{'xxx' if not sql_row['child_group_id'] else str(sql_row['child_group_id']).zfill(3)}"
                          f"{1 if sql_row['sex'] == 'F' else 2}")
     animal = {'name': generation_id, 'cross_date': sql_row['cross_date'], 'sex': sql_row['sex'],
-              'value': sql_row['generation_level'], 'tag': sql_row['tag'], 'box': sql_row['box'],
-              'child_cross_date': sql_row['child_cross_date'], 'children': []}
+              'value': int(sql_row['generation_level']) + start_generation, 'tag': sql_row['tag'], 'box': sql_row['box'],
+              'child_cross_date': sql_row['child_cross_date'], 'children': [], 'loaded': loaded,
+              'id': sql_row['id']}
     return animal
 
 
-def get_pedigree_tree_data(user, start_id):
+def get_pedigree_tree_data(user, start_id, generations):
     sql = """WITH RECURSIVE animal_ancestors AS (
         -- Base case: Start with the target fish
     SELECT
@@ -246,7 +252,7 @@ def get_pedigree_tree_data(user, start_id):
     JOIN animal parent_animal ON (parent_animal.id = fam.parent_1 OR parent_animal.id = fam.parent_2)
     LEFT JOIN refuge_tag parent_tag on parent_tag.animal = parent_animal.id
     JOIN family parent_family ON parent_animal.family = parent_family.id
-    WHERE aa.generation_level < 5  -- Go 5 generations
+    WHERE aa.generation_level < :generations  -- Go given number of generations
     )
     SELECT
     id,
@@ -262,4 +268,4 @@ def get_pedigree_tree_data(user, start_id):
 FROM animal_ancestors
 ORDER BY generation_level, tag;
 """
-    return execute_statements((sql, {'id': start_id}), user).get_as_list_of_dicts()
+    return execute_statements((sql, {'id': start_id, 'generations': generations}), user).get_as_list_of_dicts()

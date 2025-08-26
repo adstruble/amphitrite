@@ -8,7 +8,7 @@ export default function getData(getUrl, username, params, setData, setAlertLevel
     fetch(`/amphitrite/${getUrl}?${queryParams}`, {method: "GET", headers: headers})
         .then((res) => res.json())
         .then((data) => {
-                if ('success' in data) {
+                if ('success' in data && data['success']) {
                     setData(data['success'], params);
                 }
                 else if (!data['success'] && data['level']){

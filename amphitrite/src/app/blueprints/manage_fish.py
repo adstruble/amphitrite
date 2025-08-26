@@ -93,13 +93,14 @@ def upload_deaths():
 
 @manage_fish.route('/manage_fish/pedigree', methods=(['GET']))
 def get_pedigree():
-    start_id = request.args.get('start_id')
-    LOGGER.info("Getting pedigree tree for: " + start_id)
-    username_or_err = maybe_get_username(request.headers, "get fishes")
-    if isinstance (username_or_err, dict): # noqa
-        return username_or_err
-
     try:
-        return {"success": {"data": get_pedigree_tree(username_or_err, start_id)}}
+        start_id = request.args.get('start_id')
+        start_generation = int(request.args.get('start_generation'))
+        LOGGER.info("Getting pedigree tree for: " + start_id)
+        username_or_err = maybe_get_username(request.headers, "get fishes")
+        if isinstance (username_or_err, dict): # noqa
+            return username_or_err
+
+        return {"success": {"data": get_pedigree_tree(username_or_err, start_id, start_generation)}}
     except Exception as e:
         return {"success": False, "error": str(e)}
