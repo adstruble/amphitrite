@@ -349,4 +349,7 @@ def get_mean_f_with_requested():
     if isinstance (username_or_err, dict): # noqa
         return username_or_err
 
-    return {"success": {'f': get_population_f_with_requested(username_or_err)}}
+    return {"success":
+            {'f': get_population_f_with_requested(username_or_err, False),
+             'f_supplementation': get_population_f_with_requested(username_or_err, True)}
+            }

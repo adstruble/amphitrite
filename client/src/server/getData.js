@@ -1,5 +1,6 @@
 
-export default function getData(getUrl, username, params, setData, setAlertLevel, setAlertText){
+export default function getData(getUrl, username, params, setData, setAlertLevel, setAlertText,
+                                handleFailure){
     const queryParams = new URLSearchParams(params).toString();
 
     let headers = {username: username, 'Content-Type': 'application/json'};
@@ -13,13 +14,15 @@ export default function getData(getUrl, username, params, setData, setAlertLevel
                 else if (!data['success'] && data['level']){
                     setAlertLevel(data['level']);
                     setAlertText(data['message']);
+                    handleFailure(data);
                 }else if('error' in data){
                     setAlertLevel('danger');
                     setAlertText(data['error'])
                 }
-            } // TODO: Handle Failure
+            }
         ).catch((err) => {
-            console.error(err);
+            console.log(err)
+            handleFailure(err);
         }
     )
 }

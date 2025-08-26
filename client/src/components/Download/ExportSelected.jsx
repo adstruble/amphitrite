@@ -1,11 +1,12 @@
 import React, {useState} from "react";
 import PropTypes from "prop-types";
-import {Button, Col, FormGroup, Input, Label, Modal, Row} from "reactstrap";
+import {Alert, Button, Col, FormGroup, Input, Label, Modal, Row} from "reactstrap";
 import RadioGroup from "../Basic/RadioGroup";
 import classNames from "classnames";
 import fetchFile from "../../server/fetchFile";
 import useToken from "../App/useToken";
 import {getCurrentTableSelection} from "../Table/AmphiTableUtils";
+import AmphiAlert from "../Basic/AmphiAlert.jsx";
 
 export default function ExportSelected({exportUrl, exportButtonText,
                                         fileName,
@@ -20,6 +21,7 @@ export default function ExportSelected({exportUrl, exportButtonText,
     const exportSelectedOnlyLabel = 'Export selected only';
     const [exportSelectedOnly, setExportSelectedOnly] = useState(true);
     const [currentTableSelection, setCurrentTableSelection] = useState(null);
+    const [error, setError] = useState(null);
 
     const handleOuterExportBtnClick = async e => {
         e.preventDefault();
@@ -32,8 +34,26 @@ export default function ExportSelected({exportUrl, exportButtonText,
     };
 
     function handleModalExportClick() {
+        let modalError = false;
+        exportColumns.map(col => {
+            if (col.variable && col.selected){
+                let error = col.validate_fn(col.variable_val);
+                setError(error);
+                if (error){
+                    modalError = true;
+                }
+            }
+        })
+        if(modalError){
+            return
+        }
         exportInProgress();
         let params = {'export_columns': exportColumns, 'offset':0, 'limit': null}
+        exportColumns.map(col => {
+            if (col.variable && col.selected){
+                params[col.field] =  col.variable_val;
+            }
+        });
         if(exportSelectedOnly){
             const ids = getCurrentTableSelection("fish", currentTableSelection);
             if(ids[0] === 'error'){
@@ -75,6 +95,11 @@ export default function ExportSelected({exportUrl, exportButtonText,
         col.selected = checkbox.checked;
     }
 
+    function setColVariable(col, value){
+        setError(col.validate_fn(value));
+        col.variable_val = value;
+    }
+
     function getColRow(col){
         return(
             <Row>
@@ -84,6 +109,8 @@ export default function ExportSelected({exportUrl, exportButtonText,
                                onClick={(evt)=>handleColClick(evt.target, col)}/>
                         <span className="form-check-sign" />
                         {col.name}
+                        {col.variable && <Input id={col.name + 'variable'} type="text" placeholder={col.variable}
+                                                onChange={e => setColVariable(col, e.target.value)}/>}
                     </Label>
                 </FormGroup>
             </Row>
@@ -107,6 +134,8 @@ export default function ExportSelected({exportUrl, exportButtonText,
             modalClassName="modal-black"
             isOpen={formModal}
             toggle={() => setFormModal(false)}>
+            <div>
+
             <div className="modal-header justify-content-center">
                 <button className="btn-close" onClick={cancelCallback}>
                     <i className="tim-icons icon-simple-remove text-white"/>
@@ -115,6 +144,9 @@ export default function ExportSelected({exportUrl, exportButtonText,
                     <h3 className="mb-0">{formModalTitle}</h3>
                 </div>
             </div>
+                {error && (
+                    <AmphiAlert alertText={error} alertLevel='danger' setAlertText={setError}/>
+                )}
             <div className={classNames("modal-body", 'export')}>
                 <Row>
                     <RadioGroup items={[exportSelectedOnlyLabel, "Export all (" + allStr + ")"]}
@@ -144,6 +176,7 @@ export default function ExportSelected({exportUrl, exportButtonText,
                         onClick={cancelCallback}>Cancel</Button>
 
                 <Button color="success" type="button" onClick={handleModalExportClick}>Export</Button>
+            </div>
             </div>
         </Modal>
         </>

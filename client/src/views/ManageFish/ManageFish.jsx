@@ -9,15 +9,16 @@ import {
     formatDate,
     formatDoubleTo3,
     formatTextWithIcon,
-    formatIcon
+    formatIcon, formatStrExpand
 } from "../../components/Utils/FormatFunctions";
 import classNames from "classnames";
 import {ManageFishFilter} from "./ManageFishFilter";
 import fetchData from "../../server/fetchData";
 import useToken from "../../components/App/useToken";
-import ManageRowExpanded from "./ManageRowExpanded";
+import ManageRowNotesExpanded from "./ManageRowNotesExpanded.jsx";
 import AmphiAlert from "../../components/Basic/AmphiAlert";
 import ExportSelected from "../../components/Download/ExportSelected";
+import ManageRowFamilyExpanded from "./ManageRowFamilyExpanded.jsx";
 
 export default function ManageFish() {
     const {getUsername} = useToken();
@@ -31,8 +32,14 @@ export default function ManageFish() {
     const [currentSearch, setCurrentSearch] = useState(null);
 
     const getExpandedRow = (fish) => {
-        return (ManageRowExpanded({fish, saveNotes}))
+        return (ManageRowNotesExpanded({fish, saveNotes}))
     }
+    getExpandedRow.uuid = '67331600-536b-456c-8568-5a2706e38fae';
+
+    const handleExpandLineage  = (fish) => {
+        return (ManageRowFamilyExpanded({fish, setAlertLevel, setAlertText}))
+    }
+    handleExpandLineage.uuid = '2e8ad040-ccc6-4a61-a12e-b5c5c2903a21'
 
     const getAliveIconColorClass = (fish) => {
         return fish['alive'] ? '' : 'icon-danger'
@@ -44,7 +51,8 @@ export default function ManageFish() {
         {name: "Alive", key: "alive", order_by: "alive", visible: true, order_direction: "DESC", order: 1,
                 format_fn: formatIcon, format_args:[null, "icon-fish","icon-fish-bone", getAliveIconColorClass], width: ".7fr"},
         {name: "Family ID", key: "group_id", order_by: "group_id", visible: true, order_direction: "ASC", order: 1,
-            format_fn: formatStr, className:"numberCell", width: ".8fr", tooltip:true},
+            format_fn: formatStrExpand, className:"numberCell", width: ".8fr",
+            format_args: {'expandFn': handleExpandLineage, 'tooltip': 'Show/Hide Pedigree Tree'}},
         {name: "Parent Cross Date", key: "cross_date", order_by: "cross_date", visible: true, order_direction:null, order:null,
             format_fn: formatDate, className:"numberCell", width:"1.3fr"},
         {name: "F", key: "f", order_by: "f", visible: true, order_direction:null, order:null, format_fn: formatDoubleTo3,
@@ -62,14 +70,23 @@ export default function ManageFish() {
             width:"4fr"}
     ]};
 
+    const validateNumberOfGenerations = (value) => {
+        if (Number.isInteger(Number(value)) && Number(value) > 0){
+            return null
+        }
+        return "Number of generations for pedigree must be an integer greater than or equal to 1";
+    }
+
     const EXPORT_COLUMNS = [
         {name: 'Tag', selected: true, field: 'tag'},
         {name: 'Sex', selected: false, field: 'sex'},
         {name:'BY FSG (PC)', selected: false, field:'group_id'},
         {name:'Box', selected: false, field:'box'},
-        {name:'f', selected: false, field:'f'},
-        {name:'di', selected: false, field: 'di'},
+        {name:'F', selected: false, field:'f'},
+        {name:'DI', selected: false, field: 'di'},
         {name: 'Notes', selected: false, field: 'notes'},
+        {name: 'Pedigree', selected: false, field: 'pedigree', variable:'No of Generations',
+            validate_fn:validateNumberOfGenerations},
         {name:'Alleles', selected: false, field: 'genotype'}]
 
     const handleFishUploadedCallback = () => {

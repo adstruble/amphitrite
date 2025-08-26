@@ -58,11 +58,6 @@ def set_cleanup_sql_fn():
     # During cleanup, which is executed at session start up after postgres is set up and migrated (setup and migration
     # will not actually occur if the container is already up, which is why cleanup is necessary),
     # test cleanup-sql will be executed in the order it was added.
-    execute_statements([
-        "DROP TABLE IF EXISTS cleanup_sql",
-        "CREATE TABLE cleanup_sql (test_fn text, cleanup_sql text, created_at TIMESTAMPTZ DEFAULT NOW())"],
-        'amphiadmin', ResultType.NoResult)
-
     def set_cleanup_sql(cleanup_sql):
         test_fn = inspect.stack()[1].function
         execute_statements([("INSERT INTO cleanup_sql (test_fn, cleanup_sql) VALUES (:test_fn, :sql)",
@@ -98,6 +93,11 @@ def cleanup_last_test():
             print(f'Cleaning up from test: {cleanup_sql[0]}, executing: {cleanup_sql[1]}')
             execute_statements([cleanup_sql[1]], 'amphiadmin',
                                ResultType.NoResult)
+
+    execute_statements([
+        "DROP TABLE IF EXISTS cleanup_sql",
+        "CREATE TABLE cleanup_sql (test_fn text, cleanup_sql text, created_at TIMESTAMPTZ DEFAULT NOW())"],
+        'amphiadmin', ResultType.NoResult)
 
 
 def get_docker_container_name():

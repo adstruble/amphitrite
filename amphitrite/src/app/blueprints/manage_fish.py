@@ -1,7 +1,6 @@
 import tempfile
 import threading
 from datetime import datetime
-from time import sleep
 
 from flask import Blueprint, request, send_file
 
@@ -10,7 +9,7 @@ from blueprints.utils import maybe_get_username, validate_and_create_upload_job
 from importer.import_utils import parse_year_from_filename
 from utils.data import validate_order_by
 from importer.import_master import import_master_data
-from model.fish import get_fishes_from_db, save_fish_notes, mark_fish_dead, get_fish_csv
+from model.fish import get_fishes_from_db, save_fish_notes, mark_fish_dead, get_fish_csv, get_pedigree_tree
 
 manage_fish = Blueprint('manage_fish', __name__)
 
@@ -90,3 +89,17 @@ def upload_deaths():
         dead_fish.append(line.decode('utf-8-sig'))
 
     return {"success": {"updated": {"Fish": f"{mark_fish_dead(username_or_err, dead_fish)} fish marked dead"}}}
+
+
+@manage_fish.route('/manage_fish/pedigree', methods=(['GET']))
+def get_pedigree():
+    start_id = request.args.get('start_id')
+    LOGGER.info("Getting pedigree tree for: " + start_id)
+    username_or_err = maybe_get_username(request.headers, "get fishes")
+    if isinstance (username_or_err, dict): # noqa
+        return username_or_err
+
+    try:
+        return {"success": {"data": get_pedigree_tree(username_or_err, start_id)}}
+    except Exception as e:
+        return {"success": False, "error": str(e)}

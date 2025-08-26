@@ -26,6 +26,7 @@ import AmphiTooltip from "../Basic/AmphiTooltip.jsx";
 export const getExpandedDefault = () => {
     return (<tr className='expanded-row-contents'><td style={{display:"none"}}/></tr>);
 }
+getExpandedDefault.uuid = '2b228773-242f-47cb-8a70-919edf9138ec';
 
 export default function AmphiTable({tableDataUrl,
                                        reloadData,
@@ -37,7 +38,7 @@ export default function AmphiTable({tableDataUrl,
                                        filter=null,
                                    LIMIT=50,
                                    dataFetchCallback=null}){
-    const {getUsername} = useToken();
+    const {getUsername} =   useToken();
     const getUsernameRef = useRef(getUsername);
     getUsernameRef.current = getUsername;
     const [headerCols, setHeaderCols] = useState(headerDataStart.cols);
@@ -62,26 +63,56 @@ export default function AmphiTable({tableDataUrl,
         nodes: [],
     });
 
-    const [ids, setIds] = React.useState([]);
+    const [expandedIds, setExpandedIds] = React.useState(new Map());
 
     React.useEffect(() => {
         setHeaderCols(headerDataStart.cols);
         setHeaderRows(headerDataStart.rows);
     }, [headerDataStart]);
 
-    const handleExpand = (item, event) => {
-        if (event && event.target.classList.contains('form-check-sign')){
+    const handleExpand = (item, event, expandFn) => {
+        // First if this is a checkbox we don't want to do anything.
+        if (event && event.target.classList.contains('form-check-sign')) {
             return;
         }
-        if (ids.includes(item.id)) {
-            setIds(ids.filter((id) => id !== item.id));
-        } else {
-            setIds(ids.concat(item.id));
+
+        if (!expandFn) {
+            expandFn = getExpandedRow
+        }
+
+        // Look for ID to see if it's already expanded. If it's expanded for this fn, close it.
+        // If it's expanded for a different fn, or not expanded, expand on ths fn
+        if (expandedIds.has(item.id) && expandedIds.get(item.id).uuid === expandFn.uuid ){
+            removeExpandedId(item.id);
+        }
+        // If ID is not expanded, expand on this fn
+        else{
+            addExpandedId(item.id, expandFn);
         }
     };
 
+    const addExpandedId = (expandedId, fn) => {
+        setExpandedIds(prev => {
+            const newMap = new Map(prev);
+            newMap.set(expandedId, fn)
+            return newMap;
+        });
+    };
+
+    const removeExpandedId = (expandedId) => {
+        setExpandedIds(prev => {
+            const newMap = new Map(prev);
+            newMap.delete(expandedId);
+            return newMap;
+        });
+    };
+
+    const getExpandedRowInternal = (item) => {
+        return expandedIds.get(item.id)(item);
+    }
+
     useCustom("expand", tableNodes, {
-        state: { ids },
+        state: { expandedIds },
         onChange: onExpandChange,
     });
 
@@ -322,7 +353,7 @@ export default function AmphiTable({tableDataUrl,
 
                                     <React.Fragment>
                                         <ReactTableRow className={
-                                            classnames({'expanded': ids.includes(item.id) },
+                                            classnames({'expanded': expandedIds.has(item.id) },
                                             'table-row', (headerRows.getRowClass) && headerRows.getRowClass(item))}
                                                        key={item.id} item={item} id={'id' + item.id}
                                         >
@@ -349,7 +380,7 @@ export default function AmphiTable({tableDataUrl,
                                                    );})
                                             }
                                         </ReactTableRow>
-                                        {ids.includes(item.id) && (getExpandedRow(item))}
+                                        {expandedIds.has(item.id) && (getExpandedRowInternal(item))}
                                     </React.Fragment>
                                 ))}
                                 <ReactTableRow key='bottom' item={null} id={'idlastrow'}>

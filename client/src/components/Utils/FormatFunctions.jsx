@@ -1,4 +1,4 @@
-import {FormGroup, Input, Label, UncontrolledTooltip} from "reactstrap";
+import {Button, FormGroup, Input, Label, UncontrolledTooltip} from "reactstrap";
 import classnames from "classnames";
 import React from "react";
 import AmphiTooltip from "../Basic/AmphiTooltip.jsx";
@@ -20,6 +20,18 @@ export const formatDate = (date) => {
 
 export const formatStr = (str) => {
     return str
+}
+
+export const formatStrExpand = (str, item, format_args, handleExpand, colName) => {
+    return(
+        <div id={'id' + item.id + colName + 'btn'} className={classnames('amphi-cell', 'clickable', 'btn-link')} color="info"
+                   onClick={(evt)=>{handleExpand(item, evt, format_args['expandFn'])}}>
+            {str}
+            {format_args['tooltip'] && <AmphiTooltip
+                target={'id' + item.id + colName + 'btn'}
+                content={format_args['tooltip']}/>}
+        </div>
+    );
 }
 
 export const formatArrayToStr = (array) => {

@@ -47,6 +47,7 @@ export default function CrossFish() {
     const [setFishTab, setSetFishTab] = useState(1);
 
     const [meanF, setMeanF] = useState(0);
+    const [supplementationMeanF, setSupplementationMeanF] = useState(0);
 
     const handleExportCrossesClick = async _ => {
         fetchFile("cross_fish/export_selected_crosses", 'request_crosses.csv', getUsername(),
@@ -222,9 +223,13 @@ export default function CrossFish() {
                     let availableMales = success['m_tags'].length > 0 ? success['m_tags'] : "None";
                     setAvailableFTags(availableFemales);
                     setAvailableMTags(availableMales);
-                    setUserSetTags(availableFemales.replaceAll("(","").replaceAll(")","")
+                    let tempUserSetTags = availableFemales.replaceAll("(","").replaceAll(")","")
                         + (availableFemales.length > 0 ? ',' : '') +
-                        availableMales.replaceAll("(","").replaceAll(")",""));
+                        availableMales.replaceAll("(","").replaceAll(")","");
+                    if (tempUserSetTags === 'None,None'){
+                        tempUserSetTags = 'None';
+                    }
+                    setUserSetTags(tempUserSetTags);
                     setUncrossedFTags(success['uncrossed_tags']);
                 }, setAlertLevel, setAlertText);
     }, []);
@@ -234,6 +239,7 @@ export default function CrossFish() {
         getData("cross_fish/mean-f", getUsernameRef.current(),
             {}, (success) => {
                 setMeanF(success['f']);
+                setSupplementationMeanF(success['f_supplementation']);
             }, setAlertLevel, setAlertText);
     };
 
@@ -451,14 +457,14 @@ export default function CrossFish() {
                                         onClick={handleSetAvailableFemalesClick}>Set Available Fish</Button>
                             </Col>
                         </Row>
-                        <Row>
+                        {/*<Row>
                             <Col>
                                 <span>Available male fish for crossing:</span>
                             </Col>
                             <Col>
                                 <span style={{marginRight:"20px"}}>{availableMTags}</span>
                             </Col>
-                        </Row>
+                        </Row>*/}
                         <Row>
                             <Col>
                                 <span className={uncrossedFTags.length > 0 ? 'text-danger' : 'text-success'}>Females with 0 or 1 selected males:</span>
@@ -494,22 +500,29 @@ export default function CrossFish() {
                                 </div>
                             </Col>
                         </Row>
-                        <Row>
-                            <Col>
-                                <span style={{lineHeight: '18px', textAlign: 'right'}}>{moment(new Date()).year()} Refuge Population Inbreeding Coefficient (Mean F):</span>
-                            </Col>
-                            <Col style={{position: 'relative'}}>
-                                <span style={{position: 'absolute', lineHeight: '18px', bottom: 0}}>{meanF ? meanF.toFixed(6) : '0.0'}</span>
-                            </Col>
-                        </Row>
+
                     </Col>
                     <Col style={{padding: 0, textAlign: "right", flexGrow: "0", flexBasis: "fit-content"}}>
+                        <Row style={{padding: 0, textAlign: "right"}}>
                         <Button className="nav-link" color="default" type="button" onClick={handleExportCrossesClick}>
                             <div className="logout">
                                 <i className={classnames("amphi-icon", "icon-download")}/>
                                 <span>Export Selected Crosses</span>
                             </div>
                         </Button>
+                        </Row>
+                        <Row>
+                            <Col style={{paddingLeft: 0}}>
+                                <span>{moment(new Date()).year()} Population Inbreeding Coefficients (Mean F)</span>
+                            </Col>
+                        </Row>
+                        <Row >
+                            <Col style={{display: 'flex', justifyContent: 'space-between', paddingLeft: 0}}>
+                                <span >Refuge: {meanF ? meanF.toFixed(6) : '0.0'}</span>
+
+                                <span >Supplementation: {supplementationMeanF ? supplementationMeanF.toFixed(6) : '0.0'}</span>
+                            </Col>
+                        </Row>
                     </Col>
                 </Row>
                 <Row>

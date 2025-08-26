@@ -29,14 +29,18 @@ export function getCurrentTableSelection(recordType, tableSelection){
 
 function _maybe_find_table_row_node(node){
     try {
+        if(node.nodeName === "#text"){
+            node = node.parentNode;
+        }
         let tdNode = node.parentNode.parentNode;
-        if (node.nodeName === "DIV") {
+        while (node.nodeName === "DIV") {
             tdNode = node.parentNode;
+            if (tdNode.nodeName === "TD") {
+                return tdNode.parentNode
+            }
+            node = node.parentNode;
         }
-        if (tdNode.nodeName !== "TD") {
-            return null;
-        }
-        return tdNode.parentNode;
+        return null;
     }catch{
         return null;
     }

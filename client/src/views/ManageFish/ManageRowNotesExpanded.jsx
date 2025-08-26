@@ -3,7 +3,7 @@ import {Input} from "reactstrap";
 import React from "react";
 import {onKeyupWithDelay} from "../../components/Utils/General";
 
-export default function ManageRowExpanded({fish, saveNotes}) {
+export default function ManageRowNotesExpanded({fish, saveNotes}) {
     return (
         <tr className='expanded-row-contents'>
             <td>
@@ -15,14 +15,14 @@ export default function ManageRowExpanded({fish, saveNotes}) {
                            defaultValue={fish['notes']}
                            className="form-control"
                            id="fishNotesArea" rows="2"
-                           onKeyUp={onKeyupWithDelay((e) => saveNotes(e.target.value, fish),500)}/>
+                           onKeyUp={onKeyupWithDelay((e) => saveNotes(e.target.value, fish),300)}/>
                 </div>
             </td>
         </tr>
     );
 }
 
-ManageRowExpanded.propTypes = {
+ManageRowNotesExpanded.propTypes = {
     fish: PropTypes.object.isRequired,
     saveNotes: PropTypes.func.isRequired
 }

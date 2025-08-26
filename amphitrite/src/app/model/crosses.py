@@ -198,7 +198,7 @@ def _get_order_by_clause_for_possible_crosses(order_bys:list, ref_y_crosses_sql,
 
 
 def get_count_possible_fish(username):
-    possible_fish_cnt_sql = """SELECT count(distinct female), count(distinct male)from possible_cross"""
+    possible_fish_cnt_sql = """SELECT count(distinct female), count(distinct male) from possible_cross"""
     result = execute_statements(possible_fish_cnt_sql, username).get_row(0)
     return result[0] + result[1]
 
@@ -549,7 +549,7 @@ def set_available_fish(username:str, fish: list):
     that are now considered as possible crosses
     """
     try:
-        insert_cnt = determine_and_insert_possible_crosses(username, fish)
+        determine_and_insert_possible_crosses(username, fish)
     except Exception as e:
         return {"success": False, "error": str(e)}
 
@@ -567,7 +567,6 @@ def set_available_fish(username:str, fish: list):
         if possible_fish_cnt == 0:
             return_val['success'] = False
             return_val['error'] = return_val['warning']
-            return_val.pop('data')
             return return_val
     f_tags, m_tags = get_available_tags_str(username)
     return_val['data'] = {}
@@ -781,22 +780,25 @@ def get_population_f(username, year, pop_type):
                               ResultType.RowResults).get_single_result()
 
 
-def get_population_f_with_requested(username):
+def get_population_f_with_requested(username, supplementation):
     """
-     Returns the refuge population wide inbreeding coefficient for the current breeding year including the pairs that
+     Returns the population wide inbreeding coefficient for the current breeding year including the pairs that
      are currently selected as requested.
     :param username:
+    :param supplementation Whether the population is the supplementation population (otherwise refuge)
     :return: avg inbreeding coefficient for the population including requested (but not yet completed) crosses
     """
-
-    family_f_stats = execute_statements(("""SELECT CASE WHEN avg(f) is null then 0 else avg(f) END, count(f)
-                                              FROM family
-                                             WHERE extract(YEAR from cross_date) = date_part('year', CURRENT_DATE)"""),
+    table_name = 'family' if not supplementation else 'supplementation_family'
+    family_f_stats = execute_statements((f"""SELECT CASE WHEN avg(f) is null then 0 else avg(f) END, count(f)
+                                               FROM {table_name}
+                                              WHERE extract(YEAR from cross_date) = date_part('year', CURRENT_DATE)"""),
                                         username, ResultType.RowResults).get_row(0)
-    req_cross_f_stats = execute_statements('''SELECT CASE WHEN avg(f) is null then 0 else avg(f) END, count(f)
+
+    req_cross_f_stats = execute_statements(f'''SELECT CASE WHEN avg(f) is null then 0 else avg(f) END, count(f)
                                                 FROM requested_cross
                                                WHERE cross_date is null
-                                                 AND NOT supplementation''', username, ResultType.RowResults).get_row(0)
+                                                 AND {'' if supplementation else 'NOT'} supplementation''',
+                                           username, ResultType.RowResults).get_row(0)
 
     total_pairs = family_f_stats[1] + req_cross_f_stats[1]
     if total_pairs == 0:

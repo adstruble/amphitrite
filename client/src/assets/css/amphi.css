@@ -115,6 +115,9 @@ button.dropdown-item.amphi-icon{
     flex-grow: 0;
     flex-basis: max-content;
 }
+.cross-fish .input-area {
+    padding-left: 0;
+}
 .input-area > div > div:last-child{
     margin-right: auto;
 }
@@ -124,6 +127,19 @@ button.dropdown-item.amphi-icon{
     justify-content: right;
     padding-right: 0;
     padding-left: 0;
+}
+.cross-fish .input-area > div > div:first-child {
+    flex-basis: 225px;
+    flex-shrink: 0;
+}
+.cross-fish .input-area > div > div:only-child{
+    flex-basis: max-content;
+    display: flex;
+    justify-content: left;
+    padding-right: 0;
+    padding-left: 0;
+    font-weight: 800;
+    margin-top:20px;
 }
 .filter div.input-area{
     line-height: 34px;
@@ -139,10 +155,6 @@ div.input-area{
 }
 .filter .input-area .nav-link{
     padding:initial;
-}
-.cross-fish .input-area > div > div:first-child {
-    flex-basis: 225px;
-    flex-shrink: 0;
 }
 .setting:has(div.amphi-date){
     display:inline-block;
@@ -286,6 +298,13 @@ i.amphi-cell:has(+ span){
     padding-right: 5px;
     color: #1d8cf8;
 }
+div.amphi-cell.clickable{
+    color: #1d8cf8;
+    position: relative;
+    padding-top: 0;
+    padding-bottom: 0;
+}
+div.amphi-cell.clickable:hover,
 i.amphi-cell.clickable:hover,
 i.amphi-icon.clickable:hover{
     color: #0772db;
@@ -301,6 +320,7 @@ i.amphi-icon.clickable{
     color: #1d8cf8;
     opacity: initial;
 }
+
 div:has(> i.amphi-cell:only-child){
     margin-left:-5px;
 }
@@ -383,6 +403,21 @@ ul.pagination .item-count{
 .modal-body.export > div:first-child{
     margin-bottom: 10px;
 }
+.modal-body.export .form-check:has(.form-check-label input.form-control) {
+    height: 26.59px;
+    padding-top: 2.59px;
+}
+.modal-body.export .form-check-label:has(input.form-control) {
+    display: flex;
+}
+.modal-body.export .form-check-label input.form-control{
+    height: 20px;
+    line-height: 1.9;
+    margin-left: 10px;
+    font-size: 11px;
+    padding: 5px;
+}
+
 .form-group.setting{
     padding: 0;
     margin-bottom: 0 !important;

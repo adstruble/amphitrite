@@ -32,7 +32,7 @@ export default function TopNavbar() {
                 <Nav navbar>
                     <NavItem>
                         <NavLink tag={Link} to="/managefish">
-                            <span className="nav-link">Manage Fish</span>
+                            <span className="nav-link">Fish</span>
                         </NavLink>
                     </NavItem>
                     <NavItem>
@@ -46,7 +46,7 @@ export default function TopNavbar() {
                                 id="crossesDropdownMenuLink"
                                 nav
                             >
-                                <span >Manage Crosses</span>
+                                <span >Crosses</span>
                             </DropdownToggle>
                             <DropdownMenu aria-labelledby="navbarDropdownMenuLink">
                                 <DropdownItem
@@ -64,7 +64,12 @@ export default function TopNavbar() {
                     </NavItem>
                     <NavItem>
                         <NavLink tag={Link} to="/manageusers">
-                            <span className="nav-link">Manage Users</span>
+                            <span className="nav-link">Reports</span>
+                        </NavLink>
+                    </NavItem>
+                    <NavItem>
+                        <NavLink tag={Link} to="/manageusers">
+                            <span className="nav-link">Users</span>
                         </NavLink>
                     </NavItem>
                 </Nav>

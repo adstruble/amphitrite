@@ -64,6 +64,8 @@ def get_fishes_from_db(username: str, query_params: dict, order_by_clause: str, 
                    box,
                    coalesce(an.content,'') as notes,
                    alive {', genotype ' if include_genotype else ''}
+                   {', get_ordered_pedigree_string(a.id, '+ query_params['pedigree'] + ') as pedigree ' 
+        if 'pedigree' in query_params else ''}
                 FROM animal a
                 JOIN family ON a.family = family.id
                 LEFT JOIN refuge_tag on a.id = refuge_tag.animal
@@ -136,8 +138,8 @@ def get_fish_csv(username, query_params, csv_file):
 
 def get_fish_f_values(fish_ids: list, username):
     """
-    :param username
     :param fish_ids: list of fish ids to get f values for
+    :param username
     :return: the f values for the given fish
     """
 
@@ -167,3 +169,97 @@ def mark_fish_dead(username, dead_fish):
         execute_statements(["TRUNCATE possible_cross"], username, ResultType.NoResult)
 
     return marked_fish
+
+
+def get_pedigree_tree(user, start_id):
+    # Get the full pedigree for the fish from the db
+    animal_pedigree = get_pedigree_tree_data(user, start_id)
+
+    # Create a dict of the first animal
+    animal = animal_pedigree.pop(0)
+    pedigree_tree = _create_pedigree_animal_dict(animal)
+
+    # Keep track of children list for an animal. we will add the parents for this animal as we find them in the results
+    parents_by_child_id = {str(animal['id']): pedigree_tree['children']}
+
+    # Add remainder of parents to the tree (note that the children in teh pedigree tree is mean to indicate the
+    # children in tree, which are actually parents of animals
+    for animal in animal_pedigree:
+        animal_dict = _create_pedigree_animal_dict(animal)
+        parents_by_child_id[str(animal['id'])] = animal_dict['children']
+        parents_by_child_id[animal['child_id']].append(animal_dict)
+
+    return pedigree_tree
+
+
+def _create_pedigree_animal_dict(sql_row):
+    if sql_row['child_group_id'] and sql_row['child_group_id'] < 0:
+        generation_id = 'WT'
+    else:
+        generation_id = (f"{str(int(sql_row['cross_date'].year) - 2005).ljust(2, '0')}"
+                         f"{'xxx' if not sql_row['child_group_id'] else str(sql_row['child_group_id']).zfill(3)}"
+                         f"{1 if sql_row['sex'] == 'F' else 2}")
+    animal = {'name': generation_id, 'cross_date': sql_row['cross_date'], 'sex': sql_row['sex'],
+              'value': sql_row['generation_level'], 'tag': sql_row['tag'], 'box': sql_row['box'],
+              'child_cross_date': sql_row['child_cross_date'], 'children': []}
+    return animal
+
+
+def get_pedigree_tree_data(user, start_id):
+    sql = """WITH RECURSIVE animal_ancestors AS (
+        -- Base case: Start with the target fish
+    SELECT
+    a.id,
+    a.box,
+    coalesce(rt.tag, 'Unknown')::VARCHAR(12) as tag,
+    f.group_id,
+    f.cross_date,
+    a.sex,
+    0 as generation_level,
+    NULL as child_id,
+    next_gen.group_id child_group_id,
+    next_gen.cross_date child_cross_date,
+    a.family
+    FROM animal a 
+    LEFT JOIN refuge_tag rt on rt.animal = a.id
+    LEFT JOIN family next_gen ON next_gen.parent_2 = a.id OR next_gen.parent_1 = a.id
+    JOIN family f on a.family = f.id
+    WHERE a.id = :id  -- Replace with your target fish tag
+
+    UNION ALL
+
+    -- Recursive case: Find parents of current generation
+    SELECT
+    parent_animal.id,
+    parent_animal.box,
+    coalesce(parent_tag.tag, 'Unknown')::VARCHAR(12) as tag,
+    parent_family.group_id,
+    parent_family.cross_date,
+    parent_animal.sex,
+    aa.generation_level + 1,
+    aa.id::text as child_id,
+    fam.group_id as child_group_id,
+    fam.cross_date as child_cross_date,
+    parent_animal.family as family
+    FROM animal_ancestors aa
+    JOIN family fam ON aa.family = fam.id
+    JOIN animal parent_animal ON (parent_animal.id = fam.parent_1 OR parent_animal.id = fam.parent_2)
+    LEFT JOIN refuge_tag parent_tag on parent_tag.animal = parent_animal.id
+    JOIN family parent_family ON parent_animal.family = parent_family.id
+    WHERE aa.generation_level < 5  -- Go 5 generations
+    )
+    SELECT
+    id,
+    box,
+    tag,
+    generation_level,
+    child_id,
+    child_group_id,
+    child_cross_date,
+    cross_date,
+    sex,
+    group_id
+FROM animal_ancestors
+ORDER BY generation_level, tag;
+"""
+    return execute_statements((sql, {'id': start_id}), user).get_as_list_of_dicts()
