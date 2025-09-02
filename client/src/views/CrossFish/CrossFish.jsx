@@ -19,6 +19,8 @@ import moment from "moment";
 import CrossFishExpanded from "./CrossFishExpanded";
 import {CrossFishFilter} from "./CrossFishFilter";
 import getData from "../../server/getData.js";
+import {CrossFishExport} from "./CrossFishExport.jsx";
+import AmphiTooltip from "../../components/Basic/AmphiTooltip.jsx";
 
 export default function CrossFish() {
     const {getUsername} = useToken();
@@ -35,8 +37,9 @@ export default function CrossFish() {
     const [alertLevel, setAlertLevel] = useState("");
     const [userSetTags, setUserSetTags] = useState("");
     const [availableFTags, setAvailableFTags] = useState("None");
+    const [availableFTagsList, setAvailableFTagsList] = useState([]);
     const [availableMTags, setAvailableMTags] = useState("None");
-    const [uncrossedFTags, setUncrossedFTags] = useState("")
+    const [uncrossedFTags, setUncrossedFTags] = useState([])
 
     const [isLoading, setIsLoading] = useState(false);
     const [setSpinning] = useOutletContext();
@@ -81,7 +84,7 @@ export default function CrossFish() {
                     setReloadTable(reloadTable => reloadTable + 1)
                     updateMeanF();
                 },
-                (data) =>{setUncrossedFTags(data['data']['uncrossed_tags'])},
+                (data) =>{setUncrossedFTags(convertTagStringToList(data['data']['uncrossed_tags']))},
                 null, setAlertLevel, setAlertText)
         }else{
             fetchData("cross_fish/remove_selected_cross", getUsername(),
@@ -89,7 +92,7 @@ export default function CrossFish() {
                     setReloadTable(reloadTable => reloadTable + 1)
                     updateMeanF();
                 },
-                (data)=>{setUncrossedFTags(data['data']['uncrossed_tags'])},
+                (data)=>{setUncrossedFTags(convertTagStringToList(data['data']['uncrossed_tags']))},
                 null, setAlertLevel, setAlertText)
         }
     };
@@ -222,6 +225,7 @@ export default function CrossFish() {
                     let availableFemales = success['f_tags'].length > 0 ? success['f_tags'] : "None";
                     let availableMales = success['m_tags'].length > 0 ? success['m_tags'] : "None";
                     setAvailableFTags(availableFemales);
+                    setAvailableFTagsList(convertTagStringToList(success['f_tags']));
                     setAvailableMTags(availableMales);
                     let tempUserSetTags = availableFemales.replaceAll("(","").replaceAll(")","")
                         + (availableFemales.length > 0 ? ',' : '') +
@@ -230,7 +234,7 @@ export default function CrossFish() {
                         tempUserSetTags = 'None';
                     }
                     setUserSetTags(tempUserSetTags);
-                    setUncrossedFTags(success['uncrossed_tags']);
+                    setUncrossedFTags(convertTagStringToList(success['uncrossed_tags']));
                 }, setAlertLevel, setAlertText);
     }, []);
 
@@ -316,8 +320,9 @@ export default function CrossFish() {
             setAlertText(data['warning']);
         }
         setAvailableFTags(data['data']['f_tags'])
-        setAvailableMTags(data['data']['m_tags'])
-        setUncrossedFTags(data['data']['uncrossed_tags'])
+        setAvailableFTagsList(convertTagStringToList(success['f_tags']));
+        setAvailableMTags(data['data']['m_tags']);
+        setUncrossedFTags(convertTagStringToList(data['data']['uncrossed_tags']));
         setReloadTable(reloadTable => reloadTable + 1)
     }
 
@@ -347,6 +352,10 @@ export default function CrossFish() {
         return (<CrossFishExpanded item={item}/>)
     }
 
+    function filterToFemales(tag){
+        // Might be easier to set the filter to the females family as we don't currently allow a list of tags in the tag filter
+    }
+
     const CROSSES_HEADER = {
         rows:{},
         cols:[{name: "Refuge Cross", key: "refuge", visible: true, format_fn:formatCheckbox,
@@ -356,7 +365,7 @@ export default function CrossFish() {
             format_args:[handleUseSupplementation, useSupplementationSelected, cantUseSupplementation], width:".66fr",
         order:2, order_direction: "DESC", order_by:"sup_cross"},
         {name: "Cross Completed", key: "", visible: true, format_fn:formatCheckbox,
-            format_args:[handleCompletedChecked,  isCompleted, cantComplete], width:".65fr"},
+            format_args:[handleCompletedChecked,  isCompleted, cantComplete], width:".68fr"},
         {name: "F", key: "f", visible: true, format_fn: formatDoubleTo3, width:".8fr", className:"numberCell",
             order:5, order_direction: "ASC", order_by: "f"},
         {name: "DI", key: "di", visible: true, format_fn: formatDoubleTo3, width:".7fr", className:"numberCell"},
@@ -381,6 +390,8 @@ export default function CrossFish() {
             header_tooltip:"Count of male family supplementation crosses completed and requested",
             order:null, order_direction: null, order_by: "m_sup_cross_count"}
         ]};
+
+    const exportButton = <CrossFishExport callback={handleExportCrossesClick}/>
 
     return (
         <div className={classnames('wrapper', 'cross-fish', isLoading ? 'disabled' : '')}>
@@ -452,7 +463,15 @@ export default function CrossFish() {
                                 <span>Available female fish for crossing:</span>
                             </Col>
                             <Col>
-                                <span style={{marginRight:"20px"}}>{availableFTags}</span>
+                                <div className='fish-tags'>
+                                    {availableFTagsList.map((tag)=>{
+                                        return(<>
+                                            <span id={sanitizeTagForID(tag)} className='fish-tag' onClick={filterToFemales(tag)}>{tag}</span>
+                                            <AmphiTooltip
+                                            target={sanitizeTagForID(tag)}
+                                            content={'Click to filter to ' + tag + ' only'}/></>);
+                                    })}
+                                </div>
                                 <Button  className="btn setting" color="default" type="button"
                                         onClick={handleSetAvailableFemalesClick}>Set Available Fish</Button>
                             </Col>
@@ -467,10 +486,21 @@ export default function CrossFish() {
                         </Row>*/}
                         <Row>
                             <Col>
-                                <span className={uncrossedFTags.length > 0 ? 'text-danger' : 'text-success'}>Females with 0 or 1 selected males:</span>
+                                <span className={uncrossedFTags.length > 0 ? 'text-warning' : 'text-success'}>Females with 0 or 1 selected males:</span>
                             </Col>
                             <Col>
-                            <span style={{marginRight:"20px"}}>{uncrossedFTags.length === 0 ? 'None' : uncrossedFTags}</span>
+                                <div className='fish-tags'>
+                                    {uncrossedFTags.map((tag) => {
+                                        return (<>
+                                            <span id={sanitizeTagForID(tag) + 'uncrossed'}
+                                                  className={classnames('fish-tag', 'uncrossed')}
+                                            onClick={filterToFemales(tag)}>{tag}</span>
+                                            <AmphiTooltip
+                                                target={sanitizeTagForID(tag) + 'uncrossed'}
+                                                content={'Click to filter to ' + tag + ' only'}/>
+                                        </>);
+                                    })}
+                                </div>
                             </Col>
                         </Row>
                         <Row>
@@ -502,25 +532,17 @@ export default function CrossFish() {
                         </Row>
 
                     </Col>
-                    <Col style={{padding: 0, textAlign: "right", flexGrow: "0", flexBasis: "fit-content"}}>
-                        <Row style={{padding: 0, textAlign: "right"}}>
-                        <Button className="nav-link" color="default" type="button" onClick={handleExportCrossesClick}>
-                            <div className="logout">
-                                <i className={classnames("amphi-icon", "icon-download")}/>
-                                <span>Export Selected Crosses</span>
-                            </div>
-                        </Button>
-                        </Row>
+                    <Col className="inbreeding-coefficients">
                         <Row>
                             <Col style={{paddingLeft: 0}}>
-                                <span>{moment(new Date()).year()} Population Inbreeding Coefficients (Mean F)</span>
+                                <span style={{fontWeight: '600'}}>{moment(new Date()).year()} Population Inbreeding Coefficients (Mean F)</span>
                             </Col>
                         </Row>
                         <Row >
                             <Col style={{display: 'flex', justifyContent: 'space-between', paddingLeft: 0}}>
-                                <span >Refuge: {meanF ? meanF.toFixed(6) : '0.0'}</span>
+                                <span className='inbreeding-coefficients-value'>Refuge: {meanF !== -1 ? meanF.toFixed(6) : 'No crosses'}</span>
 
-                                <span >Supplementation: {supplementationMeanF ? supplementationMeanF.toFixed(6) : '0.0'}</span>
+                                <span className='inbreeding-coefficients-value'>Supplementation: {supplementationMeanF !== -1 ? supplementationMeanF.toFixed(6) : 'No crosses'}</span>
                             </Col>
                         </Row>
                     </Col>
@@ -531,6 +553,7 @@ export default function CrossFish() {
                                 reloadData={reloadTable}
                                 getExpandedRow={getExpandedRow}
                                 filter={CrossFishFilter}
+                                tableControl={exportButton}
                     />
                 </Row>
             </Container>
@@ -558,4 +581,14 @@ export default function CrossFish() {
             </Modal>
         </div>
     )
+
+    function convertTagStringToList(fTagString){
+        return fTagString.match(/[^,()]+|\([^)]*\)/g)
+            .map(s => s.trim())
+            .filter(Boolean);
+    }
+
+    function sanitizeTagForID(tag){
+        return ("idtag" + tag.replaceAll('(', '').replaceAll(')', '').replaceAll(',', '').replaceAll(' ', ''));
+    }
 }

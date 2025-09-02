@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from amphitrite import app as AmphrititeServer
+from amphitrite import app as AmphitriteServer
 from model.crosses import set_available_fish
 
 from flask.testing import FlaskClient
@@ -27,8 +27,8 @@ def load_possible_crosses():
 
 @pytest.fixture(scope="module")
 def client() -> FlaskClient:
-    AmphrititeServer.config['TESTING'] = True
-    with AmphrititeServer.test_client() as client:
+    AmphitriteServer.config['TESTING'] = True
+    with AmphitriteServer.test_client() as client:
         yield client
 
 

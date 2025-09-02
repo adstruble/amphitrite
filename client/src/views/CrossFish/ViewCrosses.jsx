@@ -25,6 +25,7 @@ import FishDataUpload from "../../components/Upload/FishDataUpload";
 import {useOutletContext} from "react-router-dom";
 import getData from "../../server/getData.js";
 import {ImportExportDropdown} from "../../components/Basic/ImportExportDropdown.jsx";
+import {CrossFishExport} from "./CrossFishExport.jsx";
 
 
 export default function ViewCrosses(){
@@ -188,6 +189,11 @@ export default function ViewCrosses(){
         </Row>*/
 
     const uploadBtnText = "Upload Completed Crosses";
+    const importExportDropdown = <ImportExportDropdown importExportItems={[
+        {'name': 'Import completed ' + getCrossTypeDropdownLabel(true) + ' crosses','callback':()=>{setShowFishDatUpload(true)}, 'export':false},
+        {'name': 'Export completed ' + getCrossTypeDropdownLabel(true) + ' crosses as pairs', 'callback':handleExportCrosses, 'export':true},
+        {'name': 'Export single fish of completed ' + getCrossTypeDropdownLabel(true) + ' crosses (parentage analysis)', 'callback':handleExportParentage, 'export':true}]}/>
+
     return (
         <div className={classnames('wrapper', 'view-fish', isLoading ? 'disabled' : '')}>
             <Container>
@@ -195,13 +201,12 @@ export default function ViewCrosses(){
                     <AmphiAlert alertText={alertText} alertLevel={alertLevel} setAlertText={setAlertText}/>
                 </Row>
                 <Row>
-                    <Col>
-                        <Col style={{marginLeft: -15}}>
-                            <Row>
-                                <Col style={{ padding: 0, flexBasis: "fit-content", flexGrow: "0"}}>
-                                    <span>Cross Type:</span>
-                                </Col>
-                                <Col>
+                    <Col className="input-area">
+                        <Row>
+                            <Col>
+                                <span>Cross Type:</span>
+                            </Col>
+                            <Col>
                                     <Dropdown label="Refuge" toggle={toggleCrossType} isOpen={crossTypeDropdownOpen}>
                                         <DropdownToggle style={{paddingTop: 0, paddingLeft: 0}}
                                                         aria-expanded={false}
@@ -226,7 +231,7 @@ export default function ViewCrosses(){
                             </Col>
                         </Row>
                         <Row>
-                            <Col style={{padding: 0, flexBasis: "fit-content", flexGrow: "0"}}>
+                            <Col>
                                 <span>Cross completion year:</span>
                             </Col>
                             <Col>
@@ -234,32 +239,14 @@ export default function ViewCrosses(){
                             </Col>
                         </Row>
                     </Col>
+                    <Col className='inbreeding-coefficients'>
+                        <Row>
+                            <span>Population Inbreeding Coefficient (Mean F)</span>
+                        </Row>
+                        <Row>
+                            <span className='inbreeding-coefficients-value'>{viewingRefugeCrosses ? 'Refuge' : 'Supplementation'} {completedCrossesYear}: {(meanF !== -1) ? meanF.toFixed(6) : 'No crosses'}</span>
+                        </Row>
                     </Col>
-                    <Col style={{
-                        padding: 0, textAlign: "right", flexGrow: "0", flexBasis: "fit-content",
-                        justifyContent: "flex-end"
-                    }}>
-                        <FishDataUpload dataUploadUrl="cross_fish/upload_completed_crosses"
-                                        uploadCallback={()=>{setReloadTable(reloadTable + 1); updateInbreedingCoefficient();}}
-                                        formModalTitle="Upload Completed Refuge Crosses"
-                                        uploadButtonText={uploadBtnText}
-                                        setIsLoading={setIsLoading}
-                                        setAlertText={setAlertText}
-                                        setAlertLevel={setAlertLevel}
-                                        showButton={false}
-                                        showFormModalFromParent={showFishDataUpload}
-                                        setShowFormModalFromParent={setShowFishDatUpload}
-                                        /*UserOptions={UserOptions}
-                                        uploadParams={{'cross_date': crossCompletionDate}}*/
-                        />
-                        <ImportExportDropdown importExportItems={[
-                            {'name': 'Import completed ' + getCrossTypeDropdownLabel(true) + ' crosses','callback':()=>{setShowFishDatUpload(true)}, 'export':false},
-                            {'name': 'Export completed ' + getCrossTypeDropdownLabel(true) + ' crosses as pairs', 'callback':handleExportCrosses, 'export':true},
-                            {'name': 'Export single fish of completed ' + getCrossTypeDropdownLabel(true) + ' crosses (parentage analysis)', 'callback':handleExportParentage, 'export':true}]}/>
-                    </Col>
-                </Row>
-                <Row>
-                    <h4>Population Inbreeding Coefficient (Mean F): {meanF ? meanF.toFixed(6) : ''} </h4>
                 </Row>
                 <Row>
                     <AmphiTable tableDataUrl="cross_fish/get_completed_crosses"
@@ -268,8 +255,22 @@ export default function ViewCrosses(){
                                 reloadData={reloadTable}
                                 getExpandedRow={getExpandedRow}
                                 filter={ViewCrossesFilter}
+                                tableControl={importExportDropdown}
                     />
                 </Row>
+                <FishDataUpload dataUploadUrl="cross_fish/upload_completed_crosses"
+                                uploadCallback={()=>{setReloadTable(reloadTable + 1); updateInbreedingCoefficient();}}
+                                formModalTitle="Upload Completed Refuge Crosses"
+                                uploadButtonText={uploadBtnText}
+                                setIsLoading={setIsLoading}
+                                setAlertText={setAlertText}
+                                setAlertLevel={setAlertLevel}
+                                showButton={false}
+                                showFormModalFromParent={showFishDataUpload}
+                                setShowFormModalFromParent={setShowFishDatUpload}
+                    /*UserOptions={UserOptions}
+                    uploadParams={{'cross_date': crossCompletionDate}}*/
+                />
             </Container>
         </div>
     );

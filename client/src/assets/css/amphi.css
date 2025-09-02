@@ -37,6 +37,9 @@ button.nav-link .amphi-icon {
     line-height: 12px;
     font-size: 12px;
 }
+.dropdown-toggle {
+    font-weight: 400;
+}
 button.dropdown-item.amphi-icon{
     float: left;
     font-size: 12px;
@@ -48,7 +51,7 @@ button.dropdown-item.amphi-icon{
     width: 100%;
 }
 .cross-fish .amphi-table-container{
-    height: calc(100vh - 80px);
+    height: calc(100vh - 120px);
 }
 .inner-amphi-table .amphi-table-container{
     height: 100%;
@@ -99,8 +102,29 @@ button.dropdown-item.amphi-icon{
     height: calc(2.25rem + 2px);
 }
 .amphi-table-search{
-    flex-grow:1;
-    padding-right: 35px;
+    flex-grow: 1;
+    display: flex;
+    gap: 5px;
+}
+.amphi-table-search .input-group{
+    flex: 0 0 auto;
+    width: 550px;
+}
+.amphi-table-search .dropdown{
+    margin-left: auto;
+    margin-top: auto;
+    margin-bottom: 5px;
+}
+.input-area .dropdown-toggle{
+    padding: 0;
+}
+.amphi-table-search .btn {
+    height: 38px;
+    margin-top: 9px;
+    margin-left: auto;
+}
+.pagination {
+    margin-bottom: 9px;
 }
 .input-area{
     display: flex;
@@ -115,7 +139,7 @@ button.dropdown-item.amphi-icon{
     flex-grow: 0;
     flex-basis: max-content;
 }
-.cross-fish .input-area {
+.input-area {
     padding-left: 0;
 }
 .input-area > div > div:last-child{
@@ -128,11 +152,20 @@ button.dropdown-item.amphi-icon{
     padding-right: 0;
     padding-left: 0;
 }
-.cross-fish .input-area > div > div:first-child {
-    flex-basis: 225px;
+.input-area > div > div:first-child {
     flex-shrink: 0;
+    font-weight: 600;
 }
-.cross-fish .input-area > div > div:only-child{
+.cross-fish .input-area > div > div:first-child{
+    flex-basis: 238px;
+}
+.view-fish .input-area > div > div:first-child{
+    flex-basis: 157px;
+}
+.filter .input-area > div > div:first-child{
+    font-weight: normal;
+}
+.input-area > div > div:only-child{
     flex-basis: max-content;
     display: flex;
     justify-content: left;
@@ -141,17 +174,52 @@ button.dropdown-item.amphi-icon{
     font-weight: 800;
     margin-top:20px;
 }
+.fish-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 2px;
+    margin-left: 1px;
+    margin-right: 1px;
+}
+.fish-tag {
+    background: #e3f2fd;
+    color: #1565c0;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.35;
+    cursor: pointer;
+}
+.fish-tag:hover {
+    box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.4);
+    transform: translateY(-1px);
+    -webkit-transform: translateY(-1px);
+}
+.fish-tag.uncrossed{
+    background: #fff3e0;
+    color: #ef6c00;
+}
+.inbreeding-coefficients{
+    padding: 0;
+    text-align: right;
+    flex-grow: 0;
+    flex-basis: fit-content;
+    font-weight: 600;
+}
+.inbreeding-coefficients-value{
+    color: #e3f2fd;
+}
 .filter div.input-area{
     line-height: 34px;
-}
-div.input-area{
-    line-height: 29px;
 }
 .input-area .row{
     margin-bottom: 10px;
 }
-.cross-fish .input-area .row{
-    margin-bottom: 0;
+
+.cross-fish .filter .input-area .row{
+    margin-bottom: 10px;
 }
 .filter .input-area .nav-link{
     padding:initial;
@@ -164,7 +232,7 @@ div.input-area{
 }
 .filter{
     position:fixed;
-    margin-top:-10px;
+    margin-top: 48px;
     z-index: 1000;
     padding-right: 35px;
     background-clip:content-box;
@@ -338,7 +406,6 @@ i.order-by{
 }
 nav.pagination{
     display: flex;
-    margin-left: auto;
 }
 ul.pagination {
     margin-top: auto;

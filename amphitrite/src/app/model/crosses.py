@@ -774,10 +774,14 @@ def get_population_f(username, year, pop_type):
     if pop_type == 'supplementation':
         table = 'supplementation_family'
 
-    return execute_statements((f"""SELECT avg(f) as pop_f FROM {table}
+    avg_f = execute_statements((f"""SELECT avg(f) as pop_f FROM {table}
                                                      WHERE extract(YEAR from cross_date) = :year""", {'year': year}),
-                              username,
-                              ResultType.RowResults).get_single_result()
+                               username,
+                               ResultType.RowResults).get_single_result()
+    if avg_f is not None:
+        return avg_f
+    else:
+        return -1
 
 
 def get_population_f_with_requested(username, supplementation):
@@ -802,7 +806,7 @@ def get_population_f_with_requested(username, supplementation):
 
     total_pairs = family_f_stats[1] + req_cross_f_stats[1]
     if total_pairs == 0:
-        return 0
+        return -1
 
     avg_f = (family_f_stats[0] * (family_f_stats[1]/total_pairs) +
              req_cross_f_stats[0] * (req_cross_f_stats[1]/total_pairs))

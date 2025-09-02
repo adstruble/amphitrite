@@ -36,6 +36,7 @@ export default function AmphiTable({tableDataUrl,
                                        fetchParams,
                                        includeSearch=true,
                                        filter=null,
+                                       tableControl=null,
                                    LIMIT=50,
                                    dataFetchCallback=null}){
     const {getUsername} =   useToken();
@@ -294,7 +295,7 @@ export default function AmphiTable({tableDataUrl,
                     </InputGroup>}
 
                     {Filter &&
-                        <div style={{width: filterWidth, display:showFilterOptions ? "inherit": "none"}}
+                        <div style={{width: filterWidth, display:showFilterOptions ? "block": "none"}}
                              className="filter" id="filterTable">
                             <div style={{border: "1px solid #1d8cf8", padding: "10px"}}>
                                 <Filter setFilterParent={setParentFilterHolder}/>
@@ -313,12 +314,13 @@ export default function AmphiTable({tableDataUrl,
                             </div>
                         </div>
                     }
+                    {includePagination &&
+                        <AmphiPagination className={classnames('pagination')} LIMIT={LIMIT} tableNodes={tableNodes} onPaginationChange={onPaginationChange}
+                                         tableSize={tableSize} currPage={currPage} currElementCnt={currElementCnt}/>}
+                    {tableControl}
                 </div>
 
 
-                {includePagination &&
-                <AmphiPagination className={classnames('pagination')} LIMIT={LIMIT} tableNodes={tableNodes} onPaginationChange={onPaginationChange}
-                                 tableSize={tableSize} currPage={currPage} currElementCnt={currElementCnt}/>}
             </div>
 
             <div className={classnames('amphi-table-inner',isScrollbarVisible && 'scrolling')}>
