@@ -22,6 +22,7 @@ import AmphiPagination from "./AmphiPagination";
 import {onKeyupWithDelay} from "../Utils/General";
 import useScrollbarVisibility from "../Utils/ScrollbarVisibility";
 import AmphiTooltip from "../Basic/AmphiTooltip.jsx";
+import {useHeaderHeight} from "../Utils/useHeaderHeight.js";
 
 export const getExpandedDefault = () => {
     return (<tr className='expanded-row-contents'><td style={{display:"none"}}/></tr>);
@@ -37,8 +38,9 @@ export default function AmphiTable({tableDataUrl,
                                        includeSearch=true,
                                        filter=null,
                                        tableControl=null,
-                                   LIMIT=50,
-                                   dataFetchCallback=null}){
+                                       LIMIT=50,
+                                       dataFetchCallback=null,
+                                       calcHeaderHeight=false}){
     const {getUsername} =   useToken();
     const getUsernameRef = useRef(getUsername);
     getUsernameRef.current = getUsername;
@@ -50,10 +52,12 @@ export default function AmphiTable({tableDataUrl,
     const [tableSize, setTableSize] = useState(0);
     const [currElementCnt, setCurrElementCnt] = useState(0);
     const [currPage, setCurrPage] = useState(0);
+
     const [filterState, setFilterState] = useState(filter === null ? {} : null)
     const [filterStateHolder, setFilterStateHolder] = useState({})
 
     const Filter = filter;
+
     const filterWidth = "550px"; //matchWidthElementId ? parseInt(getComputedStyle(document.getElementById(matchWidthElementId))['width'])/2 : "100%";
 
     const [isScrollbarVisible, setIsScrollbarVisible] = useState(true);
@@ -127,6 +131,7 @@ export default function AmphiTable({tableDataUrl,
             setFilterState(state);
         }
     }
+
     function updateOrderBy(clickedHeader){
         const clickedHeaderOrder = clickedHeader.order;
         const newHeaders =
@@ -257,13 +262,11 @@ export default function AmphiTable({tableDataUrl,
 
     function onPaginationChange(action, state) {
         setCurrPage(state.page)
-        doGetTableData().then();
     }
 
-
+    const totalHeaderHeight = useHeaderHeight(calcHeaderHeight);
     return (
-        <div className='amphi-table-container'>
-
+        <div className='amphi-table-container' style={{ height: totalHeaderHeight}}>
             <div className='amphi-table-search-paginate' id="amphiTableSearchPaginate">
                 <div className='amphi-table-search' id="amphiTableSearch">
                 {includeSearch &&

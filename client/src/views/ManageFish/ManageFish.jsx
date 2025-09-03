@@ -117,11 +117,11 @@ export default function ManageFish() {
     return (
 
         <div className={classNames("wrapper", isLoading ? 'disabled' : '')}>
-            <Container>
-                <Row>
+            <Container id='amphi-table-wrapper'>
+                <Row className={'amphi-table-wrapper-header'}>
                     <AmphiAlert alertText={alertText} alertLevel={alertLevel} setAlertText={setAlertText}/>
                 </Row>
-                <Row>
+                <Row className={'amphi-table-wrapper-header'}>
                 <FishDataUpload dataUploadUrl="manage_fish/bulk_upload"
                                 uploadCallback={handleFishUploadedCallback}
                                 formModalTitle="Upload Bulk Fish Data (master sheet)"
@@ -153,6 +153,7 @@ export default function ManageFish() {
                                 filter={ManageFishFilter}
                                 LIMIT={500}
                                 dataFetchCallback={handleDataFetched}
+                                calcHeaderHeight={true}
                     />
                 </Row>
             </Container>

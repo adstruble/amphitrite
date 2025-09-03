@@ -275,11 +275,11 @@ export default function CrossFish() {
                 null,
                 () => void 0,
                 (data) => {
-                    setAvailableCallback(data);
                     setIsLoading(false);
                     setUserSetTags(data['data'])
+                    setAvailableCallback(data);
                 },
-                null, setAlertLevel, setAlertText, null, formData);
+                null, setAlertLevel, setAlertText, setIsLoading, formData);
         }
         // Tab 2 is comma separated list in text area
         if (setFishTab === 2) {
@@ -295,7 +295,7 @@ export default function CrossFish() {
                     setAvailableCallback(data);
                     setIsLoading(false);
                 },
-                null, setAlertLevel, setAlertText);
+                null, setAlertLevel, setAlertText, setIsLoading);
         }
     }
 
@@ -320,7 +320,7 @@ export default function CrossFish() {
             setAlertText(data['warning']);
         }
         setAvailableFTags(data['data']['f_tags'])
-        setAvailableFTagsList(convertTagStringToList(success['f_tags']));
+        setAvailableFTagsList(convertTagStringToList(data['data']['f_tags']));
         setAvailableMTags(data['data']['m_tags']);
         setUncrossedFTags(convertTagStringToList(data['data']['uncrossed_tags']));
         setReloadTable(reloadTable => reloadTable + 1)
@@ -451,12 +451,12 @@ export default function CrossFish() {
                     <Button color="success" type="button" onClick={selectAvailableFish}>Select</Button>
                 </div>
             </Modal>
-            <Container>
-                <Row>
+            <Container id='amphi-table-wrapper'>
+                <Row className='amphi-table-wrapper-header'>
                     <AmphiAlert alertText={alertText} alertLevel={alertLevel} setAlertText={setAlertText}/>
                 </Row>
 
-                <Row>
+                <Row className='amphi-table-wrapper-header'>
                     <Col className="input-area">
                         <Row>
                             <Col>
@@ -554,6 +554,7 @@ export default function CrossFish() {
                                 getExpandedRow={getExpandedRow}
                                 filter={CrossFishFilter}
                                 tableControl={exportButton}
+                                calcHeaderHeight={true}
                     />
                 </Row>
             </Container>

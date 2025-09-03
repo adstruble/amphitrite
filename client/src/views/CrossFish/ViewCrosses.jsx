@@ -196,11 +196,11 @@ export default function ViewCrosses(){
 
     return (
         <div className={classnames('wrapper', 'view-fish', isLoading ? 'disabled' : '')}>
-            <Container>
-                <Row>
+            <Container id='amphi-table-wrapper'>
+                <Row className='amphi-table-wrapper-header'>
                     <AmphiAlert alertText={alertText} alertLevel={alertLevel} setAlertText={setAlertText}/>
                 </Row>
-                <Row>
+                <Row className='amphi-table-wrapper-header'>
                     <Col className="input-area">
                         <Row>
                             <Col>
@@ -256,6 +256,7 @@ export default function ViewCrosses(){
                                 getExpandedRow={getExpandedRow}
                                 filter={ViewCrossesFilter}
                                 tableControl={importExportDropdown}
+                                calcHeaderHeight={true}
                     />
                 </Row>
                 <FishDataUpload dataUploadUrl="cross_fish/upload_completed_crosses"

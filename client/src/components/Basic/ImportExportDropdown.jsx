@@ -13,7 +13,7 @@ export function ImportExportDropdown({importExportItems}) {
     return (
         <Dropdown label="importExportDropdown" toggle={toggleDropdown}
                   isOpen={importExportDropdownOpen}>
-            <DropdownToggle style={{paddingTop: 0, paddingLeft: 0}}
+            <DropdownToggle style={{paddingTop: 0, paddingLeft: 0, paddingRight: '3px'}}
                             aria-expanded={false}
                             aria-haspopup={true}
                             caret

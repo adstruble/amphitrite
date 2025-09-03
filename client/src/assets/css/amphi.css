@@ -211,6 +211,13 @@ button.dropdown-item.amphi-icon{
     flex-basis: fit-content;
     font-weight: 600;
 }
+.inbreeding-coefficients .row{
+    margin-left: 0;
+    margin-right: 0;
+}
+.inbreeding-coefficients .row .col{
+    padding-right: 0;
+}
 .inbreeding-coefficients-value{
     color: #e3f2fd;
 }
@@ -422,6 +429,7 @@ ul.pagination > li {
 }
 ul.pagination .item-count{
     text-wrap: nowrap;
+    line-height: 30px;
 }
 
 .alert div {

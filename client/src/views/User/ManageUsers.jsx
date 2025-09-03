@@ -77,46 +77,47 @@ export default function ManageUsers(){
     };
 
     return (
-        <Container className="manage-users">
-            <Row>
+        <Container className="manage-users" id='amphi-table-wrapper'>
+            <Row className='amphi-table-wrapper-header'>
                 <AmphiAlert alertText={alertText} alertLevel={alertLevel} setAlertText={setAlertText}/>
             </Row>
-            <Row>
+            <Row className='amphi-table-wrapper-header'>
                 <Button className="btn" color="default" type="button" onClick={() =>setAddUserOpen(true)}>
                     Add User
                 </Button>
             </Row>
-            <Modal isOpen={addUserOpen} modalClassName="modal-black" id="addUser">
-                <div className="modal-header justify-content-center">
-                    <Button className="btn-close" onClick={() => setAddUserOpen(false)}>
-                        <i className="tim-icons icon-simple-remove text-white"/>
-                    </Button>
-                    <div className="text-muted text-center ml-auto mr-auto">
-                        <h3 className="mb-0">Add User</h3>
-                    </div>
-                </div>
-                <div className="modal-body">
-                    <FormGroup className={classnames({"input-group-focus": usernameFocus})}>
-                        <span>Username</span>
-                        <Input id="userField"
-                            onFocus={() => setUsernameFocus(true)}
-                            onBlur={() => setUsernameFocus(false)}
-                            type="text"
-                        />
-                    </FormGroup>
-                </div>
-                <div className="modal-footer">
-                    <Button color="default" className="btn" type="button"
-                            onClick={() => setAddUserOpen(false)}>Cancel</Button>
-                    <Button color="success" type="button" onClick={addUser}>Save</Button>
-                </div>
-            </Modal>
             <Row>
                 <AmphiTable tableDataUrl="users/get_users"
                             headerDataStart={USERS_HEADER}
                             includeSearch={false}
+                            calcHeaderHeight={true}
                 />
             </Row>
+            <Modal isOpen={addUserOpen} modalClassName="modal-black" id="addUser">
+            <div className="modal-header justify-content-center">
+                <Button className="btn-close" onClick={() => setAddUserOpen(false)}>
+                    <i className="tim-icons icon-simple-remove text-white"/>
+                </Button>
+                <div className="text-muted text-center ml-auto mr-auto">
+                    <h3 className="mb-0">Add User</h3>
+                </div>
+            </div>
+            <div className="modal-body">
+                <FormGroup className={classnames({"input-group-focus": usernameFocus})}>
+                    <span>Username</span>
+                    <Input id="userField"
+                           onFocus={() => setUsernameFocus(true)}
+                           onBlur={() => setUsernameFocus(false)}
+                           type="text"
+                    />
+                </FormGroup>
+            </div>
+            <div className="modal-footer">
+                <Button color="default" className="btn" type="button"
+                        onClick={() => setAddUserOpen(false)}>Cancel</Button>
+                <Button color="success" type="button" onClick={addUser}>Save</Button>
+            </div>
+        </Modal>
         </Container>
     );
 }
