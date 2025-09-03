@@ -23,6 +23,9 @@ body{
     padding: 6px 5px 0 5px;
     color:white;
 }
+.navbar .navbar-nav .nav-item .nav-link.dropdown-toggle{
+    display: block;
+}
 button.nav-link .amphi-icon {
     width: 20px;
     float: left;
