@@ -1,7 +1,7 @@
 import {Container, Row} from "reactstrap";
 
 import FishDataUpload from "../../components/Upload/FishDataUpload";
-import React, {useState} from "react";
+import React, {useEffect, useState} from "react";
 import {useOutletContext} from "react-router-dom";
 import AmphiTable from "../../components/Table/AmphiTable";
 import {
@@ -19,6 +19,7 @@ import ManageRowNotesExpanded from "./ManageRowNotesExpanded.jsx";
 import AmphiAlert from "../../components/Basic/AmphiAlert";
 import ExportSelected from "../../components/Download/ExportSelected";
 import ManageRowFamilyExpanded from "./ManageRowFamilyExpanded.jsx";
+import useWhyDidYouUpdate from "../../components/Utils/whyDidYouUpdate.js";
 
 export default function ManageFish() {
     const {getUsername} = useToken();
@@ -89,7 +90,7 @@ export default function ManageFish() {
             validate_fn:validateNumberOfGenerations},
         {name:'Alleles', selected: false, field: 'genotype'}]
 
-    const handleFishUploadedCallback = () => {
+    const handleFishUploadedCallback =  () => {
         setReloadTable(reloadTable + 1);
     }
 
@@ -129,7 +130,6 @@ export default function ManageFish() {
                                 setIsLoading={setIsLoading}
                                 setAlertText={setAlertText}
                                 setAlertLevel={setAlertLevel}
-
                     />
                 <ExportSelected exportUrl="manage_fish/export_fish"
                                 exportCallback={()=>{}}

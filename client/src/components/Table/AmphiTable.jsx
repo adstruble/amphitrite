@@ -23,6 +23,7 @@ import {onKeyupWithDelay} from "../Utils/General";
 import useScrollbarVisibility from "../Utils/ScrollbarVisibility";
 import AmphiTooltip from "../Basic/AmphiTooltip.jsx";
 import {useHeaderHeight} from "../Utils/useHeaderHeight.js";
+import useWhyDidYouUpdate from "../Utils/whyDidYouUpdate.js";
 
 export const getExpandedDefault = () => {
     return (<tr className='expanded-row-contents'><td style={{display:"none"}}/></tr>);
@@ -41,6 +42,7 @@ export default function AmphiTable({tableDataUrl,
                                        LIMIT=50,
                                        dataFetchCallback=null,
                                        calcHeaderHeight=false}){
+
     const {getUsername} =   useToken();
     const getUsernameRef = useRef(getUsername);
     getUsernameRef.current = getUsername;
@@ -70,10 +72,12 @@ export default function AmphiTable({tableDataUrl,
 
     const [expandedIds, setExpandedIds] = React.useState(new Map());
 
+    const headerDataStartRef = useRef();
+    headerDataStartRef.current = headerDataStart;
     React.useEffect(() => {
-        setHeaderCols(headerDataStart.cols);
-        setHeaderRows(headerDataStart.rows);
-    }, [headerDataStart]);
+        setHeaderCols(headerDataStartRef.current.cols);
+        setHeaderRows(headerDataStartRef.current.rows);
+    }, []);
 
     const handleExpand = (item, event, expandFn) => {
         // First if this is a checkbox we don't want to do anything.
@@ -158,13 +162,16 @@ export default function AmphiTable({tableDataUrl,
             }
         });
         setHeaderCols(newHeaders);
-        setCurrPage(0)
+        setCurrPage(0);
+        doGetTableData().then();
     }
 
+    const headerColsRef = useRef();
+    headerColsRef.current = headerCols;
     const determineOrderBy = React.useCallback(async () => {
         // Clone the headerData so we don't change the order of the columns in the rendered table,
         // Shouldn't need to do a deep copy because we're not changing data on the headers themselves
-        const headerDataClone = headerCols.slice(0);
+        const headerDataClone = headerColsRef.current.slice(0);
         const sortedHeaders = (headerDataClone.sort((a, b) => {
             if (!("order" in a) && !("order" in b)) {
                 return 0;
@@ -194,7 +201,8 @@ export default function AmphiTable({tableDataUrl,
         }, newOrderBy);
 
         return newOrderBy
-    }, [headerCols]);
+    }, []);
+
 
     const doGetTableData = React.useCallback(async () => {
         const setTableData = (tableData, params) => {
@@ -226,17 +234,22 @@ export default function AmphiTable({tableDataUrl,
             }};
 
         fetchData(tableDataUrl, getUsernameRef.current(), params, setTableData);
-    }, [search, currPage, fetchParams, filterState, LIMIT, determineOrderBy, tableDataUrl,
+    }, [search, currPage, fetchParams, filterState, LIMIT, tableDataUrl,
     dataFetchCallback]);
 
+    const doGetTableDataRef = useRef();
+    doGetTableDataRef.current = doGetTableData;
     React.useEffect(() => {
-        doGetTableData().then();
-    }, [doGetTableData, reloadData]);
+        doGetTableDataRef.current().then();
+    }, [reloadData]);
 
-    React.useEffect(() =>{
-        setHeaderCols(headerDataStart.cols);
-        setHeaderRows(headerDataStart.rows);
-    }, [headerDataStart]);
+    // We have to have this on the params for which if they change we want to refetch the table, we can't refetch
+    // automatically if headerDataStart changes, because changes made within this component do not get propagated
+    // back to the parent headers, if we fixed that then we could.
+    React.useEffect(() => {
+        doGetTableDataRef.current().then();
+    }, [filterState, fetchParams]);
+
 
     const  maybeSearchTable = (e) => {
         setSearch(e.target.value)

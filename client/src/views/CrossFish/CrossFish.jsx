@@ -227,17 +227,21 @@ export default function CrossFish() {
                     setAvailableFTags(availableFemales);
                     setAvailableFTagsList(convertTagStringToList(success['f_tags']));
                     setAvailableMTags(availableMales);
-                    let tempUserSetTags = availableFemales.replaceAll("(","").replaceAll(")","")
-                        + (availableFemales.length > 0 ? ',' : '') +
-                        availableMales.replaceAll("(","").replaceAll(")","");
-                    if (tempUserSetTags === 'None,None'){
-                        tempUserSetTags = 'None';
-                    }
-                    setUserSetTags(tempUserSetTags);
+                    setUserSetTagsFromAvailable(availableFemales, availableMales);
                     setUncrossedFTags(convertTagStringToList(success['uncrossed_tags']));
                 }, setAlertLevel, setAlertText);
     }, []);
 
+
+    function setUserSetTagsFromAvailable(females, males){
+        let tempUserSetTags = females.replaceAll("(","").replaceAll(")","")
+            + (females.length > 0 ? ',' : '') +
+            males.replaceAll("(","").replaceAll(")","");
+        if (tempUserSetTags === 'None,None'){
+            tempUserSetTags = 'None';
+        }
+        setUserSetTags(tempUserSetTags);
+    }
 
     const updateMeanF = () =>{
         getData("cross_fish/mean-f", getUsernameRef.current(),
@@ -276,7 +280,6 @@ export default function CrossFish() {
                 () => void 0,
                 (data) => {
                     setIsLoading(false);
-                    setUserSetTags(data['data'])
                     setAvailableCallback(data);
                 },
                 null, setAlertLevel, setAlertText, setIsLoading, formData);
@@ -286,7 +289,6 @@ export default function CrossFish() {
             setSelectAvailableFishOpen(false);
             const input = document.getElementById("selectFishFormArea");
             const tags = input.value.split(",");
-            setUserSetTags(tags)
             setIsLoading(true);
             fetchData("cross_fish/available_fish", getUsername(),
                 {tags: tags},
@@ -323,6 +325,7 @@ export default function CrossFish() {
         setAvailableFTagsList(convertTagStringToList(data['data']['f_tags']));
         setAvailableMTags(data['data']['m_tags']);
         setUncrossedFTags(convertTagStringToList(data['data']['uncrossed_tags']));
+        setUserSetTagsFromAvailable(data['data']['f_tags'], data['data']['m_tags'])
         setReloadTable(reloadTable => reloadTable + 1)
     }
 

@@ -5,6 +5,7 @@ from amphitrite import app as AmphitriteServer # noqa
 
 from werkzeug.test import TestResponse
 
+
 @pytest.fixture(scope="module")
 def client() -> FlaskClient:
     AmphitriteServer.config['TESTING'] = True

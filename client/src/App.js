@@ -3,6 +3,17 @@ import {
     createBrowserRouter,
     RouterProvider,
 } from "react-router-dom";
+import whyDidYouRender from '@welldone-software/why-did-you-render';
+
+if (process.env.NODE_ENV === 'development') {
+    whyDidYouRender(React, {
+        trackAllPureComponents: true,
+        trackHooks: true,
+        logOnDifferentValues: true,
+    });
+}
+ManageFish.whyDidYouRender = true;
+AmphiTable.whyDidYouRender = true;
 import './App.css';
 import Login from './views/User/Login.jsx'
 import useToken from "./components/App/useToken";
@@ -15,6 +26,7 @@ import CrossFish from "./views/CrossFish/CrossFish";
 import ViewCrosses from "./views/CrossFish/ViewCrosses";
 import UserSettings from "./views/User/UserSettings";
 import ManageUsers from "./views/User/ManageUsers";
+import AmphiTable from "./components/Table/AmphiTable.jsx";
 
 const router = createBrowserRouter([
     {

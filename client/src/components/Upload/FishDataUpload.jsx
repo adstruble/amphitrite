@@ -10,7 +10,10 @@ export default function FishDataUpload({dataUploadUrl, uploadCallback, uploadBut
                                            setAlertText, setAlertLevel, UserOptions, uploadParams={},
                                            showFormModalFromParent, setShowFormModalFromParent}
 ) {
-    const [formModal, setFormModal] = useState(false);
+    const [internalFormModal, setInternalFormModal] = useState(showFormModalFromParent || false);
+    // Use prop value if provided, otherwise internal state
+    const formModal = showFormModalFromParent !== undefined ? showFormModalFromParent : internalFormModal;
+    const setFormModal = setShowFormModalFromParent || setInternalFormModal;
 
     const handleUploadFishDataClick = async e => {
         e.preventDefault();
@@ -50,14 +53,13 @@ export default function FishDataUpload({dataUploadUrl, uploadCallback, uploadBut
 
     const fishDataUploadCancel = () => {
         setFormModal(false);
-        if (setShowFormModalFromParent !== undefined){
-            setShowFormModalFromParent(false)
-        }
     }
 
     return (
         <>
-            <FileUploadSingle formModalProp={formModal || showFormModalFromParent} fileUploadUrl={dataUploadUrl}
+            <FileUploadSingle formModal={formModal}
+                              setFormModal={setFormModal}
+                              fileUploadUrl={dataUploadUrl}
                               submitReturnCallback={fishDataUploadCallback}
                               submitCallback={fishDataUploadInProgress}
                               cancelCallback={fishDataUploadCancel}

@@ -14,6 +14,7 @@
     "@lottiefiles/dotlottie-react": "^0.14.3",
     "@popperjs/core": "^2.11.8",
     "@table-library/react-table-library": "^4.1.15",
+    "@welldone-software/why-did-you-render": "^10.0.1",
     "bootstrap": "^5.3.7",
     "classnames": "^2.5.1",
     "echarts": "^6.0.0",

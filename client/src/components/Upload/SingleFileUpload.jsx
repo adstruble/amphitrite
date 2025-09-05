@@ -7,12 +7,14 @@ export default function FileUploadSingle({fileUploadUrl,
                                              submitReturnCallback,
                                              submitCallback,
                                              cancelCallback,
-                                             formModalProp,
-                                         formModalTitle, setIsLoading,
-                                         fileNameStartText,
-                                             UserOptions=null, uploadParams={}}) {
+                                             formModal,
+                                             setFormModal,
+                                             formModalTitle,
+                                             setIsLoading,
+                                             fileNameStartText,
+                                             UserOptions=null,
+                                             uploadParams={}}) {
 
-    const [formModal, setFormModal] = useState(false);
     const [file, setFile] = useState();
     const [fileName, setFileName] = useState(fileNameStartText);
     const [submitDisabled, setSubmitDisabled] = useState(true);
@@ -30,9 +32,6 @@ export default function FileUploadSingle({fileUploadUrl,
         };
     }, []);
 
-    useEffect(() => {
-        setFormModal(formModalProp );
-    }, [formModalProp]);
 
     const handleFileChange = (e) => {
         if (e.target.files) {
@@ -164,7 +163,8 @@ FileUploadSingle.propTypes = {
     submitReturnCallback: PropTypes.func.isRequired,
     submitCallback: PropTypes.func.isRequired,
     cancelCallback: PropTypes.func.isRequired,
-    formModalProp: PropTypes.bool.isRequired,
+    formModal: PropTypes.bool.isRequired,
+    setFormModal: PropTypes.func.isRequired,
     formModalTitle: PropTypes.string.isRequired,
     fileNameStartText: PropTypes.string.isRequired
 }

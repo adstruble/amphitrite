@@ -82,7 +82,7 @@ export default function ViewCrosses(){
     const {getUsername} = useToken();
     const [setSpinning] = useOutletContext();
     const [meanF, setMeanF] = useState(0);
-    const [showFishDataUpload, setShowFishDatUpload] = useState(false);
+    const [showFishDataUpload, setShowFishDataUpload] = useState(false);
 
     const toggleCrossType = () => setCrossTypeDropdownOpen(prevState => !prevState)
 
@@ -190,7 +190,7 @@ export default function ViewCrosses(){
 
     const uploadBtnText = "Upload Completed Crosses";
     const importExportDropdown = <ImportExportDropdown importExportItems={[
-        {'name': 'Import completed ' + getCrossTypeDropdownLabel(true) + ' crosses','callback':()=>{setShowFishDatUpload(true)}, 'export':false},
+        {'name': 'Import completed ' + getCrossTypeDropdownLabel(true) + ' crosses','callback':()=>{setShowFishDataUpload(true)}, 'export':false},
         {'name': 'Export completed ' + getCrossTypeDropdownLabel(true) + ' crosses as pairs', 'callback':handleExportCrosses, 'export':true},
         {'name': 'Export single fish of completed ' + getCrossTypeDropdownLabel(true) + ' crosses (parentage analysis)', 'callback':handleExportParentage, 'export':true}]}/>
 
@@ -268,7 +268,7 @@ export default function ViewCrosses(){
                                 setAlertLevel={setAlertLevel}
                                 showButton={false}
                                 showFormModalFromParent={showFishDataUpload}
-                                setShowFormModalFromParent={setShowFishDatUpload}
+                                setShowFormModalFromParent={setShowFishDataUpload}
                     /*UserOptions={UserOptions}
                     uploadParams={{'cross_date': crossCompletionDate}}*/
                 />
