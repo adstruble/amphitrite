@@ -239,16 +239,12 @@ export default function AmphiTable({tableDataUrl,
 
     const doGetTableDataRef = useRef();
     doGetTableDataRef.current = doGetTableData;
-    React.useEffect(() => {
-        doGetTableDataRef.current().then();
-    }, [reloadData]);
-
-    // We have to have this on the params for which if they change we want to refetch the table, we can't refetch
+    // We have to have this on the params as if they change we want to refetch the table, we can't refetch
     // automatically if headerDataStart changes, because changes made within this component do not get propagated
     // back to the parent headers, if we fixed that then we could.
     React.useEffect(() => {
         doGetTableDataRef.current().then();
-    }, [filterState, fetchParams]);
+    }, [reloadData, filterState, fetchParams, search]);
 
 
     const  maybeSearchTable = (e) => {
@@ -296,7 +292,7 @@ export default function AmphiTable({tableDataUrl,
                             onFocus={() => setSearchFocus(true)}
                             className={classnames({"input-group-focus": searchFocus})}
                             onKeyUp={onKeyupWithDelay((e) => maybeSearchTable(e),
-                                500)}
+                                400)}
                             id={tableDataUrl + "_amphiTable"}
                         />
                         <div className="input-group-append">
