@@ -6,14 +6,14 @@ import useToken from "../../components/App/useToken";
 import {onKeyupWithDelay} from "../../components/Utils/General";
 import classnames from "classnames";
 
-export default function ViewCrossesExpanded({item, reloadTable, refugeCrosses}) {
+export default function ViewCrossesExpanded({item, reloadTable, refugeCrosses, setAlertText, setAlertLevel}) {
     const [mfgIsValid, setMfgValid] = useState(true);
     const [mfg, setMfg] = useState(item['mfg'])
     const [mfgFocus, setMFGFocus] = useState(false);
     const {getUsername} = useToken();
 
     const maybeSetMfg = (newMFG) => {
-        let isValid = false;
+        let isValid = false;``
         if (newMFG != null){
             isValid = Number.isInteger(Number(newMFG))
             setMfgValid(isValid)
@@ -21,9 +21,9 @@ export default function ViewCrossesExpanded({item, reloadTable, refugeCrosses}) 
         if (isValid && mfg !== newMFG){
             fetchData('cross_fish/set_mfg', getUsername(),
                 {'mfg': newMFG, 'fam_id': item.id, 'refuge_crosses': refugeCrosses}, () => {
-                    reloadTable();
                     setMfg(newMFG)
-                });
+                    reloadTable();
+                }, null, null, setAlertLevel, setAlertText);
         }
     }
 

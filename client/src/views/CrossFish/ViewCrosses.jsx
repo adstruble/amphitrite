@@ -9,7 +9,7 @@ import {
     Row
 } from "reactstrap";
 import AmphiAlert from "../../components/Basic/AmphiAlert";
-import React,{useState} from "react";
+import React, {useRef, useState} from "react";
 import AmphiTable from "../../components/Table/AmphiTable";
 import {
     formatDate,
@@ -31,7 +31,7 @@ import {CrossFishExport} from "./CrossFishExport.jsx";
 export default function ViewCrosses(){
     const BOTH_CROSSES_COLS =
         [{name: "Female PC/FSG", key: "x_gid",  visible: true, format_fn: formatStr, width:".8fr", className:"numberCell",
-            order:null, order_direction:null, order_by: "xf.group_id"},
+            order:3, order_direction:"ASC", order_by: "xf.group_id"},
         {name: "Female Fish", key: "f_tag", visible: true, format_fn: formatStr, width:".8fr", format_args: '_x',
             order:null, order_direction:null, order_by: "f_tag"},
         {name: "Male PC/FSG", key: "y_gid",  visible: true, format_fn: formatStr, width:".8fr", className:"numberCell",
@@ -52,7 +52,7 @@ export default function ViewCrosses(){
     const REFUGE_CROSSES_COLS = [{name: "Edit", key: "edit", visible: true, format_fn:formatTextWithIcon,
         format_args:['icon-pencil', true, 'Show/Hide Edit details'], width:".28fr"},
         {name: "PC/FSG", key: "group_id",  visible: true, format_fn: formatStr, width:".65fr",
-        className:"numberCell", order_direction: null, order:null, order_by: "completed_cross.group_id"},
+        className:"numberCell", order_direction: "ASC", order:2, order_by: "completed_cross.group_id"},
         {name: "MFG", key: "mfg",  visible: true, format_fn: formatStr, width:".55fr", className:"numberCell",
             order:null, order_direction:null, order_by: "mfg"}].concat(BOTH_CROSSES_COLS);
 
@@ -142,14 +142,19 @@ export default function ViewCrosses(){
         return "";
     }
 
+    const reloadTableRef = useRef();
+    reloadTableRef.current = reloadTable;
     function updateReloadTable() {
-        setReloadTable(reloadTable + 1)
+        setReloadTable(reloadTableRef.current + 1)
     }
 
     const getExpandedRow = (item) => {
         return (<ViewCrossesExpanded item={item}
                                      reloadTable={updateReloadTable}
-                                     refugeCrosses={viewingRefugeCrosses}/>)
+                                     refugeCrosses={viewingRefugeCrosses}
+                                     setAlertText={setAlertText}
+                                     setAlertLevel={setAlertLevel}
+        />)
     }
 
     function getCrossTypeDropdownLabel(lower=false){

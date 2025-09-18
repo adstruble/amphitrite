@@ -253,7 +253,11 @@ def set_family_mfg_api():
     try:
         mfg = int(params.get('mfg'))
     except: # noqa
-        return {"error": "MFG must be an integer"}
+        if params.get('mfg').strip() == '':
+            params['mfg'] = None
+            mfg = ''
+        else:
+            return {"level": "danger", "message": "MFG must be an integer or blank"}
 
     set_family_mfg(username_or_err, params)
     return {"success": mfg}

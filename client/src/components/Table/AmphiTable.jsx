@@ -394,7 +394,7 @@ export default function AmphiTable({tableDataUrl,
                                                    );})
                                             }
                                         </ReactTableRow>
-                                        {expandedIds.has(item.id) && (getExpandedRowInternal(item))}
+                                        {expandedIds.has(item.id) && (expandedIds.get(item.id)(item))}
                                     </React.Fragment>
                                 ))}
                                 <ReactTableRow key='bottom' item={null} id={'idlastrow'}>
