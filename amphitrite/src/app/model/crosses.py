@@ -10,7 +10,7 @@ from db_utils.insert import insert_table_data
 LOGGER = get_logger('cross-fish')
 
 
-def clear_requested_crosses(username):
+def maybe_clear_previous_years_requested_crosses(username):
     # If this is a new breeding year we want to clear out all the requested crosses
     execute_statements(["""DELETE FROM requested_cross WHERE EXISTS (
                         SELECT 1 FROM public.requested_cross
@@ -19,7 +19,7 @@ def clear_requested_crosses(username):
 
 
 def get_new_possible_crosses_for_fish(username, fish_tags):
-    clear_requested_crosses(username)
+    maybe_clear_previous_years_requested_crosses(username)
 
     new_possible_crosses_sql = """SELECT * FROM (
     SELECT  xf.id female_fam,
@@ -64,8 +64,8 @@ def get_num_fam_crosses_completed_or_requested (this_fam_id, supplementation):
 
 def get_tag_crossed(male: bool):
     return f"""SELECT concat(tag, '_ref') FROM family ngf
-            JOIN animal m on ngf.parent_2 = m.id and m.family = pc.male
-            JOIN animal f ON ngf.parent_1 = f.id and f.family = xf.id
+            JOIN animal m on ngf.parent_2 = m.id and (m.family = pc.male or m.family = xf.id)
+            JOIN animal f ON ngf.parent_1 = f.id and (f.family = xf.id or f.family = pc.male)
             JOIN refuge_tag rt ON rt.animal = {"m.id" if male else "f.id"}
             WHERE NOT ngf.cross_failed
             UNION
