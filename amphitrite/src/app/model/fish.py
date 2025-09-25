@@ -1,5 +1,6 @@
 from amphi_logging.logger import get_logger
 from db_utils.core import execute_statements, ResultType
+from utils.data import get_generation_id
 
 LOGGER = get_logger('model')
 
@@ -201,9 +202,8 @@ def _create_pedigree_animal_dict(sql_row, loaded, start_generation):
     if sql_row['child_group_id'] and sql_row['child_group_id'] < 0:
         generation_id = 'WT'
     else:
-        generation_id = (f"{str(int(sql_row['cross_date'].year) - 2005).ljust(2, '0')}"
-                         f"{'xxx' if not sql_row['child_group_id'] else str(sql_row['child_group_id']).zfill(3)}"
-                         f"{1 if sql_row['sex'] == 'F' else 2}")
+        generation_id = get_generation_id(sql_row['cross_date'].year, sql_row['child_group_id'], sql_row['sex'])
+
     animal = {'name': generation_id, 'cross_date': sql_row['cross_date'], 'sex': sql_row['sex'],
               'value': int(sql_row['generation_level']) + start_generation, 'tag': sql_row['tag'], 'box': sql_row['box'],
               'child_cross_date': sql_row['child_cross_date'], 'children': [], 'loaded': loaded,
