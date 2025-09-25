@@ -1,12 +1,17 @@
 import os
 from datetime import date
+import time
 from unittest.mock import patch, call, ANY
 
 import pytest
+from flask.testing import FlaskClient
+from amphitrite import app as AmphitriteServer # noqa
 
 from db_utils.core import execute_statements, ResultType
 from importer.import_crosses import import_crosses
 from utils.server_state import JobState
+
+from werkzeug.test import TestResponse
 
 
 @pytest.fixture
@@ -22,13 +27,32 @@ def set_cleanup_sqls(set_cleanup_sql_fn):
     set_cleanup_sql_fn('DELETE FROM family WHERE extract(YEAR FROM cross_date) = 2025')
 
 
+@pytest.fixture(scope="module")
+def client() -> FlaskClient:
+    AmphitriteServer.config['TESTING'] = True
+    with AmphitriteServer.test_client() as client:
+        yield client
+
+
 @patch('importer.import_crosses.complete_job')
-def test_import_2025_crosses(mock_complete_job, set_cleanup_sqls):
+def test_import_2025_crosses(mock_complete_job, client, set_cleanup_sqls):
 
-    import_crosses(os.path.join(os.path.dirname(__file__),
-                                'resources', 'completed_crosses', '2025_all_refuge_crosses.csv'),
-                   'amphiadmin', 'fake_job_id', 2025)
+    with open(os.path.join(os.path.dirname(__file__),
+                           'resources', 'completed_crosses', '2025_all_refuge_crosses.csv'), 'rb') as f:
+        resp: TestResponse = client.post('/cross_fish/upload_completed_crosses',
+                                     headers={'ContentType': 'multipart/form-data', 'username': 'amphiadmin'},
+                                     data={'file': (f, 'test_file.txt')})
+    assert resp.status_code == 200
 
+    #import_crosses(os.path.join(os.path.dirname(__file__),
+    #                            'resources', 'completed_crosses', '2025_all_refuge_crosses.csv'),
+    #               'amphiadmin', 'fake_job_id', 2025)
+
+    timeout = time.time() + 60.0  # 1 second timeout
+    while time.time() < timeout:
+        if mock_complete_job.called:
+            break
+        time.sleep(0.01)
     mock_complete_job.assert_called_once()
     assert mock_complete_job.call_args_list == [call(ANY, JobState.Complete.name, ANY)]
 
