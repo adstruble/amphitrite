@@ -74,6 +74,7 @@ export default function ViewCrosses(){
     const [alertLevel, setAlertLevel] = useState("");
     const [completedCrossesYear, setCompletedCrossesYear] = useState(new Date().getFullYear());
     const [reloadTable, setReloadTable] = useState(0);
+    const [updateHeaders, setUpdateHeaders] = useState(0);
     const [crossTypeDropdownOpen, setCrossTypeDropdownOpen] = useState(false);
     const [viewingRefugeCrosses, setViewingRefugeCrosses] = useState(true);
     const [currentHeaders, setCurrentHeaders] = useState(REFUGE_CROSSES_HEADER);
@@ -123,10 +124,14 @@ export default function ViewCrosses(){
     }
 
     function changeCrossUse (refuge){
+        if (viewingRefugeCrosses === refuge){
+            return;
+        }
         setViewingRefugeCrosses(refuge);
         const newParams = {'year': completedCrossesYear, 'refuge': refuge};
         setTableFetchParams(newParams);
         setCurrentHeaders(refuge ? REFUGE_CROSSES_HEADER : SUPPLEMENTATION_CROSSES_HEADER);
+        updateUpdateHeaders();
     }
 
     function setCompletedCrossesYearWrapper(year)  {
@@ -145,7 +150,14 @@ export default function ViewCrosses(){
     const reloadTableRef = useRef();
     reloadTableRef.current = reloadTable;
     function updateReloadTable() {
-        setReloadTable(reloadTableRef.current + 1)
+        setReloadTable(reloadTableRef.current + 1);
+    }
+
+    const updateHeadersRef = useRef();
+    updateHeadersRef.current = updateHeaders
+    // set updateHeaders to next val so that the headers in the table will get updated
+    function updateUpdateHeaders() {
+        setUpdateHeaders(updateHeadersRef.current + 1);
     }
 
     const getExpandedRow = (item) => {
@@ -262,6 +274,7 @@ export default function ViewCrosses(){
                                 filter={ViewCrossesFilter}
                                 tableControl={importExportDropdown}
                                 calcHeaderHeight={true}
+                                updateHeaders={updateHeaders}
                     />
                 </Row>
                 <FishDataUpload dataUploadUrl="cross_fish/upload_completed_crosses"

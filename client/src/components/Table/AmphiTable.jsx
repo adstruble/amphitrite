@@ -41,7 +41,8 @@ export default function AmphiTable({tableDataUrl,
                                        tableControl=null,
                                        LIMIT=50,
                                        dataFetchCallback=null,
-                                       calcHeaderHeight=false}){
+                                       calcHeaderHeight=false,
+                                       updateHeaders=0}){
 
     const {getUsername} =   useToken();
     const getUsernameRef = useRef(getUsername);
@@ -167,7 +168,12 @@ export default function AmphiTable({tableDataUrl,
     }
 
     const headerColsRef = useRef();
-    headerColsRef.current = headerCols;
+    React.useEffect(()=> {
+        setHeaderCols(headerDataStart.cols);
+        setHeaderRows(headerDataStart.rows);
+        headerColsRef.current = headerDataStart.cols;
+    }, [updateHeaders]);
+
     const determineOrderBy = React.useCallback(async () => {
         // Clone the headerData so we don't change the order of the columns in the rendered table,
         // Shouldn't need to do a deep copy because we're not changing data on the headers themselves
