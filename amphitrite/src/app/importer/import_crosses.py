@@ -225,6 +225,8 @@ def _handle_date_str(date_str):
     try:
         date_split = date_str.split('/')
         cross_year = int(date_split[2])
+        if cross_year < 100:
+            cross_year = cross_year + 2000
         cross_month = int(date_split[0])
         cross_day = int(date_split[1])
         cross_date = date(cross_year, cross_month, cross_day)

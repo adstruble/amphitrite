@@ -35,7 +35,28 @@ def client() -> FlaskClient:
 
 
 @patch('importer.import_crosses.complete_job')
-def test_import_2025_crosses(mock_complete_job, client, set_cleanup_sqls):
+def test_import_25_crosses(mock_complete_job, client): #set_cleanup_sqls):
+    # Tests that when year is 25 (e.g. 1/21/25) rather than 2025, data is still imported correctly
+    with open(os.path.join(os.path.dirname(__file__),
+                           'resources', 'completed_crosses', 'completed_crosses_testing.csv'), 'rb') as f:
+        resp: TestResponse = client.post('/cross_fish/upload_completed_crosses',
+                                         headers={'ContentType': 'multipart/form-data', 'username': 'amphiadmin'},
+                                         data={'file': (f, 'test_file.txt')})
+    assert resp.status_code == 200
+
+    timeout = time.time() + 600.0  # 1 second timeout
+    while time.time() < timeout:
+        if mock_complete_job.called:
+            break
+    time.sleep(0.01)
+    mock_complete_job.assert_called_once()
+
+    assert execute_statements(["SELECT count(*) FROM family WHERE extract(YEAR FROM cross_date) = 2025"],
+                              'amphiadmin', ResultType.RowResults).get_single_result() == 4
+
+
+@patch('importer.import_crosses.complete_job')
+def test_import_2025_crosses2(mock_complete_job, client, set_cleanup_sqls):
 
     with open(os.path.join(os.path.dirname(__file__),
                            'resources', 'completed_crosses', '2025_all_refuge_crosses.csv'), 'rb') as f:

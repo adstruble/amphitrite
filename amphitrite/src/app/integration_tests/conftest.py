@@ -7,7 +7,6 @@ from unittest.mock import patch
 import pytest
 
 from create_sql.initialize_db import wait_for_postgres_and_upgrade, load_seed_data
-from db_utils.common_selects import get_version
 from db_utils.core import ResultType, execute_statements
 from db_utils.db_connection import POSTGRES_SERVER_HOSTNAME_ENV, get_postgres_hostname
 from importer.import_master import import_master_data
