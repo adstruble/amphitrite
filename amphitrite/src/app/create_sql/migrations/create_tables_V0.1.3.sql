@@ -23,3 +23,5 @@ BEGIN
         END;
 END;
 $$ LANGUAGE plpgsql;
+
+UPDATE version set (major, minor, patch) = (0, 1, 3);

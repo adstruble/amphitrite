@@ -72,3 +72,5 @@ CREATE OR REPLACE FUNCTION convert_to_generation_id(cross_date date, sex sex, gr
         );
     END;
     $$ LANGUAGE plpgsql;
+
+UPDATE version set (major, minor, patch) = (0, 1, 2);
