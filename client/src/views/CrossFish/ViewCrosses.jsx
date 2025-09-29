@@ -278,7 +278,7 @@ export default function ViewCrosses(){
                     />
                 </Row>
                 <FishDataUpload dataUploadUrl="cross_fish/upload_completed_crosses"
-                                uploadCallback={()=>{setReloadTable(reloadTable + 1); updateInbreedingCoefficient();}}
+                                uploadCallback={()=>{setReloadTable(reloadTableRef.current + 1); updateInbreedingCoefficient();}}
                                 formModalTitle="Upload Completed Refuge Crosses"
                                 uploadButtonText={uploadBtnText}
                                 setIsLoading={setIsLoading}

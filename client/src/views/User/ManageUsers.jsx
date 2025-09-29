@@ -1,6 +1,6 @@
 import {Button, Container, FormGroup, Input, Modal, Row} from "reactstrap";
 import AmphiTable from "../../components/Table/AmphiTable";
-import React, {useState} from "react";
+import React, {useRef, useState} from "react";
 import useToken from "../../components/App/useToken";
 import {
     formatCheckbox,
@@ -25,7 +25,7 @@ export default function ManageUsers(){
         let username = document.getElementById('userField').value
         fetchData('users/add_user', getUsername(),
             {'username': username}, () => {
-                setReloadTable(reloadTable + 1);
+                updateReloadTable();
                 setAlertLevel("success");
                 setAlertText("User " + username + " added with password: pass")
             });
@@ -38,7 +38,7 @@ export default function ManageUsers(){
         }
         fetchData('users/delete_user', getUsername(),
             {'username': user['username']}, () => {
-                setReloadTable(reloadTable + 1);
+                updateReloadTable();
                 setAlertLevel("success");
                 setAlertText("User " + user['username'] + " deleted")
             });
@@ -76,6 +76,12 @@ export default function ManageUsers(){
                 format_args:[deleteUser, disableActions], width:".1fr", className:"centerCell"}]
     };
 
+    const reloadTableRef = useRef();
+    reloadTableRef.current = reloadTable;
+    function updateReloadTable() {
+        setReloadTable(reloadTableRef.current + 1);
+    }
+
     return (
         <Container className="manage-users" id='amphi-table-wrapper'>
             <Row className='amphi-table-wrapper-header'>
@@ -91,6 +97,7 @@ export default function ManageUsers(){
                             headerDataStart={USERS_HEADER}
                             includeSearch={false}
                             calcHeaderHeight={true}
+                            reloadData={reloadTable}
                 />
             </Row>
             <Modal isOpen={addUserOpen} modalClassName="modal-black" id="addUser">
