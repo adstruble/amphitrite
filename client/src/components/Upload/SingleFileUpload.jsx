@@ -139,12 +139,12 @@ export default function FileUploadSingle({fileUploadUrl,
                            dismissible>
                         <strong>Error:</strong><> {submitAlert}</>
                     </Alert>
-                    {UserOptions && UserOptions}
                     <div>
                         <Input className="" type="file" name="file" id="file_input" onChange={handleFileChange}/>
                         <label htmlFor="file_input">Choose File</label>
                         <span>{fileName}</span>
                     </div>
+                    {UserOptions && UserOptions}
                 </div>
             </div>
             <div className="modal-footer">

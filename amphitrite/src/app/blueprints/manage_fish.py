@@ -28,9 +28,12 @@ def bulk_upload():
         cross_year = parse_year_from_filename(request.files['file'].filename) + 1
     except: # noqa
         cross_year = datetime.now().year
+
     job_id, username, t_file_dir = validate_and_create_upload_job(request)
+    update_genotype = request.form.get('update_genotype', 'false')
+    update_genotype = update_genotype == 'true'
     t = threading.Thread(name="import_master", target=import_master_data,
-                         args=(t_file_dir.name, username, job_id, cross_year),
+                         args=(t_file_dir.name, username, job_id, cross_year, update_genotype),
                          daemon=True)
     t.start()
     return {"job_id": job_id}

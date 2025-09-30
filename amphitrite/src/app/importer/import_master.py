@@ -2,6 +2,7 @@ import csv
 import os
 import uuid
 from enum import Enum
+from psycopg2.errors import UniqueViolation
 
 from amphi_logging.logger import get_logger
 from db_utils.core import execute_statements, ResultType
@@ -24,7 +25,7 @@ class MasterDataCols(Enum):
     ALLELE_N = 154
 
 
-def import_master_data(dir_name, username, job_id, year):
+def import_master_data(dir_name, username, job_id, year, update_genotype):
 
     refuge_tags = {}
     animals = []
@@ -44,7 +45,8 @@ def import_master_data(dir_name, username, job_id, year):
 
             except: # noqa
                 LOGGER.error(f"Data for master sheet upload is not in valid CSV format. Header of submitted file: {header}")
-                complete_job(job_id, JobState.Failed.name, {"error": "Data for master sheet upload is not in valid CSV format."})
+                complete_job(job_id, JobState.Failed.name,
+                             {"error": "Data for master sheet upload is not in valid CSV format."})
                 return {"error": "Data for master sheet upload is not in valid CSV format."}
 
             for line in csv.reader(master_data):
@@ -58,7 +60,8 @@ def import_master_data(dir_name, username, job_id, year):
                 csv_fam_id = line[MasterDataCols.Family_Id.value]
                 pr = refuge_tag
                 try:
-                    sibling_birth_year, refuge_tag, group_id = maybe_correct_for_2_year_olds(year - 1, refuge_tag, csv_fam_id)
+                    sibling_birth_year, refuge_tag, group_id = maybe_correct_for_2_year_olds(year - 1,
+                                                                                             refuge_tag, csv_fam_id)
                 except:
                     LOGGER.info(f"preinfo: {year}  -- {pr} -- {csv_fam_id} {e}")
                     LOGGER.info(f"info: {sibling_birth_year}  -- {refuge_tag} -- {group_id} {e}")
@@ -78,9 +81,9 @@ def import_master_data(dir_name, username, job_id, year):
                     alive = False
                     group_id = '\\N'
                 elif group_id == -1 or (group_id > 324 and sibling_birth_year.year == 2023) or \
-                    (group_id > 343 and sibling_birth_year.year == 2022):
-                    LOGGER.warning(f"Invalid family group_id: '{line[MasterDataCols.Family_Id.value]}' for: {refuge_tag}. "
-                                   f"Fish record will be skipped.")
+                        (group_id > 343 and sibling_birth_year.year == 2022):
+                    LOGGER.warning(f"Invalid family group_id: '{line[MasterDataCols.Family_Id.value]}' for: "
+                                   f"{refuge_tag}. Fish record will be skipped.")
                     continue
 
                 refuge_tags[line[MasterDataCols.Id.value]] = {"tag": refuge_tag,
@@ -91,7 +94,8 @@ def import_master_data(dir_name, username, job_id, year):
                                                               "group_id_temp": group_id}
 
                 genotype_string = ""
-                for allele_idx, col in enumerate(range(MasterDataCols.ALLELE_1.value, MasterDataCols.ALLELE_N.value, 2)):
+                for allele_idx, col in enumerate(range(
+                        MasterDataCols.ALLELE_1.value, MasterDataCols.ALLELE_N.value, 2)):
                     genes.append({"name": f"Htr-GVL-00{allele_idx + 1}",
                                   "allele_1": line[col],
                                   "allele_2": line[col+1],
@@ -103,10 +107,11 @@ def import_master_data(dir_name, username, job_id, year):
 
                 if genotype_string in genotypes:
                     genotype_dupes[genotype_string] = True
-                    genotypes[genotype_string].append((line[MasterDataCols.Id.value],line[MasterDataCols.Family_Id.value],
+                    genotypes[genotype_string].append((line[MasterDataCols.Id.value],
+                                                       line[MasterDataCols.Family_Id.value],
                                                        line[MasterDataCols.Box.value]))
                 else:
-                    genotypes[genotype_string] = [(line[MasterDataCols.Id.value],line[MasterDataCols.Family_Id.value],
+                    genotypes[genotype_string] = [(line[MasterDataCols.Id.value], line[MasterDataCols.Family_Id.value],
                                                    line[MasterDataCols.Box.value])]
 
                 try:
@@ -121,7 +126,7 @@ def import_master_data(dir_name, username, job_id, year):
                           "alive": alive,
                           "sibling_birth_year_temp": sibling_birth_year.year,
                           "group_id_temp": group_id}
-                if not(animal['sex'] == 'M' or animal['sex'] == 'F'):
+                if not (animal['sex'] == 'M' or animal['sex'] == 'F'):
                     animal['sex'] = 'UNKNOWN'
                 animals.append(animal)
 
@@ -130,7 +135,7 @@ def import_master_data(dir_name, username, job_id, year):
                             "content": line[MasterDataCols.Notes.value].strip(),
                             "animal": animal_id,
                             "sibling_birth_year_temp": sibling_birth_year.year,
-                            "group_id_temp": group_id,}
+                            "group_id_temp": group_id}
                     notes.append(note)
 
             if genotype_dupes:
@@ -150,24 +155,55 @@ def import_master_data(dir_name, username, job_id, year):
                                                      SELECT f.id FROM family as f
                                                      WHERE a_i.group_id_temp = f.group_id
                                                      AND a_i.sibling_birth_year_temp = f.cross_year)""")
-            # If the fish died, the group_id will be null, update the family of the record to be inserted with the
-            # family of a matching fish by genotype. Then we will only insert animals that don't have null families
-            # (fish dies before fish was ever uploaded)
-            animal_table_data.add_temp_table_update("""UPDATE animal_insert a_i SET (family) = (
-                                                     SELECT family FROM animal as a
-                                                     WHERE a.genotype = a_i.genotype) WHERE a_i.group_id_temp IS NULL""")
-            animal_table_data.set_insert_condition(""" WHERE animal_insert.family is NOT NULL ON CONFLICT (genotype) DO UPDATE 
-              SET (sex, box, family, alive) = (EXCLUDED.sex, EXCLUDED.box, EXCLUDED.family, EXCLUDED.alive)
-            WHERE animal.genotype = EXCLUDED.genotype 
-              AND (animal.sex != EXCLUDED.sex OR animal.box != EXCLUDED.box OR animal.family != EXCLUDED.family OR
-              animal.alive != EXCLUDED.alive)""")
+            if update_genotype:
+                animal_table_data.add_temp_table_update('''UPDATE animal_insert a_i SET (id, family) = (
+                                                        SELECT a.id, f.id FROM animal as a
+                                                        JOIN refuge_tag rt ON rt.animal = a.id
+                                                        JOIN refuge_tag_insert rt_i ON rt_i.tag = rt.tag
+                                                            AND rt_i.year = rt.year AND rt_i.animal = a_i.id
+                                                        JOIN family as f ON a_i.group_id_temp = f.group_id
+                                                        AND a_i.sibling_birth_year_temp = f.cross_year
+                                                        )''')
+                animal_table_data.set_insert_condition(""" WHERE animal_insert.family is NOT NULL
+                AND animal_insert.id IS NOT NULL ON CONFLICT (id)
+                DO UPDATE
+                  SET (sex, box, family, alive, genotype) = (EXCLUDED.sex, EXCLUDED.box, EXCLUDED.family, EXCLUDED.alive, EXCLUDED.genotype)
+                WHERE (animal.sex != EXCLUDED.sex OR animal.box != EXCLUDED.box OR animal.family != EXCLUDED.family OR
+                  animal.alive != EXCLUDED.alive OR animal.genotype != EXCLUDED.genotype)""")
+            else:
+                # If the fish died, the group_id will be null, update the family of the record to be inserted with the
+                # family of a matching fish by genotype (or if we're updating genotype by refuge tag).
+                # Then we will only insert animals that don't have null families (fish dies before fish was uploaded)
+                animal_table_data.add_temp_table_update('''UPDATE animal_insert a_i SET (family) = (
+                                                                SELECT family FROM animal as a
+                                                                WHERE a.genotype = a_i.genotype) 
+                                                            WHERE a_i.group_id_temp IS NULL''')
+
+                animal_table_data.set_insert_condition(""" WHERE animal_insert.family is NOT NULL ON CONFLICT (genotype)
+                DO UPDATE 
+                  SET (sex, box, family, alive) = (EXCLUDED.sex, EXCLUDED.box, EXCLUDED.family, EXCLUDED.alive)
+                WHERE animal.genotype = EXCLUDED.genotype
+                  AND (animal.sex != EXCLUDED.sex OR animal.box != EXCLUDED.box OR animal.family != EXCLUDED.family OR
+                  animal.alive != EXCLUDED.alive)""")
 
             gene_table_data = InsertTableData('gene', genes)
-            gene_table_data.set_insert_condition(" WHERE animal = ANY (SELECT id FROM animal) ON CONFLICT (name, animal) DO NOTHING") # noqa
-            gene_table_data.add_temp_table_update("""UPDATE gene_insert as gi SET (animal) = (SELECT a.id)
-                                                       FROM animal a 
-                                                       JOIN animal_insert a_i ON a_i.genotype = a.genotype
-                                                      WHERE gi.animal = a_i.id""")
+            if update_genotype:
+                gene_table_data.add_temp_table_update("""UPDATE gene_insert as gi SET (animal) = (SELECT rt.animal
+                                                        FROM refuge_tag rt
+                                                        JOIN refuge_tag_insert rt_i ON rt_i.tag = rt.tag
+                                                            AND rt_i.year = rt.year
+                                                        WHERE rt_i.animal = gi.animal)""")
+                gene_table_data.set_insert_condition(
+                    " WHERE animal IS NOT NULL ON CONFLICT (name, animal) DO UPDATE"
+                    " SET (allele_1, allele_2) = (EXCLUDED.allele_1, EXCLUDED.allele_2)")
+
+            else:
+                gene_table_data.add_temp_table_update("""UPDATE gene_insert as gi SET (animal) = (SELECT a.id)
+                                                           FROM animal a
+                                                           JOIN animal_insert a_i ON a_i.genotype = a.genotype
+                                                          WHERE gi.animal = a_i.id""")
+                gene_table_data.set_insert_condition(
+                    " WHERE animal = ANY (SELECT id FROM animal) ON CONFLICT (name, animal) DO NOTHING")
 
             refuge_tag_data = InsertTableData('refuge_tag', list(refuge_tags.values()))
             refuge_tag_data.add_temp_table_update("""
@@ -176,8 +212,9 @@ def import_master_data(dir_name, username, job_id, year):
                   JOIN animal_insert a_i ON a_i.genotype = a.genotype
                  WHERE rt_i.animal = a_i.id""")
             refuge_tag_data.set_insert_condition(""" WHERE animal = ANY (SELECT id from animal) ON CONFLICT (animal) DO UPDATE
-              SET (tag, year) = (EXCLUDED.tag, EXCLUDED.year)
-            WHERE refuge_tag.animal = EXCLUDED.animal AND (refuge_tag.tag != EXCLUDED.tag)""")
+          SET (tag, year) = (EXCLUDED.tag, EXCLUDED.year)
+        WHERE refuge_tag.animal = EXCLUDED.animal AND (refuge_tag.tag != EXCLUDED.tag)""")
+            refuge_tag_data.skip_final_insert = update_genotype
 
             notes_data = InsertTableData('animal_note', notes)
             notes_data.add_temp_table_update("""
@@ -189,12 +226,28 @@ def import_master_data(dir_name, username, job_id, year):
                 """WHERE (content) NOT IN (SELECT content FROM animal_note n where animal_note_insert.animal = n.animal) 
                 AND animal = ANY(SELECT id FROM animal) ON CONFLICT (animal) DO UPDATE SET content = EXCLUDED.content
                 WHERE animal_note.animal = EXCLUDED.animal""")
-            table_data = [animal_table_data,
-                          refuge_tag_data,
-                          gene_table_data,
-                          notes_data]
+            if update_genotype:
+                table_data = [refuge_tag_data,  # Need this table to update animal ID on matches, but wont actually
+                                                # insert any data from it.
+                              gene_table_data,
+                              animal_table_data,
+                              notes_data]
+            else:
+                table_data = [animal_table_data,
+                              refuge_tag_data,
+                              gene_table_data,
+                              notes_data]
 
-        insert_result = batch_insert_master_data(table_data, username)
+        try:
+            insert_result = batch_insert_master_data(table_data, username)
+        except UniqueViolation as uve:
+            if uve.diag.constraint_name == 'unique_tag_year':
+                LOGGER.exception(f"Failed {job_id} importing master data due to non-unique tags")
+                complete_job(job_id, JobState.Failed.name, {"error": str(
+                    f'{uve.diag.message_detail} Either select "Update genotype" or fix your import file.')})
+                return
+            else:
+                raise uve
 
         # Remove possible crosses since we now have new fish to consider for crossing
         execute_statements(["TRUNCATE possible_cross"], username, ResultType.NoResult)

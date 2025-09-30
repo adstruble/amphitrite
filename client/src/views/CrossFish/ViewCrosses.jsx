@@ -177,34 +177,6 @@ export default function ViewCrosses(){
         }
     }
 
-   /* const UserOptions = <Row style={{paddingBottom:10}}>
-            <Col style={{justifyContent:"right",paddingRight:0, maxWidth:"fit-content"}}>
-                <span>Date cross made:</span>
-            </Col>
-            <Col>
-                <div className="setting">
-                    <FormGroup className="form-group setting">
-                        <ReactDatetime
-                            className=" amphi-date"
-                            value={crossCompletionDate}
-                            onChange={(date) => {
-                                if (date instanceof String) {
-                                    setAlertLevel('danger');
-                                    setAlertText("'" + date +
-                                        "' is not a valid date. Cross completion date must be a valid date.");
-                                } else {
-                                    setCrossCompletionDate(moment(date).format("MM/DD/YYYY"));
-                                }
-                            }}
-                            inputProps={{readOnly: true}}
-                            dateFormat="MM/DD/YYYY"
-                            timeFormat={false}
-                        />
-                    </FormGroup>
-                </div>
-            </Col>
-        </Row>*/
-
     const uploadBtnText = "Upload Completed Crosses";
     const importExportDropdown = <ImportExportDropdown importExportItems={[
         {'name': 'Import completed ' + getCrossTypeDropdownLabel(true) + ' crosses','callback':()=>{setShowFishDataUpload(true)}, 'export':false},
@@ -287,8 +259,6 @@ export default function ViewCrosses(){
                                 showButton={false}
                                 showFormModalFromParent={showFishDataUpload}
                                 setShowFormModalFromParent={setShowFishDataUpload}
-                    /*UserOptions={UserOptions}
-                    uploadParams={{'cross_date': crossCompletionDate}}*/
                 />
             </Container>
         </div>

@@ -70,7 +70,7 @@ def wait_for_postgres_and_upgrade():
             if (migration_version['major'] == version['major'] and migration_version['minor'] == version['minor']
                     and migration_version['patch'] <= version['patch']):
                 continue
-            apply_sql_migration(os.path.join(create_sql_dir, f))
+            apply_sql_migration(os.path.join(create_sql_dir, f), migration_version)
             LOGGER.info(f"Applied sql migration: {migration_version}")
             version = migration_version
 
@@ -82,7 +82,7 @@ def wait_for_postgres_and_upgrade():
 def load_seed_data():
     if maybe_import_pedigree():
         # Import master data sheet used in 2024 (Master tab from Final_BY2023_Mastersheet_MF)
-        import_master_data(get_import_resources_dir(), 'amphiadmin', 'master_data_2023BY.csv', 2024)
+        import_master_data(get_import_resources_dir(), 'amphiadmin', 'master_data_2023BY.csv', 2024, False)
         # Import the crosses made in 2024 (Recommended Crosses tab from Final_BY2023_Mastersheet_MF)
         crosses_path = os.path.join(get_import_resources_dir(), "bulk_upload_crosses_2024.csv")
         import_crosses(crosses_path, 'amphiadmin', 2024, 2024)

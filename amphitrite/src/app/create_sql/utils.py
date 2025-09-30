@@ -11,9 +11,11 @@ def get_version_from_migration_filename(filename):
     return {'major': int(version[0]), 'minor': int(version[1]), 'patch': int(version[2])}
 
 
-def apply_sql_migration(sql_filename):
+def apply_sql_migration(sql_filename, migration_version):
     kwargs = make_connection_kwargs(get_amphiadmin_db_params(), 'amphiadmin', setup_tx=False)
     with get_connection(**kwargs) as conn:
         with open(sql_filename) as file:
             query = text(file.read())
             conn.execute(query)
+            conn.execute(text('UPDATE version set (major, minor, patch) = '
+                         f"({migration_version['major']}, {migration_version['minor']}, {migration_version['patch']})"))

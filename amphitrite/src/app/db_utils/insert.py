@@ -1,3 +1,4 @@
+import logging
 from csv import DictWriter
 from io import StringIO
 from sqlite3 import IntegrityError
@@ -17,6 +18,7 @@ class InsertTableData:
         self.insert_condition = insert_condition
         self.temp_table_updates = []
         self.columns = []
+        self.skip_final_insert = False
         if data:
             self.columns = data[0].keys()
 
@@ -53,7 +55,10 @@ def batch_insert_master_data(table_data: list[InsertTableData], username):
                     custom_alters.extend(table.temp_table_updates)
                     prepare_copy_table_for_bulk_insert(table, cursor, custom_alters)
                     final_table_col_str = ",".join([f"\"{col}\"" for col in list(table.data[0].keys())[:-2]])
-                    inserts, updates = copy_to_final_table(table, cursor, final_table_col_str)
+                    if table.skip_final_insert:
+                        inserts, updates = 0, 0
+                    else:
+                        inserts, updates = copy_to_final_table(table, cursor, final_table_col_str)
 
                     results['updated'][table.name] = updates
                     results['inserted'][table.name] = inserts
@@ -135,6 +140,9 @@ def prepare_copy_table_for_bulk_insert(table: InsertTableData, cursor, custom_al
     cursor.copy_expert(f"COPY {table.name}_insert ({col_str}) FROM STDIN WITH (FORMAT CSV, NULL '\\N')", buffer)
 
     for update in table.temp_table_updates:
-        cursor.execute(update)
-
+        try:
+            cursor.execute(update)
+        except Exception as e:
+            logging.error(f"Failed update on {table.name}")
+            raise e
     return

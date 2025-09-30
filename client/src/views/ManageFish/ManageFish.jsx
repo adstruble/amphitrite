@@ -1,4 +1,4 @@
-import {Container, Row} from "reactstrap";
+import {Container, FormGroup, Input, Label, Row} from "reactstrap";
 
 import FishDataUpload from "../../components/Upload/FishDataUpload";
 import React, {useEffect, useState} from "react";
@@ -20,6 +20,8 @@ import AmphiAlert from "../../components/Basic/AmphiAlert";
 import ExportSelected from "../../components/Download/ExportSelected";
 import ManageRowFamilyExpanded from "./ManageRowFamilyExpanded.jsx";
 import useWhyDidYouUpdate from "../../components/Utils/whyDidYouUpdate.js";
+import classnames from "classnames";
+import AmphiTooltip from "../../components/Basic/AmphiTooltip.jsx";
 
 export default function ManageFish() {
     const {getUsername} = useToken();
@@ -31,6 +33,8 @@ export default function ManageFish() {
     const [allStr, setAllStr] = useState("");
     const [currentFilter, setCurrentFilter] = useState(null);
     const [currentSearch, setCurrentSearch] = useState(null);
+
+    const [updateGenotype, setUpdateGenotype] = useState(false);
 
     const getExpandedRow = (fish) => {
         return (ManageRowNotesExpanded({fish, saveNotes}))
@@ -115,6 +119,28 @@ export default function ManageFish() {
         }
     }, [isLoading, setSpinning]);
 
+    const UserOptions = <Row style={{paddingBottom:10}}>
+        <Row style={{justifyContent:"right",paddingRight:0, maxWidth:"fit-content"}}>
+            <FormGroup check>
+                `<Label id="updateGenotypeControl" check >
+                    <Input defaultChecked={updateGenotype} type="checkbox"
+                           onChange={(e) => {
+                               setUpdateGenotype(e.target.checked);
+                           }}
+                           id="updateGenotypeCheck"
+                    />
+                    <span id="updateGenotypeLabel"
+                          className={classnames("form-check-sign")}>Update genotypes (Tags will be used to match fish)</span>
+                </Label>
+            </FormGroup>
+            <AmphiTooltip
+                placement={"top-start"}
+                target="updateGenotypeControl"
+                content="By default, genotypes are used to match fish. If tags differ, the tag will be updated (if no match on genotype is found a new fish will be created). If genotypes need to be updated,
+                    tags may be used to match fish (if no match on tag is found, the fish will be skipped)."/>
+        </Row>
+    </Row>
+
     return (
 
         <div className={classNames("wrapper", isLoading ? 'disabled' : '')}>
@@ -130,6 +156,8 @@ export default function ManageFish() {
                                 setIsLoading={setIsLoading}
                                 setAlertText={setAlertText}
                                 setAlertLevel={setAlertLevel}
+                                UserOptions={UserOptions}
+                                uploadParams={{'update_genotype': updateGenotype ? 'true' : 'false'}}
                     />
                 <ExportSelected exportUrl="manage_fish/export_fish"
                                 exportCallback={()=>{}}
