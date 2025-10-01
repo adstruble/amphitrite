@@ -369,6 +369,27 @@ def add_completed_cross(username, f_tag, m_tag, f, cross_date_str, table_name, r
     return True
 
 
+def remove_no_longer_possible_requested_crosses(username: str):
+    """
+    Removes requested crosses that aren't possible (i.e. the parents aren't present in the
+    possible_crosses table)
+    :param username:
+    :return:
+    """
+    remove_non_possible_requested_crosses_sql = """DELETE FROM requested_cross rc
+        USING (SELECT rci.id
+               FROM requested_cross rci
+                 LEFT JOIN available_animal aam ON aam.animal =
+                    ANY (SELECT id FROM animal a WHERE a.family = rci.parent_m_fam)
+                 LEFT JOIN available_animal aaf ON aaf.animal =
+                    ANY (SELECT id FROM animal a WHERE a.family = rci.parent_f_fam)
+               WHERE rci.cross_date IS NULL AND aam.id IS NULL AND aaf.id IS NULL)q
+        WHERE q.id = rc.id
+    """
+    execute_statements([remove_non_possible_requested_crosses_sql],
+                       username, ResultType.NoResult)
+
+
 def insert_possible_crosses(username: str, possible_crosses: list):
     """
     Given a list of  possible crosses insert them
@@ -383,10 +404,9 @@ def insert_possible_crosses(username: str, possible_crosses: list):
             return num_inserts
 
 
-def cleanup_previous_available_fish(username: str, female_tags: set):
+def cleanup_previous_available_fish(username: str):
     """
     Deletes previous fish used for determining possible crosses.
-    Deletes requested crosses that haven't been completed
     Deletes all from available_animal
     :param username: User responsible for removal of old possible female
     :param female_tags: Refuge tags of females to use to determine possible crosses
@@ -396,8 +416,7 @@ def cleanup_previous_available_fish(username: str, female_tags: set):
 
     delete_available_animals = 'DELETE FROM available_animal'
 
-    delete_req_crosses = 'DELETE FROM requested_cross rc WHERE rc.cross_date IS NULL'
-    execute_statements([delete_pcs, delete_available_animals, delete_req_crosses],
+    execute_statements([delete_pcs, delete_available_animals],
                        username, ResultType.NoResult)
 
 
@@ -577,7 +596,7 @@ def set_available_fish(username:str, fish: list):
 
 
 def determine_and_insert_possible_crosses(username_or_err, cleaned_tags):
-    cleanup_previous_available_fish(username_or_err, cleaned_tags)
+    cleanup_previous_available_fish(username_or_err)
     insert_new_available(username_or_err, cleaned_tags)
 
     possible_crosses = get_new_possible_crosses_for_fish(username_or_err, cleaned_tags)
@@ -591,6 +610,8 @@ def determine_and_insert_possible_crosses(username_or_err, cleaned_tags):
         insert_cnt = insert_possible_crosses(username_or_err, possible_crosses)
     else:
         insert_cnt = 0
+
+    remove_no_longer_possible_requested_crosses(username_or_err)
 
     return insert_cnt
 
