@@ -31,13 +31,13 @@ export function ManageFishFilter({setFilterParent}) {
     React.useEffect(()=>{
         let filterState = {}
         if (year !== 'All'){
-            filterState['cross_year'] = year
+            filterState['fam.cross_year'] = year
         }
         if (sex !== 'Both'){
             filterState['sex'] = sex[0].toUpperCase()
         }
         if (groupId !== ""){
-            filterState['group_id'] = groupId;
+            filterState['fam.group_id'] = groupId;
         }
         if (!(aliveYes && aliveNo)){
             filterState['alive'] = aliveYes

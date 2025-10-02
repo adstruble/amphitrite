@@ -9,7 +9,7 @@ import {
     formatDate,
     formatDoubleTo3,
     formatTextWithIcon,
-    formatIcon, formatStrExpand
+    formatIcon, formatStrExpand, formatStrFromWildExpand
 } from "../../components/Utils/FormatFunctions";
 import classNames from "classnames";
 import {ManageFishFilter} from "./ManageFishFilter";
@@ -55,21 +55,23 @@ export default function ManageFish() {
         cols:[
         {name: "Alive", key: "alive", order_by: "alive", visible: true, order_direction: "DESC", order: 1,
                 format_fn: formatIcon, format_args:[null, "icon-fish","icon-fish-bone", getAliveIconColorClass], width: ".7fr"},
-        {name: "Family ID", key: "group_id", order_by: "group_id", visible: true, order_direction: "ASC", order: 1,
-            format_fn: formatStrExpand, className:"numberCell", width: ".8fr",
+        {name: "Family ID", key: "group_id", order_by: "fam.group_id", visible: true, order_direction: "ASC", order: 1,
+            format_fn: formatStrFromWildExpand, className:"numberCell", width: ".8fr",
             format_args: {'expandFn': handleExpandLineage, 'tooltip': 'Show/Hide Pedigree Tree'}},
-        {name: "Parent Cross Date", key: "cross_date", order_by: "cross_date", visible: true, order_direction:null, order:null,
+        {name: "Parent Cross Date", key: "cross_date", order_by: "fam.cross_date", visible: true, order_direction:null, order:null,
             format_fn: formatDate, className:"numberCell", width:"1.3fr"},
-        {name: "F", key: "f", order_by: "f", visible: true, order_direction:null, order:null, format_fn: formatDoubleTo3,
+        {name: "F", key: "f", order_by: "fam.f", visible: true, order_direction:null, order:null, format_fn: formatDoubleTo3,
             className:"numberCell"},
-        {name: "DI", key: "di", order_by: "di", visible: true, order_direction:null, order:null, format_fn: formatDoubleTo3,
-            className:"numberCell"},
+        {name: "DI", key: "di", order_by: "fam.di", visible: true, order_direction:null, order:null, format_fn: formatDoubleTo3,
+            className:"numberCell", width: ".7fr"},
         {name: "Sex", key: "sex", order_by: "sex", visible: true, order_direction:null, order:null, format_fn: formatStr,
             className:"numberCell"},
         {name: "Refuge Tag", key: "tag", order_by: "tag", visible: true, order_direction:null, order:null,
-            format_fn: formatStr, width:"1fr"},
+            format_fn: formatStr, width:"1.1fr", className: "numberCell"}, // Refuge tag must be this wide so that "UNKNOWN" will fit.
+        {name: "Generation ID", key: "gen_id", order_by: "gen_id", visible: true, order_direction: null, order:null,
+            format_fn: formatStr, width:"1.2fr", className: "numberCell"},
         {name: "Box", key: "box", order_by: "box", visible: true, order_direction:null, order:null, format_fn: formatStr,
-            className:"numberCell"},
+            className:"numberCell", width: ".7fr"},
         {name: "Notes", key: "notes", order_by: "notes", visible: true, order_direction:null, order:null,
             format_fn: formatTextWithIcon, format_args:['icon-pencil', true, 'Show/Hide Edit notes', true],
             width:"4fr"}
@@ -90,6 +92,7 @@ export default function ManageFish() {
         {name:'F', selected: false, field:'f'},
         {name:'DI', selected: false, field: 'di'},
         {name: 'Notes', selected: false, field: 'notes'},
+        {name: 'Generation ID', selected: false, field: 'gen_id'},
         {name: 'Pedigree', selected: false, field: 'pedigree', variable:'No of Generations',
             validate_fn:validateNumberOfGenerations},
         {name:'Alleles', selected: false, field: 'genotype'}]

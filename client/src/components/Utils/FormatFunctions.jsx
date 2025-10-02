@@ -22,6 +22,20 @@ export const formatStr = (str) => {
     return str
 }
 
+export const formatStrFromWildExpand = (str, item, format_args, handleExpand, colName) => {
+    if (str === 'FROM WILD') {
+        return (
+            <div style={{fontSize:'8px'}}>
+                {formatStrExpand(str, item, format_args, handleExpand, colName)}
+            </div>
+        );
+    }
+    else{
+        return formatStrExpand(str, item, format_args, handleExpand, colName);
+    }
+}
+
+
 export const formatStrExpand = (str, item, format_args, handleExpand, colName) => {
     return(
         <div id={'id' + item.id + colName + 'btn'} className={classnames('amphi-cell', 'clickable', 'btn-link')} color="info"

@@ -37,11 +37,12 @@ def get_fishes_from_db(username: str, query_params: dict, order_by_clause: str, 
     if query_params.get('like_filter'):
         like_filter = "LIKE :like_filter || '%'"
         filter_str = f" {filter_str} AND (box::text {like_filter} " \
-                     f"OR group_id::text {like_filter} " \
-                     f"OR (group_id < 0 AND 'UNKNOWN' {like_filter}) " \
+                     f"OR fam.group_id::text {like_filter} " \
+                     f"OR (fam.group_id < 0 AND 'UNKNOWN' {like_filter}) " \
                      f"OR tag {like_filter} " \
+                     f"OR gen_id {like_filter} " \
                      f"OR sex::text {like_filter} " \
-                     f"OR date(cross_date)::text {like_filter})" \
+                     f"OR date(fam.cross_date)::text {like_filter})" \
                      f"OR an.content {like_filter}"
     exact_filter = query_params.get('exact_filters')
     if exact_filter:
@@ -49,28 +50,32 @@ def get_fishes_from_db(username: str, query_params: dict, order_by_clause: str, 
             query_params['ids'] = query_params.pop('exact_filters')['ids']
             filter_str = f" WHERE a.id::text = ANY(:ids)"
         else:
-            exact_filters = [f"{key} = :{key}" for key in exact_filter]
+            exact_filters = []
+            for key in exact_filter:
+                exact_filters.append(f"{key} = :{key.replace('.', '_')}")
+                query_params[key.replace('.', '_')] = exact_filter[key]
             filter_str = f" {filter_str} AND ({' AND '.join(exact_filters)})"
-            query_params.update(query_params.get('exact_filters'))
 
     LOGGER.info(f"filter_str: {filter_str}")
     fish = execute_statements((
         f"""SELECT a.id as id, 
-                   CASE WHEN group_id < 0 THEN 'FROM WILD' ELSE group_id::text END,
-                   date(cross_date) as cross_date,
+                   CASE WHEN fam.group_id < 0 THEN 'FROM WILD' ELSE fam.group_id::text END as group_id,
+                   date(fam.cross_date) as cross_date,
                    COALESCE(tag, 'UNKNOWN') as tag,
                    sex,
-                   f,
-                   di,
+                   convert_to_generation_id(fam.cross_date, sex, next_gen.group_id) as gen_id,
+                   fam.f as f,
+                   fam.di as di,
                    box,
                    coalesce(an.content,'') as notes,
                    alive {', genotype ' if include_genotype else ''}
                    {', get_ordered_pedigree_string(a.id, '+ query_params['pedigree'] + ') as pedigree ' 
         if 'pedigree' in query_params else ''}
                 FROM animal a
-                JOIN family ON a.family = family.id
+                JOIN family fam ON a.family = fam.id
                 LEFT JOIN refuge_tag on a.id = refuge_tag.animal
                 LEFT JOIN animal_note an on a.id = an.animal
+                LEFT JOIN family next_gen ON next_gen.parent_2 = a.id OR next_gen.parent_1 = a.id
                 {filter_str}
                 {order_by_clause} OFFSET :offset LIMIT :limit""",
         query_params), username=username).get_as_list_of_dicts()
@@ -79,7 +84,7 @@ def get_fishes_from_db(username: str, query_params: dict, order_by_clause: str, 
     if include_cnt:
         fish_cnt = execute_statements(('SELECT count(animal.id) '
                                        '  FROM animal '
-                                       '  LEFT JOIN family ON animal.family = family.id'
+                                       '  LEFT JOIN family AS fam ON animal.family = fam.id'
                                        '  LEFT JOIN refuge_tag on animal.id = refuge_tag.animal'
                                        f' LEFT JOIN public.animal_note an on animal.id = an.animal {filter_str}', query_params), # noqa
                                       username).get_single_result()

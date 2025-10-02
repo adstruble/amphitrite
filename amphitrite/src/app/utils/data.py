@@ -55,8 +55,8 @@ def validate_order_by(order_bys: list, valid_values, default=None):
         col, direction = order_by.split(",")
         if col not in valid_values or not (direction == 'ASC' or direction == 'DESC'):
             continue
-        if col == 'group_id':
-            col = 'group_id::integer'
+        if col.endswith('group_id'):
+            col = f'{col}::integer'
         order_by_cols = f"{order_by_cols}{col} {direction}, "
     if not order_by_cols:
         LOGGER.info(f"Using default order by: {default}")
