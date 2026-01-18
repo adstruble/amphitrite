@@ -32,8 +32,8 @@ class BadFishDataTagFormatWrong(AmphitriteException):
 class UploadCrossesError(AmphitriteException):
     @classmethod
     def bad_csv_format(cls, cols_present: List):
-        message = "Not a valid recommended crosses sheet. Must be in csv format containing columns labeled: " \
-                  f"Date, Male, Female, MFG.*."
+        message = "Not a valid completed crosses sheet. Must be in csv format containing columns labeled: " \
+                  f"Date, Male, Female, BY<anything>FSG<anything>"
         required_cols = {'Date', 'Male', 'Female', 'MFG'}
         if len(cols_present) > len(required_cols):
             for col in required_cols:

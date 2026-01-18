@@ -58,6 +58,8 @@ export default function ViewCrosses(){
 
     const SUPPLEMENTATION_CROSSES_COLS = [{name: "Edit", key: "edit", visible: true, format_fn:formatTextWithIcon,
         format_args:['icon-pencil', true, 'Show/Hide Edit details'], width:".27fr"},
+        {name: "PC/FSG", key: "group_id",  visible: true, format_fn: formatStr, width:".65fr",
+            className:"numberCell", order_direction: "ASC", order:2, order_by: "completed_cross.group_id"},
         {name: "Tank", key: "mfg",  visible: true, format_fn: formatStr,
         width:".55fr", className:"numberCell", order: null, order_direction: null, order_by: "mfg"}].concat(BOTH_CROSSES_COLS);
 

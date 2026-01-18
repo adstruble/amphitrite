@@ -12,7 +12,7 @@ import {CrossYearDropdown} from "../../components/Basic/CrossYearDropdown";
 import classnames from "classnames";
 
 export function ManageFishFilter({setFilterParent}) {
-    const [year, setYear] = useState('2024');
+    const [year, setYear] = useState(new Date().getFullYear().toString() - 1);
     const [sex, setSex] = useState('Both');
     const [sexDropdownOpen, setSexDropdownOpen] = useState(false);
     const [aliveYes, setAliveYes] = useState(true);

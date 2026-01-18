@@ -25,7 +25,7 @@ class RecCrossesDataCols(object):
     Male_Sibling_Group = 2
     Female_Sibling_Group = 4
     SFG = 7
-    MFG = 6
+    MFG = sys.maxsize
     SUPPLEMENTATION = sys.maxsize
     COMMENT = sys.maxsize
 
@@ -60,6 +60,9 @@ def import_crosses(crosses_file, username, job_id, year=datetime.datetime.now().
                     elif col_name == 'Comment':
                         # Not required don't add it to correct_required_fields list
                         RecCrossesDataCols.COMMENT = col_idx
+                    elif col_name == 'MFG':
+                        # Not required don't add it to correct_required_fields list
+                        RecCrossesDataCols.MFG = col_idx
                 if len(correct_required_fields) < 4:
                     raise UploadCrossesError.bad_csv_format(correct_required_fields)
             except UploadCrossesError as upload_e:
@@ -74,14 +77,20 @@ def import_crosses(crosses_file, username, job_id, year=datetime.datetime.now().
             family_notes = []
             supplementation_family_notes = []
             for line_num, line in enumerate(csv.reader(rec_crosses)):
-                date_str = ""
+                if not line:
+                    LOGGER.error(f"Empty line found, skipping line {line_num}...")
+                    continue
                 try:
                     date_str = line[RecCrossesDataCols.Date]
+                    if not date_str:
+                        LOGGER.error(f"Empty date found, skipping line {line_num}...")
+                        continue
                     try:
                         cross_date = _handle_date_str(date_str)
-                    except: # noqa
+                    except Exception as e: # noqa
                         complete_job(job_id, JobState.Failed.name,
-                                     {"error": f"Failure parsing date for row: {line_num}"})
+                                     {"error": f"Failure parsing date for row {line_num} {line}: {str(e)}"})
+                        return
 
                     parent_1_birth_date, parent_1_tag, _ = maybe_correct_for_2_year_olds(
                         cross_date.year - 1, line[RecCrossesDataCols.Female])
@@ -139,7 +148,7 @@ def import_crosses(crosses_file, username, job_id, year=datetime.datetime.now().
                                         'parent_2': parent_2['animal'],
                                         'cross_date': cross_date,
                                         'group_id': line[RecCrossesDataCols.SFG],
-                                        'mfg': '\\N' if not line[RecCrossesDataCols.MFG] else line[RecCrossesDataCols.MFG], # noqa
+                                        'mfg': '\\N' if RecCrossesDataCols.MFG == sys.maxsize else '\\N' if not line[RecCrossesDataCols.MFG] else line[RecCrossesDataCols.MFG], # noqa
                                         'f': f,
                                         'di': di})
                     duplicate = requested_crosses_fams.get(str(parent_1['family']) + str(parent_2['family']), False)
@@ -156,8 +165,7 @@ def import_crosses(crosses_file, username, job_id, year=datetime.datetime.now().
                         'supplementation': supplementation
                     })
                 except Exception as e: # noqa
-                    LOGGER.exception(f'Error processing date: "{date_str}" '
-                                     f'while importing crosses. Skipping cross line: {line_num}', e)
+                    LOGGER.error(f'Skipped line "{line_num}" do to error: %s', e)
 
         with get_connection(**make_connection_kwargs(get_default_database_params(), username=username)) as conn:
             with conn.connection.cursor() as cursor:
