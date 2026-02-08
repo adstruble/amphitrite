@@ -611,9 +611,32 @@ def determine_and_insert_possible_crosses(username_or_err, cleaned_tags):
     else:
         insert_cnt = 0
 
+    # We don't allow crossing of a male fish if there's a female from the same family that needs to be crossed
+    # Those males wont be included in the possible_cross table so also remove them from the available_animal table
+    remove_no_longer_possible_available_fish(username_or_err)
     remove_no_longer_possible_requested_crosses(username_or_err)
 
     return insert_cnt
+
+
+def remove_no_longer_possible_available_fish(username):
+    delete_sql = """
+    DELETE
+    FROM available_animal USING (SELECT aa.id
+                                 FROM available_animal aa
+                                          JOIN animal m on m.id = aa.animal
+                                          join family mf on mf.id = m.family
+                                          left join possible_cross pc on (mf.id = pc.male or m.id = pc.female)
+                                          left join family nf on (nf.parent_2 = m.id or nf.parent_1 = m.id)
+                                          left join supplementation_family nsf
+                                                    on (nsf.parent_2 = m.id or nsf.parent_1 = m.id)
+                                 where pc.id is null
+                                   and nf.id is null
+                                   and nsf.id is null) q
+    WHERE q.id = available_animal.id
+        """
+
+    execute_statements([delete_sql], username, ResultType.NoResult)
 
 
 def get_completed_crosses_by_family(username, query_params, cnt_only=False):
@@ -697,6 +720,9 @@ def set_cross_failed(username, params):
     if not params['refuge_crosses']:
         family_table = "supplementation_family"
     sql_up = f"UPDATE {family_table} SET cross_failed = :cross_failed WHERE id = :fam_id"
+    # also update group_id as another cross may get its group_id update this ones when completed_crosses are loaded
+    # if we are "unfailing" the cross then we also want to set group_id back to positive so apply either way.
+    sql_group_id_up = f"UPDATE {family_table} set group_id = -1 * group_id where id =:fam_id"
 
     if params['cross_failed']:
         sql_rc = f"DELETE FROM requested_cross rc USING {family_table} f WHERE rc.parent_f = f.parent_1 AND rc.parent_m = f.parent_2 AND f.id = :fam_id" # noqa
@@ -707,7 +733,7 @@ def set_cross_failed(username, params):
                     JOIN animal x ON x.id = parent_1
                     JOIN animal y on y.id = parent_2 WHERE fam.id = :fam_id""")
 
-    execute_statements([(sql_up, params), (sql_rc, params)], username, ResultType.NoResult)
+    execute_statements([(sql_up, params), (sql_group_id_up, params), (sql_rc, params)], username, ResultType.NoResult)
 
 
 def set_use_for_supplementation(username, params):

@@ -141,6 +141,7 @@ def prepare_copy_table_for_bulk_insert(table: InsertTableData, cursor, custom_al
 
     for update in table.temp_table_updates:
         try:
+            LOGGER.info(f"Executing update: {update}")
             cursor.execute(update)
         except Exception as e:
             logging.error(f"Failed update on {table.name}")

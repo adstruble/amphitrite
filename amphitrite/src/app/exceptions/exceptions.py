@@ -34,7 +34,7 @@ class UploadCrossesError(AmphitriteException):
     def bad_csv_format(cls, cols_present: List):
         message = "Not a valid completed crosses sheet. Must be in csv format containing columns labeled: " \
                   f"Date, Male, Female, BY<anything>FSG<anything>"
-        required_cols = {'Date', 'Male', 'Female', 'MFG'}
+        required_cols = {'Date', 'Male', 'Female', 'FSG'}
         if len(cols_present) > len(required_cols):
             for col in required_cols:
                 cols_present.remove(col)

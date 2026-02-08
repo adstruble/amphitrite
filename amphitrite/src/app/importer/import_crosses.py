@@ -53,7 +53,7 @@ def import_crosses(crosses_file, username, job_id, year=datetime.datetime.now().
                         correct_required_fields.append('Female')
                     elif sfg_re.match(col_name):
                         RecCrossesDataCols.SFG = col_idx
-                        correct_required_fields.append('SFG')
+                        correct_required_fields.append('FSG')
                     elif col_name == 'Supplementation':
                         # Not required don't add it to correct_required_fields list
                         RecCrossesDataCols.SUPPLEMENTATION = col_idx
