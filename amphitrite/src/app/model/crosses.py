@@ -383,7 +383,7 @@ def remove_no_longer_possible_requested_crosses(username: str):
                     ANY (SELECT id FROM animal a WHERE a.family = rci.parent_m_fam)
                  LEFT JOIN available_animal aaf ON aaf.animal =
                     ANY (SELECT id FROM animal a WHERE a.family = rci.parent_f_fam)
-               WHERE rci.cross_date IS NULL AND aam.id IS NULL AND aaf.id IS NULL)q
+               WHERE rci.cross_date IS NULL AND (aam.id IS NULL OR aaf.id IS NULL))q
         WHERE q.id = rc.id
     """
     execute_statements([remove_non_possible_requested_crosses_sql],
