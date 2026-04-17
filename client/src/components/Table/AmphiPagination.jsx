@@ -3,7 +3,7 @@ import React from "react";
 
 import {usePagination} from "@table-library/react-table-library/pagination";
 
-export default function AmphiPagination({LIMIT, tableNodes, onPaginationChange, tableSize, currElementCnt, currPage, className}){
+export default function AmphiPagination({LIMIT, tableNodes, onPaginationChange, tableSize, currElementCnt, currStartElementCnt, currPage, className}){
 
     const includeArrows = currPage * LIMIT + 1 > 1 || currElementCnt < tableSize;
     const pagination = usePagination(
@@ -24,7 +24,7 @@ export default function AmphiPagination({LIMIT, tableNodes, onPaginationChange, 
     return (
         <Pagination className={className}>
             <PaginationItem >
-                <span className='item-count'>{currElementCnt ? pagination.state.page * LIMIT + 1 : 0 }-{currElementCnt} of {tableSize}</span>
+                <span className='item-count'>{currStartElementCnt}-{currElementCnt} of {tableSize}</span>
             </PaginationItem>
             {includeArrows &&
                 <PaginationItem disabled={pagination.state.page === 0}>

@@ -54,7 +54,11 @@ export default function AmphiTable({tableDataUrl,
     const [search, setSearch] = useState("");
     const [tableSize, setTableSize] = useState(0);
     const [currElementCnt, setCurrElementCnt] = useState(0);
+    const [currStartElementCnt, setCurrStartElementCnt] = useState(1);
     const [currPage, setCurrPage] = useState(0);
+    const [sortVersion, setSortVersion] = useState(0);
+    const [fetchParamsVersion, setFetchParamsVersion] = useState(0);
+    const isFirstRenderRef = useRef(true);
 
     const [filterState, setFilterState] = useState(filter === null ? {} : null)
     const [filterStateHolder, setFilterStateHolder] = useState({})
@@ -164,7 +168,7 @@ export default function AmphiTable({tableDataUrl,
         });
         setHeaderCols(newHeaders);
         setCurrPage(0);
-        doGetTableData().then();
+        setSortVersion(v => v + 1);
     }
 
     const headerColsRef = useRef();
@@ -215,6 +219,7 @@ export default function AmphiTable({tableDataUrl,
             setTableNodes({nodes: tableData['data']});
             setCheckScroll(c => c + 1);
             setTableSize(tableData['size']);
+            setCurrStartElementCnt(tableData['size'] > 0 ? params.offset + 1 : 0);
             if (tableData['size'] <= (params.offset + LIMIT)){
                 setCurrElementCnt(tableData['size'])
             }else{
@@ -245,12 +250,19 @@ export default function AmphiTable({tableDataUrl,
 
     const doGetTableDataRef = useRef();
     doGetTableDataRef.current = doGetTableData;
-    // We have to have this on the params as if they change we want to refetch the table, we can't refetch
-    // automatically if headerDataStart changes, because changes made within this component do not get propagated
-    // back to the parent headers, if we fixed that then we could.
+
+    React.useEffect(() => {
+        if (isFirstRenderRef.current) {
+            isFirstRenderRef.current = false;
+            return;
+        }
+        setCurrPage(0);
+        setFetchParamsVersion(v => v + 1);
+    }, [fetchParams]);
+
     React.useEffect(() => {
         doGetTableDataRef.current().then();
-    }, [reloadData, filterState, fetchParams, search]);
+    }, [reloadData, filterState, search, currPage, sortVersion, fetchParamsVersion]);
 
 
     const  maybeSearchTable = (e) => {
@@ -334,7 +346,7 @@ export default function AmphiTable({tableDataUrl,
                     }
                     {includePagination &&
                         <AmphiPagination className={classnames('pagination')} LIMIT={LIMIT} tableNodes={tableNodes} onPaginationChange={onPaginationChange}
-                                         tableSize={tableSize} currPage={currPage} currElementCnt={currElementCnt}/>}
+                                         tableSize={tableSize} currPage={currPage} currElementCnt={currElementCnt} currStartElementCnt={currStartElementCnt}/>}
                     {tableControl}
                 </div>
 

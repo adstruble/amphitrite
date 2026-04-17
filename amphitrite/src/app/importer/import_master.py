@@ -62,7 +62,7 @@ def import_master_data(dir_name, username, job_id, year, update_genotype):
                 try:
                     sibling_birth_year, refuge_tag, group_id = maybe_correct_for_2_year_olds(year - 1,
                                                                                              refuge_tag, csv_fam_id)
-                except:
+                except Exception as e:
                     LOGGER.info(f"preinfo: {year}  -- {pr} -- {csv_fam_id} {e}")
                     LOGGER.info(f"info: {sibling_birth_year}  -- {refuge_tag} -- {group_id} {e}")
                     # Don't include this fish as data integrity is in question
