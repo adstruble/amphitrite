@@ -237,6 +237,14 @@ def import_crosses(crosses_file, username, job_id, year=datetime.datetime.now().
                 if supplementation_family_notes:
                     insert_family_notes('supplementation_family', supplementation_family_notes)
 
+                # Delete any requested_crosses that have a failed family
+                delete_family_sql = f"DELETE FROM requested_cross rc USING family f WHERE rc.parent_f = f.parent_1 AND rc.parent_m = f.parent_2 and f.cross_failed" # noqa
+
+                # Delete any requested_cross that have a failed supplementation family
+                delete_suppl_family_sql = f"DELETE FROM requested_cross rc USING supplementation_family f WHERE rc.parent_f = f.parent_1 AND rc.parent_m = f.parent_2 and f.cross_failed" # noqa
+
+                cursor.execute(delete_family_sql)
+                cursor.execute(delete_suppl_family_sql)
                 complete_job(job_id, JobState.Complete.name, {"success": {'inserts': {'Family': family_inserts,
                                                                                       'Requested Cross': rc_inserts},
                                                                           'updates': {'Family': family_updates,

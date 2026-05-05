@@ -22,7 +22,7 @@ export default function CrossFishExpanded({item}) {
     const [itemCrossed, setItemCrossed] = useState(item['completed_x']!=null)
 
     const CROSSES_HEADER = {
-        rows:{},
+        rows:{"getRowClass": getRowClass},
         cols:[
             {name: "Date Cross Made", key:"cross_date", visible: true, format_fn: formatDate, width:".9fr"},
             {name: "F", key: "f", visible: true, format_fn: formatDoubleTo3, width:"1fr"},
@@ -32,6 +32,13 @@ export default function CrossFishExpanded({item}) {
             {name: "M Fish", key: "m_tag", visible: true, format_fn: formatStr, width:".9fr", tooltip: true},
             {name: "M PC/FSG", key: "y_gid",  visible: true, format_fn: formatStr, width:".9fr"}
         ]};
+
+    function getRowClass(item) {
+        if (item['cross_failed']){
+            return "row-line-through";
+        }
+        return "";
+    }
 
     // We need to do an intial load of the table data so we know the counts or completed crosses
     React.useEffect(()=>{
