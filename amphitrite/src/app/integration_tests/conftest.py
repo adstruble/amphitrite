@@ -72,7 +72,7 @@ def setup_postgres():
         # Using the find_pg_hostname to check if docker container exists, but not actually using the result as
         # we're always running tests locally and not within docker network so we will use localhost with exposed port
         pg_hostname = find_pg_hostname(get_docker_container_name())
-        if pg_hostname:
+        if pg_hostname is not False:  # False means container not found; '' means Docker Desktop (no bridge IP)
             return
 
     print(f"POSTGRES_DOCKER_CONTAINER Env var: {os.getenv(POSTGRES_DOCKER_CONTAINER)}")
