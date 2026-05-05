@@ -59,6 +59,7 @@ export default function AmphiTable({tableDataUrl,
     const [sortVersion, setSortVersion] = useState(0);
     const [fetchParamsVersion, setFetchParamsVersion] = useState(0);
     const isFirstRenderRef = useRef(true);
+    const skipCountRef = useRef(false);
 
     const [filterState, setFilterState] = useState(filter === null ? {} : null)
     const [filterStateHolder, setFilterStateHolder] = useState({})
@@ -215,15 +216,23 @@ export default function AmphiTable({tableDataUrl,
 
 
     const doGetTableData = React.useCallback(async () => {
+        const returnSize = !skipCountRef.current;
+        skipCountRef.current = false;
+
         const setTableData = (tableData, params) => {
             setTableNodes({nodes: tableData['data']});
             setCheckScroll(c => c + 1);
-            setTableSize(tableData['size']);
-            setCurrStartElementCnt(tableData['size'] > 0 ? params.offset + 1 : 0);
-            if (tableData['size'] <= (params.offset + LIMIT)){
-                setCurrElementCnt(tableData['size'])
-            }else{
-                setCurrElementCnt(params.offset + LIMIT)
+            if ('size' in tableData) {
+                setTableSize(tableData['size']);
+                setCurrStartElementCnt(tableData['size'] > 0 ? params.offset + 1 : 0);
+                if (tableData['size'] <= (params.offset + LIMIT)){
+                    setCurrElementCnt(tableData['size'])
+                }else{
+                    setCurrElementCnt(params.offset + LIMIT)
+                }
+            } else {
+                setCurrStartElementCnt(params.offset + 1);
+                setCurrElementCnt(params.offset + LIMIT);
             }
             if(dataFetchCallback){
                 dataFetchCallback(tableData, params);
@@ -239,7 +248,7 @@ export default function AmphiTable({tableDataUrl,
                 offset: currPage * LIMIT,
                 limit: LIMIT,
                 order_by: newOrderBy,
-                return_size: true,
+                return_size: returnSize,
                 like_filter: search,
                 exact_filters: filterState,
             }};
@@ -288,7 +297,8 @@ export default function AmphiTable({tableDataUrl,
     const theme = useTheme([THEME, getTheme()]);
 
     function onPaginationChange(action, state) {
-        setCurrPage(state.page)
+        skipCountRef.current = true;
+        setCurrPage(state.page);
     }
 
     const totalHeaderHeight = useHeaderHeight(calcHeaderHeight);

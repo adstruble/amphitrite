@@ -42,7 +42,10 @@ def get_possible_crosses_api():
     query_params = request.get_json()
 
     possible_crosses, possible_crosses_cnt = get_possible_crosses(username_or_err, query_params)
-    return {"success": {'data': possible_crosses, 'size': possible_crosses_cnt}}
+    result = {'data': possible_crosses}
+    if possible_crosses_cnt is not None:
+        result['size'] = possible_crosses_cnt
+    return {"success": result}
 
 
 @cross_fish.route('/cross_fish/add_selected_cross', methods=(['POST']))
