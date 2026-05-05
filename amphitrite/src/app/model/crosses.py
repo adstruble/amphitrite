@@ -51,9 +51,12 @@ def get_new_possible_crosses_for_fish(username, fish_tags):
 
 
 def get_num_fam_crosses_completed_or_requested (this_fam_id, supplementation):
+    fam_table = f"{'supplementation_' if supplementation else ''}family"
     return f"""(SELECT count(distinct rc.id) FROM requested_cross rc
-    WHERE (rc.parent_m_fam = {this_fam_id} OR rc.parent_f_fam = {this_fam_id}) 
-           AND {'' if supplementation else 'NOT'} rc.supplementation) +
+    LEFT JOIN {fam_table} fam ON fam.parent_2 = rc.parent_m AND fam.parent_1 = rc.parent_f
+    WHERE (rc.parent_m_fam = {this_fam_id} OR rc.parent_f_fam = {this_fam_id})
+           AND {'' if supplementation else 'NOT'} rc.supplementation
+           AND (fam.id IS NULL OR NOT fam.cross_failed)) +
         (SELECT count(*) FROM {'supplementation_' if supplementation else ''}family newf
                          JOIN animal a ON a.id = newf.parent_2 OR a.id = newf.parent_1
                     LEFT JOIN requested_cross rc ON (rc.parent_m = newf.parent_2 OR rc.parent_f = newf.parent_1)
