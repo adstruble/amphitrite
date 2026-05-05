@@ -9,6 +9,8 @@ from amphi_logging.logger import get_logger
 
 DEFAULT_POSTGRES_SERVER_HOSTNAME = "datastore.datastore"
 POSTGRES_SERVER_HOSTNAME_ENV = "POSTGRES_SERVER_HOSTNAME"
+POSTGRES_SERVER_PORT_ENV = "POSTGRES_SERVER_PORT"
+DEFAULT_POSTGRES_PORT = 5432
 
 SET_SESSION_TEMPLATE: str = "SET SESSION %s = '%s';"
 
@@ -29,10 +31,12 @@ class _PGConnections:
         self._engines = {}
 
     def get_engine(self, database_params) -> Engine:
-        conn_string = "postgresql://{}:{}@{}/{}".format(database_params['user'],
-                                                        database_params['password'],
-                                                        database_params['host'],
-                                                        database_params['database'])
+        port = database_params.get('port', DEFAULT_POSTGRES_PORT)
+        conn_string = "postgresql://{}:{}@{}:{}/{}".format(database_params['user'],
+                                                           database_params['password'],
+                                                           database_params['host'],
+                                                           port,
+                                                           database_params['database'])
         if conn_string not in self._engines:
             self._engines[conn_string] = sqlalchemy.create_engine(conn_string)
 
@@ -86,6 +90,7 @@ def _setup_transaction(conn, username):
 
 def get_default_database_params() -> dict:
     return {"host": get_postgres_hostname(),
+            "port": get_postgres_port(),
             "database": "amphitrite",
             'user': 'amphiuser',
             'password': 'amphiuser'}
@@ -99,8 +104,13 @@ def get_engine_user_postgres() -> Engine:
     return _PGConnections().get_engine({'database': 'postgres',
                                         'user': 'postgres',
                                         'host': get_postgres_hostname(),
+                                        'port': get_postgres_port(),
                                         'password': 'postgres'})
 
 
 def get_postgres_hostname():
     return os.getenv(POSTGRES_SERVER_HOSTNAME_ENV, DEFAULT_POSTGRES_SERVER_HOSTNAME)
+
+
+def get_postgres_port():
+    return int(os.getenv(POSTGRES_SERVER_PORT_ENV, DEFAULT_POSTGRES_PORT))

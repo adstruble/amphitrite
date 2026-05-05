@@ -24,6 +24,8 @@ def pytest_sessionstart(session): # noqa
 
     setup_postgres()
     os.environ[POSTGRES_SERVER_HOSTNAME_ENV] = 'localhost'
+    if not USING_FIXED_CONTAINER_NAME:
+        os.environ['POSTGRES_SERVER_PORT'] = '5433'
     print(f"Postgres Hostname: {get_postgres_hostname()}\n")
     print(f"Log dir: {os.getenv('LOG_BASE_DIR', '/tmp')}")
 
@@ -132,7 +134,7 @@ def spinup_postgres_container():
     # -e (environment variables required for Postgres to run without Luna)
     # --rm (removes the container once its stopped)
     cmd = ["docker", "run",
-           "-p", "5432:5432",
+           "-p", "5433:5432",
            "-d",
            "-e", "LISTEN_ADDRESS=0.0.0.0",
            "-e", "CLIENT_SUBNET=0.0.0.0/0",
@@ -150,7 +152,8 @@ def spinup_postgres_container():
 
 
 def _get_version_tag():
-    with open('../../../../VERSION', 'r') as version_file:
+    version_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'VERSION')
+    with open(version_path, 'r') as version_file:
         return version_file.read().rstrip('\r\n')
 
 
