@@ -14,17 +14,25 @@ from utils.server_state import JobState
 from werkzeug.test import TestResponse
 
 
+CLEANUP_2025_SQLS = [
+    'DELETE FROM supplementation_family_note sfn WHERE EXISTS('
+    'SELECT 1 FROM supplementation_family '
+    'WHERE id = sfn.family AND extract(YEAR FROM cross_date) = 2025)',
+    'DELETE FROM family_note fn WHERE EXISTS('
+    'SELECT 1 FROM family '
+    'WHERE id = fn.family AND extract(YEAR FROM cross_date) = 2025)',
+    'DELETE FROM requested_cross WHERE extract(YEAR FROM cross_date) = 2025',
+    'DELETE FROM public.supplementation_family WHERE extract(YEAR FROM cross_date) = 2025',
+    'DELETE FROM family WHERE extract(YEAR FROM cross_date) = 2025',
+]
+
+
 @pytest.fixture
 def set_cleanup_sqls(set_cleanup_sql_fn):
-    set_cleanup_sql_fn('DELETE FROM supplementation_family_note sfn WHERE EXISTS('
-                       'SELECT 1 FROM supplementation_family '
-                       'WHERE id = sfn.family AND extract(YEAR FROM cross_date) = 2025)')
-    set_cleanup_sql_fn('DELETE FROM family_note fn WHERE EXISTS('
-                       'SELECT 1 FROM family '
-                       'WHERE id = fn.family AND extract(YEAR FROM cross_date) = 2025)')
-    set_cleanup_sql_fn('DELETE FROM requested_cross WHERE extract(YEAR FROM cross_date) = 2025')
-    set_cleanup_sql_fn('DELETE FROM public.supplementation_family WHERE extract(YEAR FROM cross_date) = 2025')
-    set_cleanup_sql_fn('DELETE FROM family WHERE extract(YEAR FROM cross_date) = 2025')
+    for sql in CLEANUP_2025_SQLS:
+        set_cleanup_sql_fn(sql)
+    yield
+    execute_statements(CLEANUP_2025_SQLS, 'amphiadmin', ResultType.NoResult)
 
 
 @pytest.fixture(scope="module")
@@ -178,6 +186,171 @@ def test_import_crosses_note_change(mock_complete_job, set_cleanup_sqls):
     assert execute_statements([
         "SELECT count(*) FROM requested_cross WHERE extract(YEAR FROM cross_date) = 2025"],
         'amphiadmin', ResultType.RowResults).get_single_result() == 6
+
+
+@patch('importer.import_crosses.complete_job')
+def test_missing_crosses_marked_failed_on_reimport(mock_complete_job, set_cleanup_sqls):
+    """Crosses present in a prior upload but absent from a subsequent upload are marked cross_failed."""
+    # First upload: 3 refuge + 3 supplementation crosses
+    import_crosses(os.path.join(os.path.dirname(__file__),
+                                'resources', 'completed_crosses', 'supplementation_and_refuge_crosses.csv'),
+                   'amphiadmin', 'fake_job_mark_failed_1', 2025)
+
+    assert mock_complete_job.call_args_list[-1] == call(ANY, JobState.Complete.name, ANY)
+    assert execute_statements(
+        ["SELECT count(*) FROM family WHERE extract(YEAR FROM cross_date) = 2025 AND NOT cross_failed"],
+        'amphiadmin', ResultType.RowResults).get_single_result() == 3
+    assert execute_statements(
+        ["SELECT count(*) FROM supplementation_family WHERE extract(YEAR FROM cross_date) = 2025 AND NOT cross_failed"],
+        'amphiadmin', ResultType.RowResults).get_single_result() == 3
+
+    # Second upload: subset missing RV44 x RF57 (refuge) and YO60 x YO58 (supplementation)
+    import_crosses(os.path.join(os.path.dirname(__file__),
+                                'resources', 'completed_crosses', 'supplementation_and_refuge_crosses_subset.csv'),
+                   'amphiadmin', 'fake_job_mark_failed_2', 2025)
+
+    assert mock_complete_job.call_args_list[-1] == call(ANY, JobState.Complete.name, ANY)
+
+    # 2 refuge crosses remain non-failed, 1 is now failed
+    assert execute_statements(
+        ["SELECT count(*) FROM family WHERE extract(YEAR FROM cross_date) = 2025 AND NOT cross_failed"],
+        'amphiadmin', ResultType.RowResults).get_single_result() == 2
+    assert execute_statements(
+        ["SELECT count(*) FROM family WHERE extract(YEAR FROM cross_date) = 2025 AND cross_failed"],
+        'amphiadmin', ResultType.RowResults).get_single_result() == 1
+
+    # Confirm the correct refuge cross was marked failed (RV44 x RF57)
+    failed_refuge = execute_statements(["""
+        SELECT mom_tag.tag f_tag, dad_tag.tag m_tag FROM family f
+        JOIN refuge_tag mom_tag ON mom_tag.animal = f.parent_1
+        JOIN refuge_tag dad_tag ON dad_tag.animal = f.parent_2
+        WHERE extract(YEAR FROM f.cross_date) = 2025 AND f.cross_failed"""],
+        'amphiadmin', ResultType.RowResults).get_as_list_of_dicts()
+    assert len(failed_refuge) == 1
+    assert failed_refuge[0]['f_tag'] == 'RV44'
+    assert failed_refuge[0]['m_tag'] == 'RF57'
+
+    # 2 supplementation crosses remain non-failed, 1 is now failed
+    assert execute_statements(
+        ["SELECT count(*) FROM supplementation_family WHERE extract(YEAR FROM cross_date) = 2025 AND NOT cross_failed"],
+        'amphiadmin', ResultType.RowResults).get_single_result() == 2
+    assert execute_statements(
+        ["SELECT count(*) FROM supplementation_family WHERE extract(YEAR FROM cross_date) = 2025 AND cross_failed"],
+        'amphiadmin', ResultType.RowResults).get_single_result() == 1
+
+    # Confirm the correct supplementation cross was marked failed (YO60 x YO58)
+    failed_supp = execute_statements(["""
+        SELECT mom_tag.tag f_tag, dad_tag.tag m_tag FROM supplementation_family f
+        JOIN refuge_tag mom_tag ON mom_tag.animal = f.parent_1
+        JOIN refuge_tag dad_tag ON dad_tag.animal = f.parent_2
+        WHERE extract(YEAR FROM f.cross_date) = 2025 AND f.cross_failed"""],
+        'amphiadmin', ResultType.RowResults).get_as_list_of_dicts()
+    assert len(failed_supp) == 1
+    assert failed_supp[0]['f_tag'] == 'YO60'
+    assert failed_supp[0]['m_tag'] == 'YO58'
+
+
+@patch('importer.import_crosses.complete_job')
+def test_reimport_same_crosses_does_not_mark_failed(mock_complete_job, set_cleanup_sqls):
+    """Re-uploading the exact same crosses should not mark any as failed."""
+    import_crosses(os.path.join(os.path.dirname(__file__),
+                                'resources', 'completed_crosses', 'supplementation_and_refuge_crosses.csv'),
+                   'amphiadmin', 'fake_job_no_fail_1', 2025)
+
+    import_crosses(os.path.join(os.path.dirname(__file__),
+                                'resources', 'completed_crosses', 'supplementation_and_refuge_crosses.csv'),
+                   'amphiadmin', 'fake_job_no_fail_2', 2025)
+
+    assert mock_complete_job.call_count == 2
+    assert all(c == call(ANY, JobState.Complete.name, ANY) for c in mock_complete_job.call_args_list)
+
+    assert execute_statements(
+        ["SELECT count(*) FROM family WHERE extract(YEAR FROM cross_date) = 2025 AND cross_failed"],
+        'amphiadmin', ResultType.RowResults).get_single_result() == 0
+    assert execute_statements(
+        ["SELECT count(*) FROM supplementation_family WHERE extract(YEAR FROM cross_date) = 2025 AND cross_failed"],
+        'amphiadmin', ResultType.RowResults).get_single_result() == 0
+    assert execute_statements(
+        ["SELECT count(*) FROM family WHERE extract(YEAR FROM cross_date) = 2025 AND NOT cross_failed"],
+        'amphiadmin', ResultType.RowResults).get_single_result() == 3
+    assert execute_statements(
+        ["SELECT count(*) FROM supplementation_family WHERE extract(YEAR FROM cross_date) = 2025 AND NOT cross_failed"],
+        'amphiadmin', ResultType.RowResults).get_single_result() == 3
+
+
+@patch('importer.import_crosses.complete_job')
+def test_failed_cross_reinstated_when_reappears_in_upload(mock_complete_job, set_cleanup_sqls):
+    """A cross marked failed should have cross_failed reset to false if it reappears in a later upload."""
+    # Import all 6 crosses
+    import_crosses(os.path.join(os.path.dirname(__file__),
+                                'resources', 'completed_crosses', 'supplementation_and_refuge_crosses.csv'),
+                   'amphiadmin', 'fake_job_reinstate_1', 2025)
+
+    # Re-import subset — marks RV44 x RF57 (refuge) and YO60 x YO58 (supp) as failed
+    import_crosses(os.path.join(os.path.dirname(__file__),
+                                'resources', 'completed_crosses', 'supplementation_and_refuge_crosses_subset.csv'),
+                   'amphiadmin', 'fake_job_reinstate_2', 2025)
+
+    assert execute_statements(
+        ["SELECT count(*) FROM family WHERE extract(YEAR FROM cross_date) = 2025 AND cross_failed"],
+        'amphiadmin', ResultType.RowResults).get_single_result() == 1
+    assert execute_statements(
+        ["SELECT count(*) FROM supplementation_family WHERE extract(YEAR FROM cross_date) = 2025 AND cross_failed"],
+        'amphiadmin', ResultType.RowResults).get_single_result() == 1
+
+    # Re-import the full set — the previously failed crosses should be reinstated
+    import_crosses(os.path.join(os.path.dirname(__file__),
+                                'resources', 'completed_crosses', 'supplementation_and_refuge_crosses.csv'),
+                   'amphiadmin', 'fake_job_reinstate_3', 2025)
+
+    assert execute_statements(
+        ["SELECT count(*) FROM family WHERE extract(YEAR FROM cross_date) = 2025 AND cross_failed"],
+        'amphiadmin', ResultType.RowResults).get_single_result() == 0
+    assert execute_statements(
+        ["SELECT count(*) FROM supplementation_family WHERE extract(YEAR FROM cross_date) = 2025 AND cross_failed"],
+        'amphiadmin', ResultType.RowResults).get_single_result() == 0
+    assert execute_statements(
+        ["SELECT count(*) FROM family WHERE extract(YEAR FROM cross_date) = 2025 AND NOT cross_failed"],
+        'amphiadmin', ResultType.RowResults).get_single_result() == 3
+    assert execute_statements(
+        ["SELECT count(*) FROM supplementation_family WHERE extract(YEAR FROM cross_date) = 2025 AND NOT cross_failed"],
+        'amphiadmin', ResultType.RowResults).get_single_result() == 3
+
+
+@patch('importer.import_crosses.complete_job')
+def test_reimport_does_not_affect_previous_year_crosses(mock_complete_job, set_cleanup_sqls):
+    """Marking crosses failed on re-upload must never touch crosses from prior years."""
+    prior_year_refuge_cnt = execute_statements(
+        ["SELECT count(*) FROM family WHERE extract(YEAR FROM cross_date) < 2025"],
+        'amphiadmin', ResultType.RowResults).get_single_result()
+    prior_year_supp_cnt = execute_statements(
+        ["SELECT count(*) FROM supplementation_family WHERE extract(YEAR FROM cross_date) < 2025"],
+        'amphiadmin', ResultType.RowResults).get_single_result()
+
+    # Import 2025 crosses then re-import a subset — this should only affect 2025 records
+    import_crosses(os.path.join(os.path.dirname(__file__),
+                                'resources', 'completed_crosses', 'supplementation_and_refuge_crosses.csv'),
+                   'amphiadmin', 'fake_job_prev_year_1', 2025)
+    import_crosses(os.path.join(os.path.dirname(__file__),
+                                'resources', 'completed_crosses', 'supplementation_and_refuge_crosses_subset.csv'),
+                   'amphiadmin', 'fake_job_prev_year_2', 2025)
+
+    assert execute_statements(
+        ["SELECT count(*) FROM family WHERE extract(YEAR FROM cross_date) < 2025 AND cross_failed"],
+        'amphiadmin', ResultType.RowResults).get_single_result() == 0, \
+        "Previous year refuge crosses should never be marked failed"
+    assert execute_statements(
+        ["SELECT count(*) FROM supplementation_family WHERE extract(YEAR FROM cross_date) < 2025 AND cross_failed"],
+        'amphiadmin', ResultType.RowResults).get_single_result() == 0, \
+        "Previous year supplementation crosses should never be marked failed"
+
+    # Total prior-year counts should be unchanged
+    assert execute_statements(
+        ["SELECT count(*) FROM family WHERE extract(YEAR FROM cross_date) < 2025"],
+        'amphiadmin', ResultType.RowResults).get_single_result() == prior_year_refuge_cnt
+    assert execute_statements(
+        ["SELECT count(*) FROM supplementation_family WHERE extract(YEAR FROM cross_date) < 2025"],
+        'amphiadmin', ResultType.RowResults).get_single_result() == prior_year_supp_cnt
 
 
 def get_families(table, note_table):

@@ -174,14 +174,38 @@ def import_crosses(crosses_file, username, job_id, year=datetime.datetime.now().
                         'supplementation_family', supplementation_families, cursor,
                         'ON CONFLICT (parent_1, parent_2, cross_year)'
                         ' DO UPDATE SET(cross_date, group_id, mfg) = '
-                        '(EXCLUDED.cross_date, EXCLUDED.group_id, EXCLUDED.mfg)')
+                        '(EXCLUDED.cross_date, EXCLUDED.group_id, EXCLUDED.mfg),'
+                        ' cross_failed = false')
                     LOGGER.info(f"{family_inserts} supplementation crosses from {cross_date.year} inserted.")
                 if families:
                     family_inserts, family_updates = insert_table_data(
                         'family', families, cursor, 'ON CONFLICT (parent_1, parent_2, cross_year)'
                                                     ' DO UPDATE SET(cross_date, group_id, mfg) = (EXCLUDED.cross_date,'
-                                                    'EXCLUDED.group_id, EXCLUDED.mfg)')
+                                                    'EXCLUDED.group_id, EXCLUDED.mfg), cross_failed = false')
                     LOGGER.info(f"{family_inserts} refuge crosses from {cross_date.year} inserted.")
+                    p1s = [f['parent_1'] for f in families]
+                    p2s = [f['parent_2'] for f in families]
+                    cursor.execute("""
+                        UPDATE family SET cross_failed = true
+                        WHERE extract(year from cross_date) = %s
+                        AND NOT cross_failed
+                        AND NOT EXISTS (
+                            SELECT 1 FROM unnest(%s::uuid[], %s::uuid[]) AS u(p1, p2)
+                            WHERE u.p1 = family.parent_1 AND u.p2 = family.parent_2
+                        )
+                    """, (year, p1s, p2s))
+                if supplementation_families:
+                    sup_p1s = [f['parent_1'] for f in supplementation_families]
+                    sup_p2s = [f['parent_2'] for f in supplementation_families]
+                    cursor.execute("""
+                        UPDATE supplementation_family SET cross_failed = true
+                        WHERE extract(year from cross_date) = %s
+                        AND NOT cross_failed
+                        AND NOT EXISTS (
+                            SELECT 1 FROM unnest(%s::uuid[], %s::uuid[]) AS u(p1, p2)
+                            WHERE u.p1 = supplementation_family.parent_1 AND u.p2 = supplementation_family.parent_2
+                        )
+                    """, (year, sup_p1s, sup_p2s))
                 rc_inserts, rc_updates = insert_table_data(
                     'requested_cross', requested_crosses, cursor,
                     'ON CONFLICT (parent_f_fam, parent_m_fam, supplementation, known_duplicate) DO UPDATE SET '
