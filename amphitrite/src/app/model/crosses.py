@@ -132,9 +132,11 @@ def get_possible_crosses(username, query_params):
                     JOIN family as xf ON x.family = xf.id
                     LEFT JOIN requested_cross ON xf.id = requested_cross.parent_f_fam AND pc.male = requested_cross.parent_m_fam
                     JOIN animal as y ON y.family = pc.male AND (NOT y.id = ANY(
-                    -- Only include males that haven't been refuge crossed yet and were not crossed with this female
+                    -- Only include males that haven't been refuge crossed yet (excluding failed crosses) and were not crossed with this female
                     -- IF this possible cross is being used for supplementation don't allow a male that was previously used for supplementation to be used again
-                             SELECT parent_m FROM requested_cross rc_completed WHERE rc_completed.parent_m is not null AND NOT rc_completed.supplementation
+                             SELECT rc_completed.parent_m FROM requested_cross rc_completed
+                             JOIN family cf ON cf.parent_2 = rc_completed.parent_m AND cf.parent_1 = rc_completed.parent_f AND NOT cf.cross_failed
+                             WHERE rc_completed.parent_m is not null AND NOT rc_completed.supplementation
                              )
                          OR requested_cross.parent_m = y.id)
                          AND y.id IN (SELECT animal from available_animal)
@@ -143,7 +145,8 @@ def get_possible_crosses(username, query_params):
                     JOIN refuge_tag rtx ON rtx.animal = x.id
 
                 LEFT JOIN refuge_tag rty ON rty.animal = y.id
-                         AND NOT rty.animal = ANY( SELECT parent_m FROM requested_cross rc_completed
+                         AND NOT rty.animal = ANY( SELECT rc_completed.parent_m FROM requested_cross rc_completed
+                        JOIN family cf ON cf.parent_2 = rc_completed.parent_m AND cf.parent_1 = rc_completed.parent_f AND NOT cf.cross_failed
                         WHERE rc_completed.parent_m is not null AND (NOT rc_completed.supplementation or requested_cross.supplementation)
                             AND NOT (rc_completed.parent_m = requested_cross.parent_m and rc_completed.id = requested_cross.id))
 
