@@ -317,6 +317,7 @@ export default function AmphiTable({tableDataUrl,
                         <Input
                             placeholder="Search"
                             type="text"
+                            autoComplete="off"
                             onFocus={() => setSearchFocus(true)}
                             className={classnames({"input-group-focus": searchFocus})}
                             onKeyUp={onKeyupWithDelay((e) => maybeSearchTable(e),
