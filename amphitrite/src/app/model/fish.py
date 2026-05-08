@@ -40,10 +40,10 @@ def get_fishes_from_db(username: str, query_params: dict, order_by_clause: str, 
                      f"OR fam.group_id::text {like_filter} " \
                      f"OR (fam.group_id < 0 AND 'UNKNOWN' {like_filter}) " \
                      f"OR tag {like_filter} " \
-                     f"OR gen_id {like_filter} " \
+                     f"OR gen_id::text {like_filter} " \
                      f"OR sex::text {like_filter} " \
-                     f"OR date(fam.cross_date)::text {like_filter})" \
-                     f"OR an.content {like_filter}"
+                     f"OR date(fam.cross_date)::text {like_filter} " \
+                     f"OR an.content {like_filter})"
     exact_filter = query_params.get('exact_filters')
     if exact_filter:
         if 'ids' in exact_filter:
