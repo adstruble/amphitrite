@@ -19,6 +19,8 @@ Scenarios tested:
   3. Reversed orientation: a MALE sibling from the female family was the one previously
      crossed -> both implementations exclude the row identically (the sibling's tag is
      not in f_tags so the filter removes it in both cases).
+  4. Failed cross: a cross is imported and then marked failed (as import_crosses does on
+     re-upload) -> x_crosses/y_crosses are 0 and completed_x is None.
 """
 
 import os
@@ -197,7 +199,24 @@ def client():
 
 
 @pytest.fixture(scope='module')
-def load_2026_master():
+def load_2025_crosses():
+    """Import 2025 refuge crosses so that cross_year=2025 family records exist.
+
+    The 2026 master import matches BY2025 fish to families by cross_year=2025.
+    Without this fixture, those family records don't exist and the 2026 master
+    import silently skips the fish, causing downstream cross import to fail.
+    """
+    with patch('importer.import_crosses.complete_job'):
+        import_crosses(os.path.join(CROSSES_DIR, '2025_all_refuge_crosses.csv'), USERNAME, 'test_2025_crosses', 2025)
+    yield
+    execute_statements([
+        'DELETE FROM requested_cross WHERE extract(YEAR FROM cross_date) = 2025',
+        'DELETE FROM family WHERE extract(YEAR FROM cross_date) = 2025',
+    ], USERNAME, ResultType.NoResult)
+
+
+@pytest.fixture(scope='module')
+def load_2026_master(load_2025_crosses):
     with patch('importer.import_master.complete_job'):
         import_master_data(MASTER_DIR, USERNAME, '2026_master_test.csv', 2026, False)
     yield
@@ -299,5 +318,59 @@ def test_reversed_orientation_prior_cross(import_test_refuge_cross, set_cleanup_
     for row_id in _row_ids(cte_rows):
         assert _completed_x_by_id(cte_rows)[row_id] == _completed_x_by_id(ref_rows)[row_id]
         assert _completed_y_by_id(cte_rows)[row_id] == _completed_y_by_id(ref_rows)[row_id]
+
+    _clean_possible_and_available()
+
+
+# ---------------------------------------------------------------------------
+# Failed cross tests
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def with_failed_refuge_cross(import_test_refuge_cross, set_cleanup_sql_fn):
+    """Mark the 2026 refuge cross as failed (simulating a re-upload that omits it).
+
+    import_crosses marks the family failed but does NOT delete the requested_cross record,
+    so both the failed family row and the requested_cross row coexist — the scenario our
+    fix addresses.
+    """
+    execute_statements(["""
+        UPDATE family SET cross_failed = true
+        WHERE extract(year FROM cross_date) = 2026
+    """], USERNAME, ResultType.NoResult)
+    set_cleanup_sql_fn("UPDATE family SET cross_failed = false WHERE extract(year FROM cross_date) = 2026")
+
+
+def test_failed_cross_not_counted_in_cross_counts(with_failed_refuge_cross, set_cleanup_sql_fn):
+    """x_crosses and y_crosses must be 0 when the only completed cross for those families is failed."""
+    set_cleanup_sql_fn('DELETE FROM possible_cross')
+    set_cleanup_sql_fn('DELETE FROM available_animal')
+
+    # YB34 (F, FSG 13) + YI46 (M, FSG 69 — sibling of YI14 that actually crossed)
+    set_available_fish(USERNAME, ['YB34', 'YI46'])
+
+    rows, _ = get_possible_crosses(USERNAME, {**DEFAULT_QUERY_PARAMS})
+
+    assert len(rows) == 1
+    row = rows[0]
+    assert row['x_crosses'] == 0, f"x_crosses should be 0 for failed cross, got {row['x_crosses']}"
+    assert row['y_crosses'] == 0, f"y_crosses should be 0 for failed cross, got {row['y_crosses']}"
+
+    _clean_possible_and_available()
+
+
+def test_failed_cross_not_shown_as_completed_indicator(with_failed_refuge_cross, set_cleanup_sql_fn):
+    """completed_x should be None when the female's only prior cross is failed."""
+    set_cleanup_sql_fn('DELETE FROM possible_cross')
+    set_cleanup_sql_fn('DELETE FROM available_animal')
+
+    # YB34 (F, FSG 13) + YI46 (M, FSG 69)
+    set_available_fish(USERNAME, ['YB34', 'YI46'])
+
+    rows, _ = get_possible_crosses(USERNAME, {**DEFAULT_QUERY_PARAMS})
+
+    assert len(rows) == 1
+    row = rows[0]
+    assert row['completed_x'] is None, f"completed_x should be None for failed cross, got {row['completed_x']!r}"
 
     _clean_possible_and_available()
