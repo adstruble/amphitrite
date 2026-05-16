@@ -245,6 +245,7 @@ def import_crosses(crosses_file, username, job_id, year=datetime.datetime.now().
 
                 cursor.execute(delete_family_sql)
                 cursor.execute(delete_suppl_family_sql)
+                cursor.execute("DELETE FROM requested_cross WHERE cross_date IS NULL")
                 complete_job(job_id, JobState.Complete.name, {"success": {'inserts': {'Family': family_inserts,
                                                                                       'Requested Cross': rc_inserts},
                                                                           'updates': {'Family': family_updates,
