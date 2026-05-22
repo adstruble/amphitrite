@@ -27,6 +27,7 @@ import ViewCrosses from "./views/CrossFish/ViewCrosses";
 import UserSettings from "./views/User/UserSettings";
 import ManageUsers from "./views/User/ManageUsers";
 import AmphiTable from "./components/Table/AmphiTable.jsx";
+import FishCare from "./views/FishCare/FishCare.jsx";
 
 const router = createBrowserRouter([
     {
@@ -53,6 +54,10 @@ const router = createBrowserRouter([
             {
                 path: "/manageusers",
                 element: <ManageUsers/>,
+            },
+            {
+                path: "/fishcare",
+                element: <FishCare/>,
             },
             {
                 path: "",

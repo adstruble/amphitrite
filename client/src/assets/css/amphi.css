@@ -2,6 +2,9 @@ body{
     overflow-y:hidden;
     color: hsla(0, 0%, 100%, .6);
 }
+input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1) opacity(0.6);
+}
 .danger{
     color: #fd5d93;
 }
