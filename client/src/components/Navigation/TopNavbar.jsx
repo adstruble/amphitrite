@@ -11,7 +11,7 @@ import App from "../../App";
 import ReactDOM from "react-dom/client";
 
 const VIEW_NAMES = {
-    '/managefish': 'Fish',
+    '/managefish': 'Manage Fish',
     '/crossfish': 'Recommend Crosses',
     '/viewcrosses': 'Completed Crosses',
     '/fishcare': 'Fish Care',
@@ -44,7 +44,7 @@ export default function TopNavbar() {
                 <Nav navbar>
                     <NavItem>
                         <NavLink tag={Link} to="/managefish">
-                            <span className="nav-link">Fish</span>
+                            <span className="nav-link">Manage Fish</span>
                         </NavLink>
                     </NavItem>
                     <NavItem>
