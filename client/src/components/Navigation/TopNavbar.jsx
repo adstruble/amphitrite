@@ -1,5 +1,5 @@
 import React from "react";
-import { useNavigate, Link, NavLink } from "react-router-dom";
+import { useNavigate, Link, NavLink, useLocation } from "react-router-dom";
 
 import {
     Navbar,
@@ -10,9 +10,21 @@ import Logout from "../../assets/img/box-arrow-right.svg";
 import App from "../../App";
 import ReactDOM from "react-dom/client";
 
+const VIEW_NAMES = {
+    '/managefish': 'Fish',
+    '/crossfish': 'Recommend Crosses',
+    '/viewcrosses': 'Completed Crosses',
+    '/fishcare': 'Fish Care',
+    '/usersettings': 'User Settings',
+    '/manageusers': 'Manage Users',
+    '/': 'Fish',
+};
+
 export default function TopNavbar() {
     const [color, setColor] = React.useState("bg-info");
     const navigate = useNavigate();
+    const location = useLocation();
+    const viewName = VIEW_NAMES[location.pathname] ?? '';
 
     const handleLogoutClick = async e => {
         e.preventDefault();
@@ -27,7 +39,7 @@ export default function TopNavbar() {
 
     return (
     <Navbar className={"fixed-top " + color} color-on-scroll="100" expand="lg">
-        <Container>
+        <Container style={{position: 'relative'}}>
             <div className="navbar-translate">
                 <Nav navbar>
                     <NavItem>
@@ -74,6 +86,18 @@ export default function TopNavbar() {
                     </NavItem>
                 </Nav>
             </div>
+            <span style={{
+                position: 'absolute',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                color: 'rgba(255,255,255,0.7)',
+                fontSize: '0.9rem',
+                fontWeight: 'bold',
+                pointerEvents: 'none',
+            }}>
+                {viewName}
+            </span>
+
             <Nav>
 
                 <NavItem>
