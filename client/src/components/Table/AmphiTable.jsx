@@ -8,7 +8,7 @@ import {
     Row as ReactTableRow,
     useCustom
 } from '@table-library/react-table-library/table';
-import React, {Fragment, useRef, useState} from "react";
+import React, {Fragment, useEffect, useRef, useState} from "react";
 
 import fetchData from "../../server/fetchData";
 import useToken from "../App/useToken";
@@ -24,6 +24,26 @@ import useScrollbarVisibility from "../Utils/ScrollbarVisibility";
 import AmphiTooltip from "../Basic/AmphiTooltip.jsx";
 import {useHeaderHeight} from "../Utils/useHeaderHeight.js";
 import useWhyDidYouUpdate from "../Utils/whyDidYouUpdate.js";
+
+function TooltipCell({id, tooltip, content, placement}) {
+    const ref = useRef(null);
+    const [overflows, setOverflows] = useState(false);
+    useEffect(() => {
+        const el = ref.current;
+        if (!el) return;
+        const check = () => setOverflows(el.scrollWidth > el.clientWidth);
+        check();
+        const observer = new ResizeObserver(check);
+        observer.observe(el);
+        return () => observer.disconnect();
+    }, [content]);
+    return (
+        <>
+            {overflows && <AmphiTooltip placement={placement} target={id} content={tooltip}/>}
+            <div ref={ref} style={{overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis'}}>{content}</div>
+        </>
+    );
+}
 
 export const getExpandedDefault = () => {
     return (<tr className='expanded-row-contents'><td style={{display:"none"}}/></tr>);
@@ -408,17 +428,15 @@ export default function AmphiTable({tableDataUrl,
                                                     tooltip = tooltip[1];
                                                     content = content[0]
                                                 }
+                                                const cellId = 'id' + item.id + header.key;
+                                                const placement = header.className === 'numberCell' ? "top-end" : "top-start";
                                                 return (
-                                                    <Cell id={'id' + item.id + header.key}
+                                                    <Cell id={cellId}
                                                           key={item.id + header.key}
                                                           className={header.className && header.className}>
-                                                        {header.tooltip && <AmphiTooltip
-                                                            placement={header.className === 'numberCell' ? "top-end" : "top-start"}
-                                                            target={'id' + item.id + header.key}
-                                                            content={tooltip}/>
-                                                        }
-                                                        {content}
-
+                                                        {header.tooltip
+                                                            ? <TooltipCell id={cellId} tooltip={tooltip} content={content} placement={placement}/>
+                                                            : content}
                                                     </Cell>
                                                    );})
                                             }
