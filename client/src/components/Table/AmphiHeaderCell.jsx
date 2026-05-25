@@ -1,22 +1,9 @@
 import PropTypes from "prop-types";
 import classnames from "classnames";
-import React, {useEffect, useRef, useState} from "react";
+import React from "react";
 import AmphiTooltip from "../Basic/AmphiTooltip.jsx";
 
 export default function AmphiHeaderCell({header, updateOrderBy}) {
-    const spanRef = useRef(null);
-    const [truncated, setTruncated] = useState(false);
-
-    useEffect(() => {
-        const span = spanRef.current;
-        if (!span) return;
-        const check = () => setTruncated(span.scrollWidth > span.clientWidth);
-        check();
-        const observer = new ResizeObserver(check);
-        observer.observe(span);
-        return () => observer.disconnect();
-    }, []);
-
     const showOrderedDesc = header.order_direction ? header.order_direction === "DESC" : header.order_by != null;
     const showOrderedAsc = header.order_direction ? header.order_direction === "ASC" : header.order_by != null;
 
@@ -37,14 +24,11 @@ export default function AmphiHeaderCell({header, updateOrderBy}) {
                        style={{display: showOrderedDesc ? 'block' : 'none', cursor: showOrderedDesc ? 'pointer' : 'inherit'}}
                        aria-hidden="true"/>
                 </div>
-                <span ref={spanRef} id={"header" + header.key}
-                      style={{display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
-                    {header.name}
-                </span>
-                {(header.header_tooltip || truncated) && <AmphiTooltip
+                <span id={"header" + header.key}>{header.name}</span>
+                {header.header_tooltip && <AmphiTooltip
                     placement={"top-start"}
                     target={"header" + header.key}
-                    content={header.header_tooltip || header.name}/>}
+                    content={header.header_tooltip}/>}
             </div>
         </th>
     );

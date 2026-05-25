@@ -59,7 +59,7 @@ export default function ManageFish() {
             format_fn: formatStrFromWildExpand, className:"numberCell", width: ".8fr",
             format_args: {'expandFn': handleExpandLineage, 'tooltip': 'Show/Hide Pedigree Tree'}},
         {name: "Parent Cross Date", key: "cross_date", order_by: "fam.cross_date", visible: true, order_direction:null, order:null,
-            format_fn: formatDate, className:"numberCell", width:"1.3fr"},
+            format_fn: formatDate, className:"numberCell", width:"1.5fr"},
         {name: "F", key: "f", order_by: "fam.f", visible: true, order_direction:null, order:null, format_fn: formatDoubleTo3,
             className:"numberCell"},
         {name: "DI", key: "di", order_by: "fam.di", visible: true, order_direction:null, order:null, format_fn: formatDoubleTo3,
@@ -74,7 +74,7 @@ export default function ManageFish() {
             className:"numberCell", width: ".7fr"},
         {name: "Notes", key: "notes", order_by: "notes", visible: true, order_direction:null, order:null,
             format_fn: formatTextWithIcon, format_args:['icon-pencil', true, 'Show/Hide Edit notes', true],
-            width:"4fr"}
+            width:"3.7fr"}
     ]};
 
     const validateNumberOfGenerations = (value) => {
