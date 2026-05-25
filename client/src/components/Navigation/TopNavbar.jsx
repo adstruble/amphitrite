@@ -11,10 +11,11 @@ import App from "../../App";
 import ReactDOM from "react-dom/client";
 
 const VIEW_NAMES = {
-    '/managefish': 'Manage Fish',
+    '/managefish': 'Fish Inventory',
     '/crossfish': 'Recommend Crosses',
     '/viewcrosses': 'Completed Crosses',
     '/fishcare': 'Fish Care',
+    '/eggbowls': 'Egg Bowls',
     '/usersettings': 'User Settings',
     '/manageusers': 'Manage Users',
     '/': 'Fish',
@@ -43,9 +44,26 @@ export default function TopNavbar() {
             <div className="navbar-translate">
                 <Nav navbar>
                     <NavItem>
-                        <NavLink tag={Link} to="/managefish">
-                            <span className="nav-link">Manage Fish</span>
-                        </NavLink>
+                        <UncontrolledDropdown>
+                            <DropdownToggle
+                                aria-expanded={false}
+                                aria-haspopup={true}
+                                caret
+                                color="default"
+                                data-toggle="dropdown"
+                                nav
+                            >
+                                <span>Fish</span>
+                            </DropdownToggle>
+                            <DropdownMenu>
+                                <DropdownItem tag={Link} to="/managefish">
+                                    Inventory
+                                </DropdownItem>
+                                <DropdownItem tag={Link} to="/fishcare">
+                                    Care
+                                </DropdownItem>
+                            </DropdownMenu>
+                        </UncontrolledDropdown>
                     </NavItem>
                     <NavItem>
                         <UncontrolledDropdown>
@@ -61,15 +79,14 @@ export default function TopNavbar() {
                                 <span >Crosses</span>
                             </DropdownToggle>
                             <DropdownMenu aria-labelledby="navbarDropdownMenuLink">
-                                <DropdownItem
-                                    tag={Link} to="/crossfish"
-                                >
+                                <DropdownItem tag={Link} to="/crossfish">
                                     Recommend Crosses
                                 </DropdownItem>
-                                <DropdownItem
-                                    tag={Link} to="/viewcrosses"
-                                >
+                                <DropdownItem tag={Link} to="/viewcrosses">
                                     Completed Crosses
+                                </DropdownItem>
+                                <DropdownItem tag={Link} to="/eggbowls">
+                                    Egg Bowls
                                 </DropdownItem>
                             </DropdownMenu>
                         </UncontrolledDropdown>

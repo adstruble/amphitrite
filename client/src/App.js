@@ -28,6 +28,7 @@ import UserSettings from "./views/User/UserSettings";
 import ManageUsers from "./views/User/ManageUsers";
 import AmphiTable from "./components/Table/AmphiTable.jsx";
 import FishCare from "./views/FishCare/FishCare.jsx";
+import EggBowls from "./views/EggBowls/EggBowls.jsx";
 
 const router = createBrowserRouter([
     {
@@ -58,6 +59,10 @@ const router = createBrowserRouter([
             {
                 path: "/fishcare",
                 element: <FishCare/>,
+            },
+            {
+                path: "/eggbowls",
+                element: <EggBowls/>,
             },
             {
                 path: "",

@@ -49,7 +49,7 @@ export function ViewCrossesFilter({setFilterParent}) {
                     <span>PC/FSG:</span>
                 </Col>
                 <Col>
-                    <Input id="groupId" style={{width:"auto"}} onChange={()=>setFilter()}/>
+                    <Input id="groupId" bsSize="sm" style={{width:"auto"}} onChange={()=>setFilter()}/>
                 </Col>
             </Row>
             <Row>
@@ -57,7 +57,7 @@ export function ViewCrossesFilter({setFilterParent}) {
                     <span>MFG:</span>
                 </Col>
                 <Col>
-                    <Input id="mfg" style={{width:"auto"}} onChange={()=>setFilter()}/>
+                    <Input id="mfg" bsSize="sm" style={{width:"auto"}} onChange={()=>setFilter()}/>
                 </Col>
             </Row>
             <Row>
@@ -65,7 +65,7 @@ export function ViewCrossesFilter({setFilterParent}) {
                     <span>Female PC/FSG:</span>
                 </Col>
                 <Col>
-                    <Input id="fGroupId" style={{width:"auto"}} onChange={()=>setFilter()}/>
+                    <Input id="fGroupId" bsSize="sm" style={{width:"auto"}} onChange={()=>setFilter()}/>
                 </Col>
             </Row>
             <Row>
@@ -73,7 +73,7 @@ export function ViewCrossesFilter({setFilterParent}) {
                     <span>Female Fish Tag:</span>
                 </Col>
                 <Col>
-                    <Input id="fTag" style={{width:"auto"}} onChange={()=>setFilter()}/>
+                    <Input id="fTag" bsSize="sm" style={{width:"auto"}} onChange={()=>setFilter()}/>
                 </Col>
             </Row>
             <Row>
@@ -81,7 +81,7 @@ export function ViewCrossesFilter({setFilterParent}) {
                     <span>Male PC/FSG:</span>
                 </Col>
                 <Col>
-                    <Input id="mGroupId" style={{width:"auto"}} onChange={()=>setFilter()}/>
+                    <Input id="mGroupId" bsSize="sm" style={{width:"auto"}} onChange={()=>setFilter()}/>
                 </Col>
             </Row>
             <Row>
@@ -89,7 +89,7 @@ export function ViewCrossesFilter({setFilterParent}) {
                     <span>Male Fish Tag:</span>
                 </Col>
                 <Col>
-                    <Input id="mTag" style={{width:"auto"}} onChange={()=>setFilter()}/>
+                    <Input id="mTag" bsSize="sm" style={{width:"auto"}} onChange={()=>setFilter()}/>
                 </Col>
             </Row>
         </div>

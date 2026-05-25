@@ -1,6 +1,9 @@
 import React, {useState} from "react";
 import {Button, Col, Container, Dropdown, DropdownItem, DropdownMenu, DropdownToggle,
     Input, InputGroup, InputGroupText, Row} from "reactstrap";
+import HeaderLabel from "../../components/Table/HeaderLabel.jsx";
+import FishDataUpload from "../../components/Upload/FishDataUpload";
+import AmphiAlert from "../../components/Basic/AmphiAlert";
 import {
     Body,
     Cell,
@@ -125,6 +128,8 @@ export default function FishCare() {
     const [search, setSearch] = useState('');
     const [searchFocus, setSearchFocus] = useState(false);
     const [showFilter, setShowFilter] = useState(false);
+    const [alertText, setAlertText] = useState('');
+    const [alertLevel, setAlertLevel] = useState('');
     const theme = useTheme([THEME, getTheme()]);
 
     const filtered = MOCK_DATA.filter(row => {
@@ -140,8 +145,16 @@ export default function FishCare() {
     return (
         <div className="wrapper">
             <Container id="amphi-table-wrapper">
+
                 <Row className="amphi-table-wrapper-header">
-                    <h4>Fish Care</h4>
+                    <AmphiAlert alertText={alertText} alertLevel={alertLevel} setAlertText={setAlertText}/>
+                    <FishDataUpload dataUploadUrl="fish_care/bulk_upload"
+                                    uploadCallback={() => {}}
+                                    formModalTitle="Upload Fish Care Data"
+                                    uploadButtonText="Upload Fish Care Data"
+                                    setAlertText={setAlertText}
+                                    setAlertLevel={setAlertLevel}
+                    />
                 </Row>
                 <Row>
                     <div className="amphi-table-container">
@@ -213,7 +226,7 @@ export default function FishCare() {
                                                 {cols.map(col => (
                                                     <HeaderCell key={col.id}
                                                                 className={classnames({'numberCell': col.numeric})}>
-                                                        {col.label}
+                                                        <HeaderLabel colId={col.id} label={col.label}/>
                                                     </HeaderCell>
                                                 ))}
                                             </HeaderRow>
