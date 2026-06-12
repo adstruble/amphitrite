@@ -1,4 +1,5 @@
-import React, {useState} from "react";
+import React, {useEffect, useState} from "react";
+import {useSearchParams} from "react-router-dom";
 import {Button, Col, Container, FormGroup, Input, InputGroup, InputGroupText,
     Label, Pagination, PaginationItem, Row} from "reactstrap";
 import HeaderLabel from "../../components/Table/HeaderLabel.jsx";
@@ -21,7 +22,7 @@ const MOCK_DATA = [
     {id: '1',  spawn_date: '2025-12-10', cross: 'PCF-001', egg_id: 'EB-001', n_live_egg_6dpf: 412, n_mort_egg_6dpf: 38,  total_egg: 450,  fert_rate: 0.91, incubator_date: '2025-12-10', incubator_id: 'INC-1', egg_morts_16dpf: 12, total_dead_larvae: 28,  total_live_larvae: 384, total_hatched: 410, hatch_rate: 0.91, larval_tank_id: 'C11', notes: ''},
     {id: '2',  spawn_date: '2025-12-10', cross: 'PCF-002', egg_id: 'EB-002', n_live_egg_6dpf: 380, n_mort_egg_6dpf: 70,  total_egg: 450,  fert_rate: 0.84, incubator_date: '2025-12-10', incubator_id: 'INC-2', egg_morts_16dpf: 20, total_dead_larvae: 45,  total_live_larvae: 315, total_hatched: 360, hatch_rate: 0.80, larval_tank_id: 'C12', notes: ''},
     {id: '3',  spawn_date: '2025-12-14', cross: 'PCF-003', egg_id: 'EB-003', n_live_egg_6dpf: 290, n_mort_egg_6dpf: 10,  total_egg: 300,  fert_rate: 0.97, incubator_date: '2025-12-14', incubator_id: 'INC-1', egg_morts_16dpf: 5,  total_dead_larvae: 18,  total_live_larvae: 267, total_hatched: 285, hatch_rate: 0.95, larval_tank_id: 'C13', notes: 'Good viability'},
-    {id: '4',  spawn_date: '2025-12-14', cross: 'PCF-004', egg_id: 'EB-004', n_live_egg_6dpf: 195, n_mort_egg_6dpf: 105, total_egg: 300,  fert_rate: 0.65, incubator_date: '2025-12-14', incubator_id: 'INC-3', egg_morts_16dpf: 30, total_dead_larvae: 60,  total_live_larvae: 105, total_hatched: 165, hatch_rate: 0.55, larval_tank_id: 'C14', notes: 'Low fert rate'},
+    {id: '4',  spawn_date: '2025-12-14', cross: 'PCF-004', egg_id: 'EB-004', n_live_egg_6dpf: 0,   n_mort_egg_6dpf: 300, total_egg: 300,  fert_rate: 0.0,  incubator_date: '2025-12-14', incubator_id: 'INC-3', egg_morts_16dpf: 0,  total_dead_larvae: 0,   total_live_larvae: 0,   total_hatched: 0,   hatch_rate: 0.0,  larval_tank_id: '',     notes: 'Unfertilized'},
     {id: '5',  spawn_date: '2026-01-06', cross: 'PCF-005', egg_id: 'EB-005', n_live_egg_6dpf: 540, n_mort_egg_6dpf: 60,  total_egg: 600,  fert_rate: 0.90, incubator_date: '2026-01-06', incubator_id: 'INC-2', egg_morts_16dpf: 15, total_dead_larvae: 35,  total_live_larvae: 490, total_hatched: 525, hatch_rate: 0.88, larval_tank_id: 'E1',  notes: ''},
     {id: '6',  spawn_date: '2026-01-06', cross: 'PCF-006', egg_id: 'EB-006', n_live_egg_6dpf: 460, n_mort_egg_6dpf: 40,  total_egg: 500,  fert_rate: 0.92, incubator_date: '2026-01-06', incubator_id: 'INC-4', egg_morts_16dpf: 10, total_dead_larvae: 22,  total_live_larvae: 428, total_hatched: 450, hatch_rate: 0.90, larval_tank_id: 'E2',  notes: ''},
     {id: '7',  spawn_date: '2026-01-20', cross: 'PCF-007', egg_id: 'EB-007', n_live_egg_6dpf: 320, n_mort_egg_6dpf: 80,  total_egg: 400,  fert_rate: 0.80, incubator_date: '2026-01-20', incubator_id: 'INC-1', egg_morts_16dpf: 25, total_dead_larvae: 55,  total_live_larvae: 240, total_hatched: 295, hatch_rate: 0.74, larval_tank_id: 'C15', notes: ''},
@@ -93,9 +94,10 @@ function EggBowlsFilter({holder, setHolder}) {
 }
 
 export default function EggBowls() {
+    const [searchParams] = useSearchParams();
     const [appliedFilter, setAppliedFilter] = useState(DEFAULT_FILTER);
     const [filterHolder, setFilterHolder] = useState(DEFAULT_FILTER);
-    const [search, setSearch] = useState('');
+    const [search, setSearch] = useState(searchParams.get('egg_bowl_id') ?? '');
     const [searchFocus, setSearchFocus] = useState(false);
     const [showFilter, setShowFilter] = useState(false);
     const [showColSelector, setShowColSelector] = useState(false);

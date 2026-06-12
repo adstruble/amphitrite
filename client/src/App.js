@@ -29,6 +29,10 @@ import ManageUsers from "./views/User/ManageUsers";
 import AmphiTable from "./components/Table/AmphiTable.jsx";
 import FishCare from "./views/FishCare/FishCare.jsx";
 import EggBowls from "./views/EggBowls/EggBowls.jsx";
+import ViewCrossesLFSMock from "./views/CrossFish/ViewCrosses_LFS_Mock.jsx";
+import SpawningPerformance from "./views/Reports/SpawningPerformance.jsx";
+import CohortSurvival from "./views/Reports/CohortSurvival.jsx";
+import WaterQuality from "./views/Reports/WaterQuality.jsx";
 
 const router = createBrowserRouter([
     {
@@ -63,6 +67,22 @@ const router = createBrowserRouter([
             {
                 path: "/eggbowls",
                 element: <EggBowls/>,
+            },
+            {
+                path: "/viewcrosses_lfs_mock",
+                element: <ViewCrossesLFSMock/>,
+            },
+            {
+                path: "/spawningperformance",
+                element: <SpawningPerformance/>,
+            },
+            {
+                path: "/cohortsurvival",
+                element: <CohortSurvival/>,
+            },
+            {
+                path: "/waterquality",
+                element: <WaterQuality/>,
             },
             {
                 path: "",

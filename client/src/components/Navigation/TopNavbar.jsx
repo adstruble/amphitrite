@@ -14,8 +14,12 @@ const VIEW_NAMES = {
     '/managefish': 'Fish Inventory',
     '/crossfish': 'Recommend Crosses',
     '/viewcrosses': 'Completed Crosses',
+    '/viewcrosses_lfs_mock': 'Completed Crosses',
     '/fishcare': 'Fish Care',
     '/eggbowls': 'Egg Bowls',
+    '/spawningperformance': 'Spawning Performance',
+    '/cohortsurvival': 'Cohort Survival',
+    '/waterquality': 'Water Quality',
     '/usersettings': 'User Settings',
     '/manageusers': 'Manage Users',
     '/': 'Fish',
@@ -82,7 +86,7 @@ export default function TopNavbar() {
                                 <DropdownItem tag={Link} to="/crossfish">
                                     Recommend Crosses
                                 </DropdownItem>
-                                <DropdownItem tag={Link} to="/viewcrosses">
+                                <DropdownItem tag={Link} to="/viewcrosses_lfs_mock">
                                     Completed Crosses
                                 </DropdownItem>
                                 <DropdownItem tag={Link} to="/eggbowls">
@@ -92,9 +96,30 @@ export default function TopNavbar() {
                         </UncontrolledDropdown>
                     </NavItem>
                     <NavItem>
-                        <NavLink tag={Link} to="/manageusers">
-                            <span className="nav-link">Reports</span>
-                        </NavLink>
+                        <UncontrolledDropdown>
+                            <DropdownToggle
+                                aria-expanded={false}
+                                aria-haspopup={true}
+                                caret
+                                color="default"
+                                data-toggle="dropdown"
+                                id="reportsDropdownMenuLink"
+                                nav
+                            >
+                                <span >Reports</span>
+                            </DropdownToggle>
+                            <DropdownMenu aria-labelledby="navbarDropdownMenuLink">
+                                <DropdownItem tag={Link} to="/spawningperformance">
+                                    Spawning Performance
+                                </DropdownItem>
+                                <DropdownItem tag={Link} to="/cohortsurvival">
+                                    Cohort Survival
+                                </DropdownItem>
+                                <DropdownItem tag={Link} to="/waterquality">
+                                    Water Quality
+                                </DropdownItem>
+                            </DropdownMenu>
+                        </UncontrolledDropdown>
                     </NavItem>
                     <NavItem>
                         <NavLink tag={Link} to="/manageusers">
