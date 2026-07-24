@@ -17,8 +17,9 @@ const VIEW_NAMES = {
     '/viewcrosses_lfs_mock': 'Completed Crosses',
     '/fishcare': 'Fish Care',
     '/eggbowls': 'Egg Bowls',
+    '/larvalcohorts': 'Larval Cohorts',
     '/spawningperformance': 'Spawning Performance',
-    '/cohortsurvival': 'Cohort Survival',
+    '/cohorttracker': 'Cohort Tracker',
     '/waterquality': 'Water Quality',
     '/usersettings': 'User Settings',
     '/manageusers': 'Manage Users',
@@ -92,6 +93,9 @@ export default function TopNavbar() {
                                 <DropdownItem tag={Link} to="/eggbowls">
                                     Egg Bowls
                                 </DropdownItem>
+                                <DropdownItem tag={Link} to="/larvalcohorts">
+                                    Larval Cohorts
+                                </DropdownItem>
                             </DropdownMenu>
                         </UncontrolledDropdown>
                     </NavItem>
@@ -112,8 +116,8 @@ export default function TopNavbar() {
                                 <DropdownItem tag={Link} to="/spawningperformance">
                                     Spawning Performance
                                 </DropdownItem>
-                                <DropdownItem tag={Link} to="/cohortsurvival">
-                                    Cohort Survival
+                                <DropdownItem tag={Link} to="/cohorttracker">
+                                    Cohort Tracker
                                 </DropdownItem>
                                 <DropdownItem tag={Link} to="/waterquality">
                                     Water Quality

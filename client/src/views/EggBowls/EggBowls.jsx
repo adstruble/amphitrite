@@ -17,17 +17,8 @@ import {getTheme} from "@table-library/react-table-library/baseline";
 import classnames from "classnames";
 import FishDataUpload from "../../components/Upload/FishDataUpload";
 import AmphiAlert from "../../components/Basic/AmphiAlert";
-
-const MOCK_DATA = [
-    {id: '1',  spawn_date: '2025-12-10', cross: 'PCF-001', egg_id: 'EB-001', n_live_egg_6dpf: 412, n_mort_egg_6dpf: 38,  total_egg: 450,  fert_rate: 0.91, incubator_date: '2025-12-10', incubator_id: 'INC-1', egg_morts_16dpf: 12, total_dead_larvae: 28,  total_live_larvae: 384, total_hatched: 410, hatch_rate: 0.91, larval_tank_id: 'C11', notes: ''},
-    {id: '2',  spawn_date: '2025-12-10', cross: 'PCF-002', egg_id: 'EB-002', n_live_egg_6dpf: 380, n_mort_egg_6dpf: 70,  total_egg: 450,  fert_rate: 0.84, incubator_date: '2025-12-10', incubator_id: 'INC-2', egg_morts_16dpf: 20, total_dead_larvae: 45,  total_live_larvae: 315, total_hatched: 360, hatch_rate: 0.80, larval_tank_id: 'C12', notes: ''},
-    {id: '3',  spawn_date: '2025-12-14', cross: 'PCF-003', egg_id: 'EB-003', n_live_egg_6dpf: 290, n_mort_egg_6dpf: 10,  total_egg: 300,  fert_rate: 0.97, incubator_date: '2025-12-14', incubator_id: 'INC-1', egg_morts_16dpf: 5,  total_dead_larvae: 18,  total_live_larvae: 267, total_hatched: 285, hatch_rate: 0.95, larval_tank_id: 'C13', notes: 'Good viability'},
-    {id: '4',  spawn_date: '2025-12-14', cross: 'PCF-004', egg_id: 'EB-004', n_live_egg_6dpf: 0,   n_mort_egg_6dpf: 300, total_egg: 300,  fert_rate: 0.0,  incubator_date: '2025-12-14', incubator_id: 'INC-3', egg_morts_16dpf: 0,  total_dead_larvae: 0,   total_live_larvae: 0,   total_hatched: 0,   hatch_rate: 0.0,  larval_tank_id: '',     notes: 'Unfertilized'},
-    {id: '5',  spawn_date: '2026-01-06', cross: 'PCF-005', egg_id: 'EB-005', n_live_egg_6dpf: 540, n_mort_egg_6dpf: 60,  total_egg: 600,  fert_rate: 0.90, incubator_date: '2026-01-06', incubator_id: 'INC-2', egg_morts_16dpf: 15, total_dead_larvae: 35,  total_live_larvae: 490, total_hatched: 525, hatch_rate: 0.88, larval_tank_id: 'E1',  notes: ''},
-    {id: '6',  spawn_date: '2026-01-06', cross: 'PCF-006', egg_id: 'EB-006', n_live_egg_6dpf: 460, n_mort_egg_6dpf: 40,  total_egg: 500,  fert_rate: 0.92, incubator_date: '2026-01-06', incubator_id: 'INC-4', egg_morts_16dpf: 10, total_dead_larvae: 22,  total_live_larvae: 428, total_hatched: 450, hatch_rate: 0.90, larval_tank_id: 'E2',  notes: ''},
-    {id: '7',  spawn_date: '2026-01-20', cross: 'PCF-007', egg_id: 'EB-007', n_live_egg_6dpf: 320, n_mort_egg_6dpf: 80,  total_egg: 400,  fert_rate: 0.80, incubator_date: '2026-01-20', incubator_id: 'INC-1', egg_morts_16dpf: 25, total_dead_larvae: 55,  total_live_larvae: 240, total_hatched: 295, hatch_rate: 0.74, larval_tank_id: 'C15', notes: ''},
-    {id: '8',  spawn_date: '2026-01-20', cross: 'PCF-008', egg_id: 'EB-008', n_live_egg_6dpf: 175, n_mort_egg_6dpf: 25,  total_egg: 200,  fert_rate: 0.88, incubator_date: '2026-01-21', incubator_id: 'INC-2', egg_morts_16dpf: 8,  total_dead_larvae: 15,  total_live_larvae: 152, total_hatched: 167, hatch_rate: 0.84, larval_tank_id: 'E3',  notes: 'Delayed incubation'},
-];
+import {EGG_BOWLS} from "./eggBowlData.js";
+import {LARVAE_COHORTS} from "../LarvalCohorts/larvalCohortData.js";
 
 const ALL_COLS = [
     {id: 'spawn_date',       label: 'Spawn Date',      key: 'spawn_date',       width: '1fr',   defaultVisible: true},
@@ -49,13 +40,9 @@ const ALL_COLS = [
     {id: 'total_live_larvae',label: 'Live Larvae',     key: 'total_live_larvae',width: '.9fr',  defaultVisible: false, numeric: true},
 ];
 
-const TODAY = new Date();
-TODAY.setHours(0, 0, 0, 0);
-
-function calcDph(spawnDate) {
-    const spawn = new Date(spawnDate + 'T00:00:00');
-    return Math.floor((TODAY - spawn) / (1000 * 60 * 60 * 24));
-}
+// DPH is a larvae property — look it up from the larvae records by egg bowl id.
+// Blank for bowls with no larvae (not yet hatched, or died).
+const DPH_BY_EGG_BOWL = Object.fromEntries(LARVAE_COHORTS.map(c => [c.eggBowl, c.dph]));
 
 const DEFAULT_FILTER = {dateFrom: '', dateTo: ''};
 
@@ -110,15 +97,25 @@ export default function EggBowls() {
     const cols = ALL_COLS.filter(c => visibleCols.has(c.id));
     const theme = useTheme([buildTheme(cols), getTheme()]);
 
-    const filtered = MOCK_DATA
+    const q = search.toLowerCase().trim();
+    // An exact egg bowl id (e.g. from a deep link) filters to that one bowl;
+    // otherwise free-text substring search across all fields.
+    const isExactEggId = q && EGG_BOWLS.some(b => b.egg_id.toLowerCase() === q);
+    const filtered = EGG_BOWLS
         .filter(row => {
             if (appliedFilter.dateFrom && row.spawn_date < appliedFilter.dateFrom) return false;
             if (appliedFilter.dateTo && row.spawn_date > appliedFilter.dateTo) return false;
-            const q = search.toLowerCase();
-            if (q && !Object.values(row).some(v => v !== null && String(v).toLowerCase().includes(q))) return false;
+            if (q) {
+                if (isExactEggId) {
+                    if (row.egg_id.toLowerCase() !== q) return false;
+                } else if (!Object.values(row).some(v => v !== null && String(v).toLowerCase().includes(q))) {
+                    return false;
+                }
+            }
             return true;
         })
-        .map(row => ({...row, current_age_dph: calcDph(row.spawn_date)}));
+        // DPH looked up from larvae records; blank when no larvae exist for this bowl.
+        .map(row => ({...row, current_age_dph: DPH_BY_EGG_BOWL[row.egg_id] ?? ''}));
 
     const toggleCol = (id) => {
         setVisibleCols(prev => {

@@ -31,8 +31,9 @@ import FishCare from "./views/FishCare/FishCare.jsx";
 import EggBowls from "./views/EggBowls/EggBowls.jsx";
 import ViewCrossesLFSMock from "./views/CrossFish/ViewCrosses_LFS_Mock.jsx";
 import SpawningPerformance from "./views/Reports/SpawningPerformance.jsx";
-import CohortSurvival from "./views/Reports/CohortSurvival.jsx";
+import CohortTracker from "./views/Reports/CohortTracker.jsx";
 import WaterQuality from "./views/Reports/WaterQuality.jsx";
+import LarvalCohorts from "./views/LarvalCohorts/LarvalCohorts.jsx";
 
 const router = createBrowserRouter([
     {
@@ -77,12 +78,16 @@ const router = createBrowserRouter([
                 element: <SpawningPerformance/>,
             },
             {
-                path: "/cohortsurvival",
-                element: <CohortSurvival/>,
+                path: "/cohorttracker",
+                element: <CohortTracker/>,
             },
             {
                 path: "/waterquality",
                 element: <WaterQuality/>,
+            },
+            {
+                path: "/larvalcohorts",
+                element: <LarvalCohorts/>,
             },
             {
                 path: "",

@@ -18,47 +18,48 @@ import AmphiAlert from "../../components/Basic/AmphiAlert";
 import AmphiHeaderCell from "../../components/Table/AmphiHeaderCell.jsx";
 import {CrossYearDropdown} from "../../components/Basic/CrossYearDropdown";
 import {ImportExportDropdown} from "../../components/Basic/ImportExportDropdown.jsx";
+import FishDataUpload from "../../components/Upload/FishDataUpload";
 
 const MOCK_DATA = [
     {
         id: '1', cross_num: 1, f_gid: 'WT', m_gid: 'WT', f_fish_id: 'W001', m_fish_id: 'W000',
         cross_date: '2025-12-11', f: 0.0312, di: 0.8821, f_crosses: 1, m_crosses: 1,
-        egg_bowl_id: 'EB-001', cross_failed: false, notes: '',
+        egg_bowl_id: 'EB1', cross_failed: false, notes: '',
         f_facility: 'FCCL',   f_age: '2 Year Old', f_gen: 'Wild', f_collect_year: '2025-2026', f_collect_source: 'USF&W', f_pre_mass: 9.88,  f_post_mass: null,  f_fl: 108, f_tl: null, f_notes: '',
         m_facility: 'FCCL',   m_age: '2 Year Old', m_gen: 'Wild', m_collect_year: '2025-2026', m_collect_source: 'USF&W', m_pre_mass: 10.39, m_post_mass: null,  m_fl: 108, m_tl: null, m_notes: '',
     },
     {
         id: '2', cross_num: 2, f_gid: 'WT', m_gid: 'WT', f_fish_id: 'W002', m_fish_id: 'W003',
         cross_date: '2025-12-12', f: 0.0289, di: 0.8754, f_crosses: 1, m_crosses: 2,
-        egg_bowl_id: 'EB-002', cross_failed: false, notes: '',
+        egg_bowl_id: 'EB2', cross_failed: false, notes: '',
         f_facility: 'FCCL',   f_age: '2 Year Old', f_gen: 'Wild', f_collect_year: '2025-2026', f_collect_source: 'USF&W', f_pre_mass: 8.88,  f_post_mass: null,  f_fl: 105, f_tl: null, f_notes: '',
         m_facility: 'FCCL',   m_age: '2 Year Old', m_gen: 'Wild', m_collect_year: '2025-2026', m_collect_source: 'USF&W', m_pre_mass: 9.53,  m_post_mass: null,  m_fl: 104, m_tl: null, m_notes: '',
     },
     {
         id: '3', cross_num: 5, f_gid: 'WT', m_gid: 'WT', f_fish_id: 'W006', m_fish_id: 'W007',
         cross_date: '2025-12-12', f: 0.0401, di: 0.8612, f_crosses: 1, m_crosses: 1,
-        egg_bowl_id: 'EB-003', cross_failed: false, notes: '',
+        egg_bowl_id: 'EB3', cross_failed: false, notes: '',
         f_facility: 'FCCL',   f_age: '2 Year Old', f_gen: 'Wild', f_collect_year: '2025-2026', f_collect_source: 'USF&W', f_pre_mass: 10.99, f_post_mass: null,  f_fl: 103, f_tl: null, f_notes: '',
         m_facility: 'FCCL',   m_age: '2 Year Old', m_gen: 'Wild', m_collect_year: '2025-2026', m_collect_source: 'USF&W', m_pre_mass: 10.39, m_post_mass: null,  m_fl: 108, m_tl: null, m_notes: '',
     },
     {
         id: '4', cross_num: 10, f_gid: 'WT', m_gid: 'WT', f_fish_id: 'W034', m_fish_id: 'W035',
         cross_date: '2025-12-15', f: 0.0156, di: 0.9102, f_crosses: 1, m_crosses: 1,
-        egg_bowl_id: 'EB-004', cross_failed: true, notes: '',
+        egg_bowl_id: 'EB8', cross_failed: true, notes: '',
         f_facility: 'FCCL',   f_age: '2 Year Old', f_gen: 'Wild', f_collect_year: '2025-2026', f_collect_source: 'USF&W', f_pre_mass: 8.92,  f_post_mass: null,  f_fl: 105, f_tl: null, f_notes: 'Unfertilized',
         m_facility: 'FCCL',   m_age: '2 Year Old', m_gen: 'Wild', m_collect_year: '2025-2026', m_collect_source: 'USF&W', m_pre_mass: 11.02, m_post_mass: null,  m_fl: 110, m_tl: null, m_notes: '',
     },
     {
         id: '5', cross_num: 28, f_gid: 'WT', m_gid: 'WT', f_fish_id: 'LFS-12/18/25-F-EB5', m_fish_id: 'LFS-12/18/25-M-EB5',
         cross_date: '2025-12-18', f: 0.0198, di: 0.8934, f_crosses: 1, m_crosses: 1,
-        egg_bowl_id: 'EB-005', cross_failed: false, notes: '',
+        egg_bowl_id: 'EB5', cross_failed: false, notes: '',
         f_facility: 'PCF/AS', f_age: '2 Year Old', f_gen: 'Wild', f_collect_year: '2025-2026', f_collect_source: 'OGFL',  f_pre_mass: 15.75, f_post_mass: 13.47, f_fl: 125, f_tl: 131, f_notes: '',
         m_facility: 'PCF/AS', m_age: '2 Year Old', m_gen: 'Wild', m_collect_year: '2025-2026', m_collect_source: 'OGFL',  m_pre_mass: 12.56, m_post_mass: 12.22, m_fl: 113, m_tl: 121, m_notes: 'Decent Milt',
     },
     {
         id: '6', cross_num: 31, f_gid: 'WT', m_gid: 'WT', f_fish_id: 'LFS-12/19/25-F-EB6', m_fish_id: 'LFS-12/19/25-M-EB6',
         cross_date: '2025-12-19', f: 0.0267, di: 0.8801, f_crosses: 2, m_crosses: 1,
-        egg_bowl_id: 'EB-006', cross_failed: false, notes: '',
+        egg_bowl_id: 'EB6', cross_failed: false, notes: '',
         f_facility: 'PCF/AS', f_age: '2 Year Old', f_gen: 'Wild', f_collect_year: '2025-2026', f_collect_source: 'OGFL',  f_pre_mass: 15.67, f_post_mass: 13.7,  f_fl: 124, f_tl: 139, f_notes: '',
         m_facility: 'PCF/AS', m_age: '2 Year Old', m_gen: 'Wild', m_collect_year: '2025-2026', m_collect_source: 'OGFL',  m_pre_mass: 13.37, m_post_mass: 13.0,  m_fl: 115, m_tl: 126, m_notes: 'Decent Milt',
     },
@@ -173,6 +174,7 @@ export default function ViewCrossesLFSMock() {
     const [alertText, setAlertText] = useState('');
     const [alertLevel, setAlertLevel] = useState('');
     const [completedCrossesYear, setCompletedCrossesYear] = useState(new Date().getFullYear());
+    const [showUpload, setShowUpload] = useState(false);
     const meanF = 0.031250;
     const theme = useTheme([THEME, getTheme()]);
 
@@ -286,7 +288,7 @@ export default function ViewCrossesLFSMock() {
                                     </PaginationItem>
                                 </Pagination>
                                 <ImportExportDropdown importExportItems={[
-                                    {name: 'Import spawning data', callback: () => {}, export: false},
+                                    {name: 'Import spawning data', callback: () => setShowUpload(true), export: false},
                                     {name: 'Export completed crosses as pairs', callback: () => {}, export: true},
                                     {name: 'Export single fish of completed crosses (parentage analysis)', callback: () => {}, export: true},
                                 ]}/>
@@ -347,6 +349,16 @@ export default function ViewCrossesLFSMock() {
                         </div>
                     </div>
                 </Row>
+                <FishDataUpload dataUploadUrl="spawning_events/bulk_upload"
+                                uploadCallback={() => {}}
+                                formModalTitle="Upload Spawning Data"
+                                uploadButtonText="Upload Spawning Data"
+                                setAlertText={setAlertText}
+                                setAlertLevel={setAlertLevel}
+                                showButton={false}
+                                showFormModalFromParent={showUpload}
+                                setShowFormModalFromParent={setShowUpload}
+                />
             </Container>
         </div>
     );
