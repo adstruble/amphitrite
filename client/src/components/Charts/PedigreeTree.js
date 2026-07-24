@@ -67,6 +67,9 @@ export default function PedigreeTree({fish, setAlertLevel, setAlertText}) {
           <div style="margin-bottom: 8px;">
             <strong>Self Cross Date:</strong> ${(data.child_cross_date && formatDate(data.child_cross_date)) || 'Not Crossed'}
           </div>
+          <div style="margin-bottom: 8px">
+            <string>Group ID:</string>${data.groupId}
+          </div>
           <div style="margin-bottom: 8px;">
             <strong>Sex:</strong> ${data.sex || 'Unknown'}
           </div>
