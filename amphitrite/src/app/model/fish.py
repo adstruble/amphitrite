@@ -212,7 +212,7 @@ def _create_pedigree_animal_dict(sql_row, loaded, start_generation):
     animal = {'name': generation_id, 'cross_date': sql_row['cross_date'], 'sex': sql_row['sex'],
               'value': int(sql_row['generation_level']) + start_generation, 'tag': sql_row['tag'], 'box': sql_row['box'],
               'child_cross_date': sql_row['child_cross_date'], 'children': [], 'loaded': loaded,
-              'id': sql_row['id']}
+              'id': sql_row['id'], 'group_id': sql_row['group_id']}
     return animal
 
 
