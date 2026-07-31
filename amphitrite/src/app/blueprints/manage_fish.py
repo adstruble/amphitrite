@@ -29,6 +29,7 @@ def bulk_upload():
     except: # noqa
         cross_year = datetime.now().year
 
+    LOGGER.info("parsing master sheet year %d BY: %d", cross_year, cross_year - 1)
     job_id, username, t_file_dir = validate_and_create_upload_job(request)
     update_genotype = request.form.get('update_genotype', 'false')
     update_genotype = update_genotype == 'true'

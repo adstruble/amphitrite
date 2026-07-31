@@ -1,29 +1,57 @@
 import os
+from datetime import date
 
 import pytest
 
 from amphitrite import app as AmphitriteServer
 from db_utils.core import execute_statements, ResultType
-from model.crosses import set_available_fish, add_requested_cross
+from model.crosses import add_requested_cross, set_available_fish
 
 from flask.testing import FlaskClient
 from werkzeug.test import TestResponse
 
+WARNING = ('Only 15 fish are available for crossing, you supplied a list of 20 fish tags. '
+           'Confirm all tags were specified correctly and all the fish for the entered tags have '
+           'previously been uploaded and are present in the Manage Fish UI as alive fish. Male fish '
+           'that are from the same family as an available female fish have also been excluded.')
+# The same-family pair may serialize in either order.
+F_TAGS = ('RA42, YA26, RB24, YB28, RB29, (RB01, YB27), RB21, RG85, RX64',
+          'RA42, YA26, RB24, YB28, RB29, (YB27, RB01), RB21, RG85, RX64')
+M_TAGS = 'YA13, RB12, RB47, RG72, RX82'
+
+
+def _available_fish_tags():
+    with open(os.path.join(os.path.dirname(__file__), 'resources', 'available_fish', '10_males_10_females.csv')) as f:
+        return [line.split('_')[0].strip().replace(',', '') for line in f.read().splitlines() if line.strip()]
+
 
 @pytest.fixture
-def set_cleanup_sqls(set_cleanup_sql_fn):
-    set_cleanup_sql_fn('DELETE FROM possible_cross')
+def current_year_available_fish():
+    """Availability is filtered in SQL by ``refuge_tag.year = year(CURRENT_DATE)``, but the seed fish
+    are tagged 2025 — so in any later calendar year none are found. Re-tag the *alive* entry of this
+    test's fish to the current year (dynamically, so it never rots again; tags are reused across years
+    and unique(tag, year) blocks a blanket update), run availability, then restore on teardown.
 
+    Yields the ``set_available_fish`` result.
+    """
+    tags = _available_fish_tags()
+    original = execute_statements(
+        ("SELECT rt.id, rt.year FROM refuge_tag rt JOIN animal a ON a.id = rt.animal "
+         "WHERE rt.tag = ANY(:t) AND a.alive = true", {'t': tags}),
+        'amphiadmin', ResultType.RowResults).get_as_list_of_dicts()
+    execute_statements(
+        ("UPDATE refuge_tag rt SET year = :y FROM animal a WHERE a.id = rt.animal "
+         "AND rt.tag = ANY(:t) AND a.alive = true", {'y': date.today().year, 't': tags}),
+        'amphiadmin', ResultType.NoResult)
 
-@pytest.fixture
-def load_possible_crosses():
-    with open(os.path.join(os.path.dirname(__file__), 'resources', 'available_fish', '10_males_10_females.csv'),
-              'r') as available_fish_file:
-        fish = []
-        for line in available_fish_file.read().splitlines():
-            fish.append(line.split('_')[0].strip().replace(',', ''))
+    result = set_available_fish('amphiadmin', tags)
+    yield result
 
-    return set_available_fish('amphiadmin', fish)
+    execute_statements(['DELETE FROM requested_cross WHERE cross_date IS NULL', 'DELETE FROM possible_cross'],
+                       'amphiadmin', ResultType.NoResult)
+    for row in original:
+        execute_statements(("UPDATE refuge_tag SET year = :y WHERE id = :id", {'y': row['year'], 'id': str(row['id'])}),
+                           'amphiadmin', ResultType.NoResult)
 
 
 @pytest.fixture(scope="module")
@@ -33,38 +61,32 @@ def client() -> FlaskClient:
         yield client
 
 
-def test_get_available_blueprint(set_cleanup_sqls, load_possible_crosses, client):
-    assert load_possible_crosses['warning'][
-               'warning'] == ('Only 15 fish are available for crossing, you supplied a list of 20 fish tags. '
-                              'Confirm all tags were specified correctly and all the fish for the entered tags have '
-                              'previously been uploaded and are present in the Manage Fish UI as alive fish. Male fish '
-                              'that are from the same family as an available female fish have also been excluded.')
+def test_get_available_blueprint(current_year_available_fish, client):
+    assert current_year_available_fish['warning'] == WARNING
 
     resp: TestResponse = client.get('/cross_fish/available',
                                     headers={'Content-Type': 'application/json', 'username': 'amphiadmin'})
-
     assert resp.status_code == 200
     available = resp.get_json()['success']
-    assert (available['f_tags'] == 'RA42, YA26, RB24, YB28, RB29, (YB27, RB01), RB21, RG85, RX64') or \
-    (available['f_tags'] == 'RA42, YA26, RB24, YB28, RB29, (RB01, YB27), RB21, RG85, RX64')
-    assert (available['uncrossed_tags'] == 'RA42, YA26, RB24, YB28, RB29, (YB27, RB01), RB21, RG85, RX64') or \
-           available['uncrossed_tags'] == 'RA42, YA26, RB24, YB28, RB29, (RB01, YB27), RB21, RG85, RX64'
-    assert available['m_tags'] == 'YA13, RB12, RB47, RG72, RX82'
+    assert available['f_tags'] in F_TAGS
+    assert available['uncrossed_tags'] in F_TAGS
+    assert available['m_tags'] == M_TAGS
 
 
-def test_requested_saved_with_available_change(set_cleanup_sqls, load_possible_crosses):
-    add_requested_cross('amphiadmin',
-                        '42bea877-3bd9-4783-b8c3-caf8f41ba250',
-                        'e451107d-a9af-446b-8fa5-1b17e631b57c',
-                        0.003249539528042078,
-                        False)
-    add_requested_cross('amphiadmin',
-                        '7a8a2f1d-4215-4c62-a8ec-586afe9dad77',
-                        'c6736865-ff45-47c4-8965-f3ab1c6f592f',
-                        0.004705953528173268,
-                        False)
+def _family_by_tag(tag):
+    return str(execute_statements(
+        ("SELECT a.family FROM refuge_tag rt JOIN animal a ON a.id = rt.animal "
+         "WHERE rt.tag = :t AND a.alive = true", {'t': tag}),
+        'amphiadmin', ResultType.RowResults).get_single_result())
 
-    set_available_fish('amphiadmin', ["RX64","YA13"])
+
+def test_requested_saved_with_available_change(current_year_available_fish):
+    # Two planned crosses; after narrowing availability to RX64 + YA13, only that cross survives.
+    # (IDs resolved by tag; the previous hardcoded family UUIDs can't survive a fresh seed.)
+    add_requested_cross('amphiadmin', _family_by_tag('RX64'), _family_by_tag('YA13'), 0.0032, False)
+    add_requested_cross('amphiadmin', _family_by_tag('RA42'), _family_by_tag('RB12'), 0.0047, False)
+
+    set_available_fish('amphiadmin', ["RX64", "YA13"])
 
     assert execute_statements(['SELECT count(*) from requested_cross where cross_date IS NULL'], 'amphiadmin',
                               ResultType.RowResults).get_single_result() == 1

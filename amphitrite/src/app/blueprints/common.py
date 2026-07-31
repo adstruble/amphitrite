@@ -4,6 +4,7 @@ from flask import Blueprint, request
 
 from amphi_logging.logger import get_logger
 from blueprints.utils import maybe_get_username
+from species_config import get_species_config
 from utils.server_state import check_job
 
 common = Blueprint('common', __name__)
@@ -21,3 +22,14 @@ def check_job_get(job_id):
 
     state, result = check_job(job_id)
     return {"state": state, "result": result}
+
+
+@common.route('/common/config', methods=(['GET']))
+def config_get():
+    """
+    Non-secret, UI-relevant deployment config: the species and its feature flags. The frontend
+    reads this to decide which species-specific nav items and routes to show. Secrets (Sheet IDs,
+    service-account key) are never included.
+    """
+    config = get_species_config()
+    return {"species": config.species_name, "features": config.features()}

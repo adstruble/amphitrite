@@ -9,6 +9,7 @@ import {
 import Logout from "../../assets/img/box-arrow-right.svg";
 import App from "../../App";
 import ReactDOM from "react-dom/client";
+import useSpeciesConfig, {featureEnabled} from "../App/useSpeciesConfig";
 
 const VIEW_NAMES = {
     '/managefish': 'Fish Inventory',
@@ -30,6 +31,7 @@ export default function TopNavbar() {
     const [color, setColor] = React.useState("bg-info");
     const navigate = useNavigate();
     const location = useLocation();
+    const speciesConfig = useSpeciesConfig();
     const viewName = VIEW_NAMES[location.pathname] ?? '';
 
     const handleLogoutClick = async e => {
@@ -64,9 +66,11 @@ export default function TopNavbar() {
                                 <DropdownItem tag={Link} to="/managefish">
                                     Inventory
                                 </DropdownItem>
-                                <DropdownItem tag={Link} to="/fishcare">
-                                    Care
-                                </DropdownItem>
+                                {featureEnabled(speciesConfig, 'fish_care') && (
+                                    <DropdownItem tag={Link} to="/fishcare">
+                                        Care
+                                    </DropdownItem>
+                                )}
                             </DropdownMenu>
                         </UncontrolledDropdown>
                     </NavItem>

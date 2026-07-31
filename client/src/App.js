@@ -34,6 +34,7 @@ import SpawningPerformance from "./views/Reports/SpawningPerformance.jsx";
 import CohortTracker from "./views/Reports/CohortTracker.jsx";
 import WaterQuality from "./views/Reports/WaterQuality.jsx";
 import LarvalCohorts from "./views/LarvalCohorts/LarvalCohorts.jsx";
+import RequireFeature from "./components/App/RequireFeature.jsx";
 
 const router = createBrowserRouter([
     {
@@ -63,7 +64,7 @@ const router = createBrowserRouter([
             },
             {
                 path: "/fishcare",
-                element: <FishCare/>,
+                element: <RequireFeature feature="fish_care"><FishCare/></RequireFeature>,
             },
             {
                 path: "/eggbowls",

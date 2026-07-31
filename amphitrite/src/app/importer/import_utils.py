@@ -19,6 +19,7 @@ def parse_year_from_filename(filename):
     :return: The year as an int
     """
     start_year_idx = filename.rfind("_") + 1
+    LOGGER.info("Start year index: %d of filename %s",start_year_idx, filename)
     return int(filename[start_year_idx:start_year_idx+4])
 
 

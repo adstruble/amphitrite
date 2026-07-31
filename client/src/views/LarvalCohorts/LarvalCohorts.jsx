@@ -1,12 +1,7 @@
-import React, {useCallback, useEffect, useState} from "react";
-import {Button, Col, Container, Dropdown, DropdownItem, DropdownMenu, DropdownToggle,
-    Input, InputGroup, InputGroupText, Row} from "reactstrap";
+import React, {useState} from "react";
+import {useNavigate} from "react-router-dom";
+import {Button, Col, Input, InputGroup, InputGroupText, Row} from "reactstrap";
 import HeaderLabel from "../../components/Table/HeaderLabel.jsx";
-import FishDataUpload from "../../components/Upload/FishDataUpload";
-import GoogleSheetSync from "../../components/Upload/GoogleSheetSync";
-import AmphiAlert from "../../components/Basic/AmphiAlert";
-import useToken from "../../components/App/useToken";
-import getData from "../../server/getData";
 import {
     Body,
     Cell,
@@ -19,120 +14,49 @@ import {
 import {useTheme} from "@table-library/react-table-library/theme";
 import {getTheme} from "@table-library/react-table-library/baseline";
 import classnames from "classnames";
+import {Container} from "reactstrap";
+import FishDataUpload from "../../components/Upload/FishDataUpload";
+import AmphiAlert from "../../components/Basic/AmphiAlert";
+import {LARVAE_COHORTS} from "./larvalCohortData.js";
 
 const COLS = [
-    {id: 'date',      label: 'Date',        key: 'date',      width: '1fr'},
-    {id: 'facility',  label: 'Facility',    key: 'facility',  width: '1fr'},
-    {id: 'system',    label: 'System',      key: 'system',    width: '.8fr'},
-    {id: 'tank',      label: 'Tank',        key: 'tank',      width: '.6fr'},
-    {id: 'carer',     label: 'Carer',       key: 'carer',     width: '.7fr'},
-    {id: 'temp',      label: 'Temp (°C)',   key: 'temp',      width: '.7fr', numeric: true},
-    {id: 'do_',       label: 'DO',          key: 'do_',       width: '.6fr', numeric: true},
-    {id: 'salinity',  label: 'Salinity',    key: 'salinity',  width: '.7fr', numeric: true},
-    {id: 'ph',        label: 'pH',          key: 'ph',        width: '.5fr', numeric: true},
-    {id: 'turbidity', label: 'Turbidity',   key: 'turbidity', width: '.7fr', numeric: true},
-    {id: 'ammonia',   label: 'Ammonia',     key: 'ammonia',   width: '.7fr', numeric: true},
-    {id: 'nitrite',   label: 'Nitrite',     key: 'nitrite',   width: '.6fr', numeric: true},
-    {id: 'nitrate',   label: 'Nitrate',     key: 'nitrate',   width: '.6fr', numeric: true},
-    {id: 'morts',     label: 'Morts',       key: 'morts',     width: '.6fr', numeric: true},
-    {id: 'notes',     label: 'Notes',       key: 'notes',     width: '2fr'},
+    {id: 'spawnDate', label: 'Spawn Date',       key: 'spawnDate', width: '1fr'},
+    {id: 'cross',     label: 'Cross',            key: 'cross',     width: '.6fr', numeric: true},
+    {id: 'eggBowl',   label: 'Egg Bowl ID',      key: 'eggBowl',   width: '1fr'},
+    {id: 'tank',      label: 'Tank ID',          key: 'tank',      width: '1fr'},
+    {id: 'dph',       label: 'Current Age (DPH)', key: 'dph',      width: '1fr', numeric: true},
+    {id: 'stage',     label: 'Feed Stage',       key: 'stage',     width: '1.1fr'},
 ];
 
 const THEME = {
     Table: `--data-table-library_grid-template-columns: ${COLS.map(c => `minmax(0px, ${c.width})`).join(' ')} !important`,
 };
 
-function fmt(val) {
-    if (val === null || val === undefined || val === '') return '';
-    return val;
-}
+const DEFAULT_FILTER = {dateFrom: '', dateTo: ''};
 
-// Map a fish_care DB row (server column names) onto the display keys the table uses.
-function mapRow(r, idx) {
-    return {
-        id: String(idx),
-        date: r.obs_date,
-        facility: r.facility,
-        system: r.system,
-        tank: r.tank_id,
-        carer: r.carer,
-        temp: r.temp,
-        do_: r.dissolved_oxygen,
-        salinity: r.salinity,
-        ph: r.ph,
-        turbidity: r.turbidity,
-        ammonia: r.ammonia,
-        nitrite: r.nitrite,
-        nitrate: r.nitrate,
-        morts: r.morts,
-        notes: r.notes,
-    };
-}
-
-const DEFAULT_FILTER = {facility: 'All', dateFrom: '', dateTo: '', minMorts: ''};
-
-function FishCareFilter({holder, setHolder, facilities}) {
-    const [facilityOpen, setFacilityOpen] = useState(false);
-
+function CohortFilter({holder, setHolder}) {
     return (
         <div className="input-area">
             <Row>
+                <Col><span>Spawn date from:</span></Col>
                 <Col>
-                    <span>Facility:</span>
-                </Col>
-                <Col>
-                    <Dropdown isOpen={facilityOpen} toggle={() => setFacilityOpen(o => !o)}>
-                        <DropdownToggle style={{paddingTop: 0, paddingLeft: 0}}
-                                        caret color="default" nav>
-                            <span>{holder.facility}</span>
-                        </DropdownToggle>
-                        <DropdownMenu>
-                            {facilities.map(f => (
-                                <DropdownItem key={f} onClick={() => setHolder(h => ({...h, facility: f}))}>
-                                    {f}
-                                </DropdownItem>
-                            ))}
-                        </DropdownMenu>
-                    </Dropdown>
-                </Col>
-            </Row>
-            <Row>
-                <Col>
-                    <span>Date from:</span>
-                </Col>
-                <Col>
-                    <Input type="date" bsSize="sm"
-                           value={holder.dateFrom}
+                    <Input type="date" bsSize="sm" value={holder.dateFrom}
                            onChange={e => setHolder(h => ({...h, dateFrom: e.target.value}))}/>
                 </Col>
             </Row>
             <Row>
+                <Col><span>Spawn date to:</span></Col>
                 <Col>
-                    <span>Date to:</span>
-                </Col>
-                <Col>
-                    <Input type="date" bsSize="sm"
-                           value={holder.dateTo}
+                    <Input type="date" bsSize="sm" value={holder.dateTo}
                            onChange={e => setHolder(h => ({...h, dateTo: e.target.value}))}/>
-                </Col>
-            </Row>
-            <Row>
-                <Col>
-                    <span>Min morts:</span>
-                </Col>
-                <Col>
-                    <Input type="number" bsSize="sm" min="0" style={{width: 'auto'}}
-                           value={holder.minMorts}
-                           onChange={e => setHolder(h => ({...h, minMorts: e.target.value}))}/>
                 </Col>
             </Row>
         </div>
     );
 }
 
-export default function FishCare() {
-    const {getUsername} = useToken();
-    const [rows, setRows] = useState([]);
+export default function LarvalCohorts() {
+    const navigate = useNavigate();
     const [appliedFilter, setAppliedFilter] = useState(DEFAULT_FILTER);
     const [filterHolder, setFilterHolder] = useState(DEFAULT_FILTER);
     const [search, setSearch] = useState('');
@@ -142,44 +66,33 @@ export default function FishCare() {
     const [alertLevel, setAlertLevel] = useState('');
     const theme = useTheme([THEME, getTheme()]);
 
-    const loadRows = useCallback(() => {
-        getData('fish_care/view', getUsername(), {},
-            (data) => setRows(data.map(mapRow)),
-            setAlertLevel, setAlertText, () => {});
-    }, [getUsername]);
-
-    useEffect(() => { loadRows(); }, [loadRows]);
-
-    const facilities = ['All', ...Array.from(new Set(rows.map(r => r.facility).filter(Boolean)))];
-
-    const filtered = rows.filter(row => {
-        if (appliedFilter.facility !== 'All' && row.facility !== appliedFilter.facility) return false;
-        if (appliedFilter.dateFrom && row.date < appliedFilter.dateFrom) return false;
-        if (appliedFilter.dateTo && row.date > appliedFilter.dateTo) return false;
-        if (appliedFilter.minMorts !== '' && (row.morts === null || row.morts < Number(appliedFilter.minMorts))) return false;
+    const filtered = LARVAE_COHORTS.filter(row => {
+        if (appliedFilter.dateFrom && row.spawnDate < appliedFilter.dateFrom) return false;
+        if (appliedFilter.dateTo && row.spawnDate > appliedFilter.dateTo) return false;
         const q = search.toLowerCase();
         if (q && !Object.values(row).some(v => v !== null && String(v).toLowerCase().includes(q))) return false;
         return true;
     });
 
+    function renderCell(row, col) {
+        const val = row[col.key];
+        if (val === null || val === undefined || val === '') return '';
+        if (col.key === 'eggBowl') {
+            return <span className="text-info" style={{cursor: 'pointer'}}
+                         onClick={() => navigate(`/eggbowls?egg_bowl_id=${encodeURIComponent(val)}`)}>{val}</span>;
+        }
+        return val;
+    }
+
     return (
         <div className="wrapper">
             <Container id="amphi-table-wrapper">
-
                 <Row className="amphi-table-wrapper-header">
                     <AmphiAlert alertText={alertText} alertLevel={alertLevel} setAlertText={setAlertText}/>
-                    <GoogleSheetSync previewUrl="fish_care/sheets_preview"
-                                     commitUrl="fish_care/sheets_commit"
-                                     buttonText="Sync from Google Sheets"
-                                     modalTitle="Sync Fish Care Data"
-                                     setAlertText={setAlertText}
-                                     setAlertLevel={setAlertLevel}
-                                     onCommitted={loadRows}
-                    />
-                    <FishDataUpload dataUploadUrl="fish_care/bulk_upload"
-                                    uploadCallback={loadRows}
-                                    formModalTitle="Upload Fish Care Data"
-                                    uploadButtonText="Upload Fish Care Data"
+                    <FishDataUpload dataUploadUrl="larvae/bulk_upload"
+                                    uploadCallback={() => {}}
+                                    formModalTitle="Upload Larvae Current Ages"
+                                    uploadButtonText="Upload Larvae Data"
                                     setAlertText={setAlertText}
                                     setAlertLevel={setAlertLevel}
                     />
@@ -197,13 +110,8 @@ export default function FishCare() {
                                             <i className="tim-icons icon-zoom-split"/>
                                         </InputGroupText>
                                     </div>
-                                    <Input
-                                        placeholder="Search"
-                                        type="text"
-                                        autoComplete="off"
-                                        onChange={e => setSearch(e.target.value)}
-                                        value={search}
-                                    />
+                                    <Input placeholder="Search" type="text" autoComplete="off"
+                                           onChange={e => setSearch(e.target.value)} value={search}/>
                                     <div className="input-group-append">
                                         <InputGroupText>
                                             <i className="amphi-icon icon-filter clickable"
@@ -216,24 +124,16 @@ export default function FishCare() {
                                 {showFilter && (
                                     <div style={{width: '550px'}} className="filter">
                                         <div style={{border: '1px solid #1d8cf8', padding: '10px'}}>
-                                            <FishCareFilter
-                                                holder={filterHolder}
-                                                setHolder={setFilterHolder}
-                                                facilities={facilities}
-                                            />
+                                            <CohortFilter holder={filterHolder} setHolder={setFilterHolder}/>
                                             <Row style={{margin: 0}}>
                                                 <div style={{display: 'flex'}}>
-                                                    <Button type="button" onClick={() => setShowFilter(false)}>
-                                                        Close
-                                                    </Button>
+                                                    <Button type="button" onClick={() => setShowFilter(false)}>Close</Button>
                                                 </div>
                                                 <div style={{display: 'flex', marginLeft: 'auto'}}>
                                                     <Button type="button" onClick={() => {
                                                         setShowFilter(false);
                                                         setAppliedFilter(filterHolder);
-                                                    }}>
-                                                        Search
-                                                    </Button>
+                                                    }}>Search</Button>
                                                 </div>
                                             </Row>
                                         </div>
@@ -241,7 +141,7 @@ export default function FishCare() {
                                 )}
 
                                 <span style={{marginTop: 'auto', marginBottom: '9px', marginLeft: '10px', color: '#888', fontSize: '0.85rem'}}>
-                                    {filtered.length} records
+                                    {filtered.length} cohorts
                                 </span>
                             </div>
                         </div>
@@ -265,7 +165,7 @@ export default function FishCare() {
                             </div>
                             <div className="amphi-table-contents">
                                 <Table data={{nodes: filtered}} theme={theme}>
-                                    {(tableRows) => (
+                                    {(rows) => (
                                         <>
                                             <Header>
                                                 <HeaderRow style={{display: 'none'}}>
@@ -273,12 +173,12 @@ export default function FishCare() {
                                                 </HeaderRow>
                                             </Header>
                                             <Body>
-                                                {tableRows.map(row => (
+                                                {rows.map(row => (
                                                     <TableRow key={row.id} item={row} className="table-row">
                                                         {COLS.map(col => (
                                                             <Cell key={col.id}
                                                                   className={classnames({'numberCell': col.numeric})}>
-                                                                {fmt(row[col.key])}
+                                                                {renderCell(row, col)}
                                                             </Cell>
                                                         ))}
                                                     </TableRow>
