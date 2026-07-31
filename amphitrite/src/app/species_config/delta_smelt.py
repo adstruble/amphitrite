@@ -4,5 +4,6 @@ from species_config.base import SpeciesConfig
 # route, and endpoints stay off in the delta smelt deployment.
 CONFIG = SpeciesConfig(
     species_name='Delta Smelt',
+    seed_reference_data=True,  # ships a bundled pedigree/master/crosses dataset seeded on startup
     fish_care_enabled=False,
 )

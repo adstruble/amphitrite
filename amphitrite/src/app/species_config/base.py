@@ -10,6 +10,9 @@ class SpeciesConfig:
     than scattering species-specific values through importers/models/views.
     """
     species_name: str
+    # Whether this deployment loads its bundled reference dataset (pedigree/master/crosses) on startup.
+    # Only delta smelt ships one; LFS data comes in via import/sheets, so it stays False for LFS.
+    seed_reference_data: bool = False
     # Fish Care
     fish_care_enabled: bool = False
     # Facility names recognized as sheet-name prefixes (e.g. 'Charlie 26', 'LFS Wet Lab 26 SYS 3').
