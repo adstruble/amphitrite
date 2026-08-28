@@ -1,5 +1,26 @@
-from importer.import_fish_care import build_preview, parse_sheet_name, parse_workbook, rows_from_tab
+from openpyxl import Workbook
+
+from importer.import_fish_care import (build_preview, parse_sheet_name, parse_workbook,
+                                       parse_xlsx_file, rows_from_tab)
 from species_config.lfs import CONFIG as LFS
+
+
+def test_parse_xlsx_file_reads_extensionless_temp_file(tmp_path):
+    # The upload endpoint writes the workbook to an extensionless temp file (bulk_upload_<job_id>).
+    # openpyxl rejects a *path* with no .xlsx extension, so parse_xlsx_file must open a file handle.
+    path = str(tmp_path / 'bulk_upload_deadbeef-0000')  # no extension, exactly like production
+    wb = Workbook()
+    ws = wb.active
+    ws.title = 'Charlie 26'
+    ws.append(['Date', 'Tank ID', 'Morts'])
+    ws.append(['2026-01-01', '2A', '1'])
+    wb.save(path)
+
+    sheets = parse_xlsx_file(path)
+    assert 'Charlie 26' in sheets
+    header, rows = sheets['Charlie 26']
+    assert header[:3] == ['Date', 'Tank ID', 'Morts']
+    assert len(rows) == 1
 
 # pH-flavored header (Charlie / LFS Wet Lab systems); trailing '' mimics a stray empty column.
 PH_HEADER = ['Date', 'Tank ID', 'Carer', 'Temp', 'DO', 'Salinity', 'pH',
@@ -50,6 +71,20 @@ def test_turbidity_sheet_maps_turbidity_not_ph():
     assert 'ph' not in row
 
 
+def test_turbidity_with_unit_suffix_maps_to_turbidity():
+    # Echo/Charlie tabs label the column 'Turbidity (NTU)'; the trailing unit must be stripped so
+    # the reading maps to turbidity instead of being dropped as unmapped.
+    header = ['Date', 'Tank ID', 'Carer', 'Temp', 'DO', 'Salinity', 'Turbidity (NTU)',
+              'Ammonia', 'Nitrite', 'Nitrate', 'Morts', 'Notes']
+    meta = {'facility': 'Echo', 'system': None, 'sheet_year': 2026}
+    rows, flags = rows_from_tab(
+        header,
+        [['2026-04-27', 'E1', 'BY', '11.3', '10.4', '5.6', '2.47', '', '', '', '0', '']],
+        meta, LFS)
+    assert flags == []
+    assert rows[0]['turbidity'] == '2.47'
+
+
 def test_row_normalization_approximates_blanks_and_bad_morts():
     meta = {'facility': 'LFS Wet Lab', 'system': 'SYS 3', 'sheet_year': 2026}
     data = [
@@ -67,6 +102,20 @@ def test_row_normalization_approximates_blanks_and_bad_morts():
     assert rows[0]['morts'] == 1
     assert rows[1]['morts'] is None
     assert any('non-integer morts' in f for f in flags)
+
+
+def test_rows_with_only_date_and_tank_are_skipped():
+    # Blank template rows (a date and/or tank but no readings/carer/notes) carry no husbandry data.
+    meta = {'facility': 'Echo', 'system': None, 'sheet_year': 2026}
+    data = [
+        ['2026-04-27', 'E1', '', '', '', '', '', '', '', '', '', ''],   # date+tank only -> skip
+        ['2026-04-27', '', '', '', '', '', '', '', '', '', '', ''],      # date only -> skip
+        ['2026-04-27', 'E2', '', '11.3', '', '', '2.4', '', '', '', '', ''],  # has readings -> keep
+        ['2026-04-27', 'E3', '', '', '', '', '', '', '', '', '', 'siphoned'],  # has notes -> keep
+    ]
+    rows, _ = rows_from_tab(TURB_HEADER, data, meta, LFS)
+    assert len(rows) == 2
+    assert {r['tank_id'] for r in rows} == {'E2', 'E3'}
 
 
 def test_unmapped_column_is_flagged_not_stored():

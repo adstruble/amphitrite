@@ -32,4 +32,7 @@ def config_get():
     service-account key) are never included.
     """
     config = get_species_config()
-    return {"species": config.species_name, "features": config.features()}
+    return {"species": config.species_name,
+            "features": config.features(),
+            # Facility names for UI dropdowns (e.g. the Fish Care filter). Not secret.
+            "fish_care_facilities": config.fish_care_facilities}

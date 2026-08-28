@@ -5,7 +5,7 @@ from datetime import datetime
 from flask import Blueprint, request, send_file
 
 from amphi_logging.logger import get_logger
-from blueprints.utils import maybe_get_username, validate_and_create_upload_job
+from blueprints.utils import maybe_get_username, run_upload_job_and_cleanup, validate_and_create_upload_job
 from importer.import_utils import parse_year_from_filename
 from utils.data import validate_order_by
 from importer.import_master import import_master_data
@@ -33,8 +33,9 @@ def bulk_upload():
     job_id, username, t_file_dir = validate_and_create_upload_job(request)
     update_genotype = request.form.get('update_genotype', 'false')
     update_genotype = update_genotype == 'true'
-    t = threading.Thread(name="import_master", target=import_master_data,
-                         args=(t_file_dir.name, username, job_id, cross_year, update_genotype),
+    t = threading.Thread(name="import_master", target=run_upload_job_and_cleanup,
+                         args=(t_file_dir, import_master_data, t_file_dir.name, username, job_id,
+                               cross_year, update_genotype),
                          daemon=True)
     t.start()
     return {"job_id": job_id}

@@ -36,6 +36,20 @@ def validate_and_create_upload_job(request):
     return job_id, username_or_err, t_file_dir
 
 
+def run_upload_job_and_cleanup(t_file_dir, target, *args):
+    """Thread target that runs an upload import, then cleans up its TemporaryDirectory.
+
+    Passing the TemporaryDirectory (not just its path) keeps the uploaded file alive for the life of
+    the import thread — the running thread holds the only reference. Without this, the request handler
+    returning drops the last reference and its finalizer rmtree's the file mid-read, racing the
+    background import (openpyxl/CSV then see a missing or truncated file).
+    """
+    try:
+        target(*args)
+    finally:
+        t_file_dir.cleanup()
+
+
 def clean_str_array(items: list):
     return set([item.strip() for item in items])
 

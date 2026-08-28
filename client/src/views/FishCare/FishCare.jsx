@@ -1,171 +1,69 @@
-import React, {useCallback, useEffect, useState} from "react";
-import {Button, Col, Container, Dropdown, DropdownItem, DropdownMenu, DropdownToggle,
-    Input, InputGroup, InputGroupText, Row} from "reactstrap";
-import HeaderLabel from "../../components/Table/HeaderLabel.jsx";
+import React, {useMemo, useState} from "react";
+import {Container, Row} from "reactstrap";
+import AmphiTable from "../../components/Table/AmphiTable";
+import AmphiAlert from "../../components/Basic/AmphiAlert";
+import ColumnSelector from "../../components/Table/ColumnSelector";
 import FishDataUpload from "../../components/Upload/FishDataUpload";
 import GoogleSheetSync from "../../components/Upload/GoogleSheetSync";
-import AmphiAlert from "../../components/Basic/AmphiAlert";
-import useToken from "../../components/App/useToken";
-import getData from "../../server/getData";
-import {
-    Body,
-    Cell,
-    Header,
-    HeaderCell,
-    HeaderRow,
-    Row as TableRow,
-    Table,
-} from '@table-library/react-table-library/table';
-import {useTheme} from "@table-library/react-table-library/theme";
-import {getTheme} from "@table-library/react-table-library/baseline";
-import classnames from "classnames";
+import {formatStr} from "../../components/Utils/FormatFunctions";
+import {FishCareFilter} from "./FishCareFilter";
 
-const COLS = [
-    {id: 'date',      label: 'Date',        key: 'date',      width: '1fr'},
-    {id: 'facility',  label: 'Facility',    key: 'facility',  width: '1fr'},
-    {id: 'system',    label: 'System',      key: 'system',    width: '.8fr'},
-    {id: 'tank',      label: 'Tank',        key: 'tank',      width: '.6fr'},
-    {id: 'carer',     label: 'Carer',       key: 'carer',     width: '.7fr'},
-    {id: 'temp',      label: 'Temp (°C)',   key: 'temp',      width: '.7fr', numeric: true},
-    {id: 'do_',       label: 'DO',          key: 'do_',       width: '.6fr', numeric: true},
-    {id: 'salinity',  label: 'Salinity',    key: 'salinity',  width: '.7fr', numeric: true},
-    {id: 'ph',        label: 'pH',          key: 'ph',        width: '.5fr', numeric: true},
-    {id: 'turbidity', label: 'Turbidity',   key: 'turbidity', width: '.7fr', numeric: true},
-    {id: 'ammonia',   label: 'Ammonia',     key: 'ammonia',   width: '.7fr', numeric: true},
-    {id: 'nitrite',   label: 'Nitrite',     key: 'nitrite',   width: '.6fr', numeric: true},
-    {id: 'nitrate',   label: 'Nitrate',     key: 'nitrate',   width: '.6fr', numeric: true},
-    {id: 'morts',     label: 'Morts',       key: 'morts',     width: '.6fr', numeric: true},
-    {id: 'notes',     label: 'Notes',       key: 'notes',     width: '2fr'},
+// Module-level (stable object refs): AmphiTable mutates these column objects in place to track
+// sort state, so keeping them stable lets an active sort survive a column show/hide toggle.
+// tooltip: true → truncated cells show the full value on hover. order_by is the DB sort column.
+const ALL_COLS = [
+    {name: 'Date',      key: 'obs_date',         order_by: 'obs_date',         order: 1,    order_direction: 'DESC', format_fn: formatStr, tooltip: true, width: '1.2fr'},
+    {name: 'Facility',  key: 'facility',         order_by: 'facility',         order: null, order_direction: null, format_fn: formatStr, tooltip: true, width: '1.3fr'},
+    {name: 'System',    key: 'system',           order_by: 'system',           order: null, order_direction: null, format_fn: formatStr, width: '1fr'},
+    {name: 'Tank',      key: 'tank_id',          order_by: 'tank_id',          order: null, order_direction: null, format_fn: formatStr, tooltip: true, width: '.9fr'},
+    {name: 'Carer',     key: 'carer',            order_by: 'carer',            order: null, order_direction: null, format_fn: formatStr, width: '.9fr'},
+    {name: 'Temp',      key: 'temp',             order_by: 'temp',             order: null, order_direction: null, format_fn: formatStr, className: 'numberCell', header_tooltip: 'Temperature (°C)', width: '.9fr'},
+    {name: 'DO',        key: 'dissolved_oxygen', order_by: 'dissolved_oxygen', order: null, order_direction: null, format_fn: formatStr, className: 'numberCell', header_tooltip: 'Dissolved oxygen', width: '.8fr'},
+    {name: 'Salinity',  key: 'salinity',         order_by: 'salinity',         order: null, order_direction: null, format_fn: formatStr, className: 'numberCell', width: '1fr'},
+    {name: 'pH',        key: 'ph',               order_by: 'ph',               order: null, order_direction: null, format_fn: formatStr, className: 'numberCell', width: '.8fr'},
+    {name: 'Turbidity', key: 'turbidity',        order_by: 'turbidity',        order: null, order_direction: null, format_fn: formatStr, className: 'numberCell', width: '1.1fr'},
+    {name: 'Ammonia',   key: 'ammonia',          order_by: 'ammonia',          order: null, order_direction: null, format_fn: formatStr, className: 'numberCell', width: '1fr'},
+    {name: 'Nitrite',   key: 'nitrite',          order_by: 'nitrite',          order: null, order_direction: null, format_fn: formatStr, className: 'numberCell', width: '.9fr'},
+    {name: 'Nitrate',   key: 'nitrate',          order_by: 'nitrate',          order: null, order_direction: null, format_fn: formatStr, className: 'numberCell', width: '.9fr'},
+    {name: 'Morts',     key: 'morts',            order_by: 'morts',            order: null, order_direction: null, format_fn: formatStr, className: 'numberCell', width: '.9fr'},
+    {name: 'Notes',     key: 'notes',            order_by: 'notes',            order: null, order_direction: null, format_fn: formatStr, tooltip: true, width: '2.2fr'},
 ];
 
-const THEME = {
-    Table: `--data-table-library_grid-template-columns: ${COLS.map(c => `minmax(0px, ${c.width})`).join(' ')} !important`,
-};
-
-function fmt(val) {
-    if (val === null || val === undefined || val === '') return '';
-    return val;
-}
-
-// Map a fish_care DB row (server column names) onto the display keys the table uses.
-function mapRow(r, idx) {
-    return {
-        id: String(idx),
-        date: r.obs_date,
-        facility: r.facility,
-        system: r.system,
-        tank: r.tank_id,
-        carer: r.carer,
-        temp: r.temp,
-        do_: r.dissolved_oxygen,
-        salinity: r.salinity,
-        ph: r.ph,
-        turbidity: r.turbidity,
-        ammonia: r.ammonia,
-        nitrite: r.nitrite,
-        nitrate: r.nitrate,
-        morts: r.morts,
-        notes: r.notes,
-    };
-}
-
-const DEFAULT_FILTER = {facility: 'All', dateFrom: '', dateTo: '', minMorts: ''};
-
-function FishCareFilter({holder, setHolder, facilities}) {
-    const [facilityOpen, setFacilityOpen] = useState(false);
-
-    return (
-        <div className="input-area">
-            <Row>
-                <Col>
-                    <span>Facility:</span>
-                </Col>
-                <Col>
-                    <Dropdown isOpen={facilityOpen} toggle={() => setFacilityOpen(o => !o)}>
-                        <DropdownToggle style={{paddingTop: 0, paddingLeft: 0}}
-                                        caret color="default" nav>
-                            <span>{holder.facility}</span>
-                        </DropdownToggle>
-                        <DropdownMenu>
-                            {facilities.map(f => (
-                                <DropdownItem key={f} onClick={() => setHolder(h => ({...h, facility: f}))}>
-                                    {f}
-                                </DropdownItem>
-                            ))}
-                        </DropdownMenu>
-                    </Dropdown>
-                </Col>
-            </Row>
-            <Row>
-                <Col>
-                    <span>Date from:</span>
-                </Col>
-                <Col>
-                    <Input type="date" bsSize="sm"
-                           value={holder.dateFrom}
-                           onChange={e => setHolder(h => ({...h, dateFrom: e.target.value}))}/>
-                </Col>
-            </Row>
-            <Row>
-                <Col>
-                    <span>Date to:</span>
-                </Col>
-                <Col>
-                    <Input type="date" bsSize="sm"
-                           value={holder.dateTo}
-                           onChange={e => setHolder(h => ({...h, dateTo: e.target.value}))}/>
-                </Col>
-            </Row>
-            <Row>
-                <Col>
-                    <span>Min morts:</span>
-                </Col>
-                <Col>
-                    <Input type="number" bsSize="sm" min="0" style={{width: 'auto'}}
-                           value={holder.minMorts}
-                           onChange={e => setHolder(h => ({...h, minMorts: e.target.value}))}/>
-                </Col>
-            </Row>
-        </div>
-    );
-}
+// Columns hidden on first load (still toggleable in the column selector).
+const DEFAULT_HIDDEN = new Set(['ph', 'system']);
 
 export default function FishCare() {
-    const {getUsername} = useToken();
-    const [rows, setRows] = useState([]);
-    const [appliedFilter, setAppliedFilter] = useState(DEFAULT_FILTER);
-    const [filterHolder, setFilterHolder] = useState(DEFAULT_FILTER);
-    const [search, setSearch] = useState('');
-    const [searchFocus, setSearchFocus] = useState(false);
-    const [showFilter, setShowFilter] = useState(false);
+    const [reloadTable, setReloadTable] = useState(0);
     const [alertText, setAlertText] = useState('');
     const [alertLevel, setAlertLevel] = useState('');
-    const theme = useTheme([THEME, getTheme()]);
+    const [visibleKeys, setVisibleKeys] = useState(
+        () => new Set(ALL_COLS.filter(c => !DEFAULT_HIDDEN.has(c.key)).map(c => c.key)));
+    // Bumped on column toggle so AmphiTable re-reads its column list from headerDataStart.
+    const [headerVersion, setHeaderVersion] = useState(0);
 
-    const loadRows = useCallback(() => {
-        getData('fish_care/view', getUsername(), {},
-            (data) => setRows(data.map(mapRow)),
-            setAlertLevel, setAlertText, () => {});
-    }, [getUsername]);
+    const reload = () => setReloadTable(v => v + 1);
 
-    useEffect(() => { loadRows(); }, [loadRows]);
+    const toggleColumn = (key) => {
+        setVisibleKeys(prev => {
+            const next = new Set(prev);
+            next.has(key) ? next.delete(key) : next.add(key);
+            return next;
+        });
+        setHeaderVersion(v => v + 1);
+    };
 
-    const facilities = ['All', ...Array.from(new Set(rows.map(r => r.facility).filter(Boolean)))];
+    // Filter preserves the original column object references (see note above).
+    const headerDataStart = useMemo(
+        () => ({rows: {}, cols: ALL_COLS.filter(c => visibleKeys.has(c.key))}),
+        [visibleKeys]);
 
-    const filtered = rows.filter(row => {
-        if (appliedFilter.facility !== 'All' && row.facility !== appliedFilter.facility) return false;
-        if (appliedFilter.dateFrom && row.date < appliedFilter.dateFrom) return false;
-        if (appliedFilter.dateTo && row.date > appliedFilter.dateTo) return false;
-        if (appliedFilter.minMorts !== '' && (row.morts === null || row.morts < Number(appliedFilter.minMorts))) return false;
-        const q = search.toLowerCase();
-        if (q && !Object.values(row).some(v => v !== null && String(v).toLowerCase().includes(q))) return false;
-        return true;
-    });
+    const columnSelector = (
+        <ColumnSelector columns={ALL_COLS} visibleKeys={visibleKeys} onToggle={toggleColumn}/>
+    );
 
     return (
         <div className="wrapper">
             <Container id="amphi-table-wrapper">
-
                 <Row className="amphi-table-wrapper-header">
                     <AmphiAlert alertText={alertText} alertLevel={alertLevel} setAlertText={setAlertText}/>
                     <GoogleSheetSync previewUrl="fish_care/sheets_preview"
@@ -174,10 +72,10 @@ export default function FishCare() {
                                      modalTitle="Sync Fish Care Data"
                                      setAlertText={setAlertText}
                                      setAlertLevel={setAlertLevel}
-                                     onCommitted={loadRows}
+                                     onCommitted={reload}
                     />
                     <FishDataUpload dataUploadUrl="fish_care/bulk_upload"
-                                    uploadCallback={loadRows}
+                                    uploadCallback={reload}
                                     formModalTitle="Upload Fish Care Data"
                                     uploadButtonText="Upload Fish Care Data"
                                     setAlertText={setAlertText}
@@ -185,116 +83,15 @@ export default function FishCare() {
                     />
                 </Row>
                 <Row>
-                    <div className="amphi-table-container">
-                        <div className="amphi-table-search-paginate">
-                            <div className="amphi-table-search">
-                                <InputGroup
-                                    onFocus={() => setSearchFocus(true)}
-                                    onBlur={() => setSearchFocus(false)}
-                                    className={classnames({'input-group-focus': searchFocus})}>
-                                    <div className="input-group-prepend">
-                                        <InputGroupText>
-                                            <i className="tim-icons icon-zoom-split"/>
-                                        </InputGroupText>
-                                    </div>
-                                    <Input
-                                        placeholder="Search"
-                                        type="text"
-                                        autoComplete="off"
-                                        onChange={e => setSearch(e.target.value)}
-                                        value={search}
-                                    />
-                                    <div className="input-group-append">
-                                        <InputGroupText>
-                                            <i className="amphi-icon icon-filter clickable"
-                                               style={showFilter ? {display: 'none'} : {}}
-                                               onClick={() => setShowFilter(true)}/>
-                                        </InputGroupText>
-                                    </div>
-                                </InputGroup>
-
-                                {showFilter && (
-                                    <div style={{width: '550px'}} className="filter">
-                                        <div style={{border: '1px solid #1d8cf8', padding: '10px'}}>
-                                            <FishCareFilter
-                                                holder={filterHolder}
-                                                setHolder={setFilterHolder}
-                                                facilities={facilities}
-                                            />
-                                            <Row style={{margin: 0}}>
-                                                <div style={{display: 'flex'}}>
-                                                    <Button type="button" onClick={() => setShowFilter(false)}>
-                                                        Close
-                                                    </Button>
-                                                </div>
-                                                <div style={{display: 'flex', marginLeft: 'auto'}}>
-                                                    <Button type="button" onClick={() => {
-                                                        setShowFilter(false);
-                                                        setAppliedFilter(filterHolder);
-                                                    }}>
-                                                        Search
-                                                    </Button>
-                                                </div>
-                                            </Row>
-                                        </div>
-                                    </div>
-                                )}
-
-                                <span style={{marginTop: 'auto', marginBottom: '9px', marginLeft: '10px', color: '#888', fontSize: '0.85rem'}}>
-                                    {filtered.length} records
-                                </span>
-                            </div>
-                        </div>
-
-                        <div className="amphi-table-inner">
-                            <div className="amphi-table-header">
-                                <Table data={{nodes: COLS}} theme={theme} style={{marginBottom: 0}}>
-                                    {(cols) => (
-                                        <Header>
-                                            <HeaderRow className="table-row">
-                                                {cols.map(col => (
-                                                    <HeaderCell key={col.id}
-                                                                className={classnames({'numberCell': col.numeric})}>
-                                                        <HeaderLabel colId={col.id} label={col.label}/>
-                                                    </HeaderCell>
-                                                ))}
-                                            </HeaderRow>
-                                        </Header>
-                                    )}
-                                </Table>
-                            </div>
-                            <div className="amphi-table-contents">
-                                <Table data={{nodes: filtered}} theme={theme}>
-                                    {(tableRows) => (
-                                        <>
-                                            <Header>
-                                                <HeaderRow style={{display: 'none'}}>
-                                                    {COLS.map(c => <HeaderCell key={c.id}/>)}
-                                                </HeaderRow>
-                                            </Header>
-                                            <Body>
-                                                {tableRows.map(row => (
-                                                    <TableRow key={row.id} item={row} className="table-row">
-                                                        {COLS.map(col => (
-                                                            <Cell key={col.id}
-                                                                  className={classnames({'numberCell': col.numeric})}>
-                                                                {fmt(row[col.key])}
-                                                            </Cell>
-                                                        ))}
-                                                    </TableRow>
-                                                ))}
-                                                <TableRow key="bottom" item={null} id="idlastrow">
-                                                    <Cell className="table-bottom"
-                                                          gridColumnStart={1}
-                                                          gridColumnEnd={COLS.length + 1}>&nbsp;</Cell>
-                                                </TableRow>
-                                            </Body>
-                                        </>
-                                    )}
-                                </Table>
-                            </div>
-                        </div>
-                    </div>
+                    <AmphiTable tableDataUrl="fish_care/get_records"
+                                reloadData={reloadTable}
+                                headerDataStart={headerDataStart}
+                                filter={FishCareFilter}
+                                tableControl={columnSelector}
+                                updateHeaders={headerVersion}
+                                LIMIT={500}
+                                calcHeaderHeight={true}
+                    />
                 </Row>
             </Container>
         </div>

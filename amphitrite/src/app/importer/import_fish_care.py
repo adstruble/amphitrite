@@ -37,15 +37,25 @@ def parse_sheet_name(name: str, config) -> dict | None:
     return None
 
 
+# Trailing parenthetical unit, e.g. 'Turbidity (NTU)' or 'Bldg Hum (%)'.
+_UNIT_SUFFIX_RE = re.compile(r'\s*\([^)]*\)\s*$')
+
+
 def _normalize_header(header: list, config) -> tuple[list, list]:
-    """Map each header cell to a canonical column key (or None). Unmapped non-blank headers are flagged."""
+    """Map each header cell to a canonical column key (or None). Unmapped non-blank headers are flagged.
+
+    Falls back to matching the header with any trailing '(unit)' stripped, so labels like
+    'Turbidity (NTU)' map to the same column as 'Turbidity'."""
     aliases = config.fish_care_header_aliases
     col_keys, flags = [], []
     for cell in header:
         if cell is None or str(cell).strip() == '':
             col_keys.append(None)
             continue
-        key = aliases.get(str(cell).strip().lower())
+        normalized = str(cell).strip().lower()
+        key = aliases.get(normalized)
+        if key is None:
+            key = aliases.get(_UNIT_SUFFIX_RE.sub('', normalized))
         if key is None:
             flags.append(f"Unmapped column '{cell}'")
         col_keys.append(key)
@@ -93,8 +103,9 @@ def rows_from_tab(header: list, data_rows: list, meta: dict, config) -> tuple[li
             if key is None:
                 continue
             row[key] = _clean_cell(raw[c_idx] if c_idx < len(raw) else None)
-        if all(v is None for v in row.values()):
-            continue  # blank row
+        # Skip rows with no husbandry data — only a date and/or tank populated (blank template rows).
+        if all(v is None for k, v in row.items() if k not in ('obs_date', 'tank_id')):
+            continue
 
         if row.get('obs_date') is not None:
             iso = _to_iso_date(row['obs_date'])
@@ -143,24 +154,31 @@ def build_preview(parse_result: dict) -> dict:
 
 
 def parse_xlsx_file(path: str) -> dict:
-    """xlsx adapter: build the source-agnostic sheets dict from a workbook file."""
+    """xlsx adapter: build the source-agnostic sheets dict from a workbook file.
+
+    Opens the file as a binary handle rather than passing the path: openpyxl validates a path's
+    extension (.xlsx/.xlsm/...) and rejects our extensionless upload temp file (bulk_upload_<job_id>),
+    but skips that check for file-like objects and reads the zip directly.
+    """
     from openpyxl import load_workbook
-    workbook = load_workbook(path, read_only=True, data_only=True)
     sheets = {}
-    try:
-        for worksheet in workbook.worksheets:
-            rows = list(worksheet.iter_rows(values_only=True))
-            if not rows:
-                continue
-            header = [c if c is None else str(c).strip() for c in rows[0]]
-            sheets[worksheet.title] = (header, [list(r) for r in rows[1:]])
-    finally:
-        workbook.close()
+    with open(path, 'rb') as file_handle:
+        workbook = load_workbook(file_handle, read_only=True, data_only=True)
+        try:
+            for worksheet in workbook.worksheets:
+                rows = list(worksheet.iter_rows(values_only=True))
+                if not rows:
+                    continue
+                header = [c if c is None else str(c).strip() for c in rows[0]]
+                sheets[worksheet.title] = (header, [list(r) for r in rows[1:]])
+        finally:
+            workbook.close()
     return sheets
 
 
 def import_fish_care_xlsx(dir_name: str, username: str, job_id: str):
-    """Async job entry for the xlsx upload fallback. Mirrors import_master's job/complete_job contract."""
+    """Async job entry for the xlsx upload fallback. Mirrors import_master's job/complete_job contract.
+    (Temp-dir lifecycle is handled by the run_upload_job_and_cleanup thread wrapper.)"""
     try:
         config = get_species_config()
         path = os.path.join(dir_name, f'bulk_upload_{job_id}')

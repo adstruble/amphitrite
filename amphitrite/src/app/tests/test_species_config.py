@@ -41,6 +41,8 @@ def test_config_endpoint_shape_and_no_secrets(monkeypatch):
     response = app.test_client().get('/common/config')
     assert response.status_code == 200
     payload = response.get_json()
-    assert payload == {'species': 'Longfin Smelt', 'features': {'fish_care': True}}
+    assert payload['species'] == 'Longfin Smelt'
+    assert payload['features'] == {'fish_care': True}
+    assert payload['fish_care_facilities'] == ['Charlie', 'Echo', 'LFS Wet Lab']
     # The secret Sheet ID must never appear in the client-facing config.
     assert 'SECRET_SHEET_ID_123' not in json.dumps(payload)

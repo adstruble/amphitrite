@@ -19,16 +19,64 @@ FISH_CARE_COLUMNS = [
 _NULL = '\\N'
 
 
-def get_fish_care(username: str) -> list:
-    """All fish care rows, newest observation first. Dates cast to text for a stable JSON shape
-    ('YYYY-MM-DD') the frontend can consume directly."""
-    return execute_statements(
-        'SELECT facility, system, sheet_year, obs_date::text AS obs_date, tank_id, carer, temp, '
-        'dissolved_oxygen, salinity, ph, turbidity, ammonia, nitrite, nitrate, morts, notes, '
-        'source, synced_at::text AS synced_at '
-        'FROM fish_care '
-        'ORDER BY obs_date DESC NULLS LAST, facility, system NULLS FIRST, tank_id',
+_SELECT_COLS = (
+    'id::text AS id, facility, system, sheet_year, obs_date::text AS obs_date, tank_id, carer, temp, '
+    'dissolved_oxygen, salinity, ph, turbidity, ammonia, nitrite, nitrate, morts, notes, '
+    'source, synced_at::text AS synced_at'
+)
+
+
+def _build_fish_care_filter(query_params: dict) -> tuple:
+    """Build the WHERE clause + params from AmphiTable's like_filter (free-text search) and
+    exact_filters (facility, date range, min morts)."""
+    clauses, params = [], {}
+
+    like = query_params.get('like_filter')
+    if like:
+        params['like_filter'] = f"%{like}%"
+        clauses.append("(facility ILIKE :like_filter OR system ILIKE :like_filter "
+                       "OR tank_id ILIKE :like_filter OR carer ILIKE :like_filter "
+                       "OR notes ILIKE :like_filter OR obs_date::text ILIKE :like_filter)")
+
+    exact = query_params.get('exact_filters') or {}
+    if exact.get('facility'):
+        params['facility'] = exact['facility']
+        clauses.append("facility = :facility")
+    if exact.get('date_from'):
+        params['date_from'] = exact['date_from']
+        clauses.append("obs_date >= :date_from")
+    if exact.get('date_to'):
+        params['date_to'] = exact['date_to']
+        clauses.append("obs_date <= :date_to")
+    min_morts = exact.get('min_morts')
+    if min_morts not in (None, ''):
+        try:
+            params['min_morts'] = int(min_morts)
+            clauses.append("morts >= :min_morts")
+        except (ValueError, TypeError):
+            pass
+
+    return (("WHERE " + " AND ".join(clauses)) if clauses else ""), params
+
+
+def get_fish_care(username: str, query_params: dict, order_by_clause: str, include_cnt: bool = True) -> tuple:
+    """Paginated/sorted/filtered fish care rows for the AmphiTable view.
+
+    :param query_params: expects offset, limit; optionally like_filter and exact_filters
+    :param order_by_clause: validated 'ORDER BY ...' clause (see blueprint's validate_order_by)
+    :return: (rows, total_count) — count is -1 when include_cnt is False
+    """
+    filter_str, filter_params = _build_fish_care_filter(query_params)
+    rows = execute_statements((
+        f"SELECT {_SELECT_COLS} FROM fish_care {filter_str} {order_by_clause} OFFSET :offset LIMIT :limit",
+        {**filter_params, 'offset': query_params.get('offset', 0), 'limit': query_params.get('limit', 1000)}),
         username).get_as_list_of_dicts()
+
+    count = -1
+    if include_cnt:
+        count = execute_statements((f"SELECT count(*) FROM fish_care {filter_str}", filter_params),
+                                   username).get_single_result()
+    return rows, count
 
 
 def _to_db_row(row: dict, sheet: dict, source: str, synced_at: str) -> dict:
