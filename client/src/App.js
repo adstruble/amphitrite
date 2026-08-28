@@ -28,6 +28,13 @@ import UserSettings from "./views/User/UserSettings";
 import ManageUsers from "./views/User/ManageUsers";
 import AmphiTable from "./components/Table/AmphiTable.jsx";
 import FishCare from "./views/FishCare/FishCare.jsx";
+import EggBowls from "./views/EggBowls/EggBowls.jsx";
+import ViewCrossesLFSMock from "./views/CrossFish/ViewCrosses_LFS_Mock.jsx";
+import SpawningPerformance from "./views/Reports/SpawningPerformance.jsx";
+import CohortTracker from "./views/Reports/CohortTracker.jsx";
+import WaterQuality from "./views/Reports/WaterQuality.jsx";
+import LarvalCohorts from "./views/LarvalCohorts/LarvalCohorts.jsx";
+import RequireFeature from "./components/App/RequireFeature.jsx";
 
 const router = createBrowserRouter([
     {
@@ -57,7 +64,31 @@ const router = createBrowserRouter([
             },
             {
                 path: "/fishcare",
-                element: <FishCare/>,
+                element: <RequireFeature feature="fish_care"><FishCare/></RequireFeature>,
+            },
+            {
+                path: "/eggbowls",
+                element: <EggBowls/>,
+            },
+            {
+                path: "/viewcrosses_lfs_mock",
+                element: <ViewCrossesLFSMock/>,
+            },
+            {
+                path: "/spawningperformance",
+                element: <SpawningPerformance/>,
+            },
+            {
+                path: "/cohorttracker",
+                element: <CohortTracker/>,
+            },
+            {
+                path: "/waterquality",
+                element: <WaterQuality/>,
+            },
+            {
+                path: "/larvalcohorts",
+                element: <LarvalCohorts/>,
             },
             {
                 path: "",

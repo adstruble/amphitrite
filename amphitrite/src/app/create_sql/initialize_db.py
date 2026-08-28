@@ -15,6 +15,7 @@ from importer.import_master import import_master_data
 from importer.import_pedigree import maybe_import_pedigree
 from importer.import_utils import get_import_resources_dir
 from model.fish import mark_all_fish_dead
+from species_config import get_species_config
 
 LOGGER = get_logger('create_sql.initialize_db')
 
@@ -80,6 +81,12 @@ def wait_for_postgres_and_upgrade():
 
 
 def load_seed_data():
+    # The bundled seed is the delta-smelt reference dataset. Other species (e.g. LFS) get their data
+    # via import/Google Sheets, so skip seeding unless this deployment's species ships reference data.
+    if not get_species_config().seed_reference_data:
+        LOGGER.info(f"Species '{get_species_config().species_name}' has no bundled reference data; "
+                    f"skipping startup seed.")
+        return
     if maybe_import_pedigree():
         # Import master data sheet used in 2024 (Master tab from Final_BY2023_Mastersheet_MF)
         import_master_data(get_import_resources_dir(), 'amphiadmin', 'master_data_2023BY.csv', 2024, False)

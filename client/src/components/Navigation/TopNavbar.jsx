@@ -9,12 +9,19 @@ import {
 import Logout from "../../assets/img/box-arrow-right.svg";
 import App from "../../App";
 import ReactDOM from "react-dom/client";
+import useSpeciesConfig, {featureEnabled} from "../App/useSpeciesConfig";
 
 const VIEW_NAMES = {
-    '/managefish': 'Manage Fish',
+    '/managefish': 'Fish Inventory',
     '/crossfish': 'Recommend Crosses',
     '/viewcrosses': 'Completed Crosses',
+    '/viewcrosses_lfs_mock': 'Completed Crosses',
     '/fishcare': 'Fish Care',
+    '/eggbowls': 'Egg Bowls',
+    '/larvalcohorts': 'Larval Cohorts',
+    '/spawningperformance': 'Spawning Performance',
+    '/cohorttracker': 'Cohort Tracker',
+    '/waterquality': 'Water Quality',
     '/usersettings': 'User Settings',
     '/manageusers': 'Manage Users',
     '/': 'Fish',
@@ -24,6 +31,7 @@ export default function TopNavbar() {
     const [color, setColor] = React.useState("bg-info");
     const navigate = useNavigate();
     const location = useLocation();
+    const speciesConfig = useSpeciesConfig();
     const viewName = VIEW_NAMES[location.pathname] ?? '';
 
     const handleLogoutClick = async e => {
@@ -43,9 +51,28 @@ export default function TopNavbar() {
             <div className="navbar-translate">
                 <Nav navbar>
                     <NavItem>
-                        <NavLink tag={Link} to="/managefish">
-                            <span className="nav-link">Manage Fish</span>
-                        </NavLink>
+                        <UncontrolledDropdown>
+                            <DropdownToggle
+                                aria-expanded={false}
+                                aria-haspopup={true}
+                                caret
+                                color="default"
+                                data-toggle="dropdown"
+                                nav
+                            >
+                                <span>Fish</span>
+                            </DropdownToggle>
+                            <DropdownMenu>
+                                <DropdownItem tag={Link} to="/managefish">
+                                    Inventory
+                                </DropdownItem>
+                                {featureEnabled(speciesConfig, 'fish_care') && (
+                                    <DropdownItem tag={Link} to="/fishcare">
+                                        Care
+                                    </DropdownItem>
+                                )}
+                            </DropdownMenu>
+                        </UncontrolledDropdown>
                     </NavItem>
                     <NavItem>
                         <UncontrolledDropdown>
@@ -61,23 +88,46 @@ export default function TopNavbar() {
                                 <span >Crosses</span>
                             </DropdownToggle>
                             <DropdownMenu aria-labelledby="navbarDropdownMenuLink">
-                                <DropdownItem
-                                    tag={Link} to="/crossfish"
-                                >
+                                <DropdownItem tag={Link} to="/crossfish">
                                     Recommend Crosses
                                 </DropdownItem>
-                                <DropdownItem
-                                    tag={Link} to="/viewcrosses"
-                                >
+                                <DropdownItem tag={Link} to="/viewcrosses_lfs_mock">
                                     Completed Crosses
+                                </DropdownItem>
+                                <DropdownItem tag={Link} to="/eggbowls">
+                                    Egg Bowls
+                                </DropdownItem>
+                                <DropdownItem tag={Link} to="/larvalcohorts">
+                                    Larval Cohorts
                                 </DropdownItem>
                             </DropdownMenu>
                         </UncontrolledDropdown>
                     </NavItem>
                     <NavItem>
-                        <NavLink tag={Link} to="/manageusers">
-                            <span className="nav-link">Reports</span>
-                        </NavLink>
+                        <UncontrolledDropdown>
+                            <DropdownToggle
+                                aria-expanded={false}
+                                aria-haspopup={true}
+                                caret
+                                color="default"
+                                data-toggle="dropdown"
+                                id="reportsDropdownMenuLink"
+                                nav
+                            >
+                                <span >Reports</span>
+                            </DropdownToggle>
+                            <DropdownMenu aria-labelledby="navbarDropdownMenuLink">
+                                <DropdownItem tag={Link} to="/spawningperformance">
+                                    Spawning Performance
+                                </DropdownItem>
+                                <DropdownItem tag={Link} to="/cohorttracker">
+                                    Cohort Tracker
+                                </DropdownItem>
+                                <DropdownItem tag={Link} to="/waterquality">
+                                    Water Quality
+                                </DropdownItem>
+                            </DropdownMenu>
+                        </UncontrolledDropdown>
                     </NavItem>
                     <NavItem>
                         <NavLink tag={Link} to="/manageusers">

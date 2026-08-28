@@ -20,6 +20,9 @@ services:
   server:
     environment:
       AMPHI_JWT_SECRET_KEY: $${AMPHI_JWT_SECRET_KEY-}
+      AMPHI_SPECIES: $${AMPHI_SPECIES-}
+      AMPHI_GOOGLE_SA_KEY: $${AMPHI_GOOGLE_SA_KEY-}
+      AMPHI_FISH_CARE_SHEET_ID: $${AMPHI_FISH_CARE_SHEET_ID-}
     image: ${SERVER_IMAGE}
     networks:
       web_app:

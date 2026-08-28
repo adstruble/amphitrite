@@ -42,8 +42,9 @@ def client() -> FlaskClient:
         yield client
 
 
+@patch('blueprints.utils.add_server_job')  # no SharedStateManager runs in the test harness
 @patch('importer.import_crosses.complete_job')
-def test_import_25_crosses(mock_complete_job, client): #set_cleanup_sqls):
+def test_import_25_crosses(mock_complete_job, mock_add_job, client): #set_cleanup_sqls):
     # Tests that when year is 25 (e.g. 1/21/25) rather than 2025, data is still imported correctly
     with open(os.path.join(os.path.dirname(__file__),
                            'resources', 'completed_crosses', 'completed_crosses_testing.csv'), 'rb') as f:
@@ -63,8 +64,9 @@ def test_import_25_crosses(mock_complete_job, client): #set_cleanup_sqls):
                               'amphiadmin', ResultType.RowResults).get_single_result() == 4
 
 
+@patch('blueprints.utils.add_server_job')  # no SharedStateManager runs in the test harness
 @patch('importer.import_crosses.complete_job')
-def test_import_2025_crosses2(mock_complete_job, client, set_cleanup_sqls):
+def test_import_2025_crosses2(mock_complete_job, mock_add_job, client, set_cleanup_sqls):
 
     with open(os.path.join(os.path.dirname(__file__),
                            'resources', 'completed_crosses', '2025_all_refuge_crosses.csv'), 'rb') as f:

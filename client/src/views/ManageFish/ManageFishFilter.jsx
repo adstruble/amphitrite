@@ -66,7 +66,7 @@ export function ManageFishFilter({setFilterParent}) {
                     <span>Family ID:</span>
                 </Col>
                 <Col>
-                    <Input id="groupId" style={{width:"auto"}} onChange={(e)=>{
+                    <Input id="groupId" bsSize="sm" style={{width:"auto"}} onChange={(e)=>{
                         setGroupId(e.target.value);
                     }}/>
                 </Col>

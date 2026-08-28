@@ -138,6 +138,7 @@ button.dropdown-item.amphi-icon{
 }
 .input-area > div {
     justify-content: center;
+    align-items: center;
     margin: 0;
     flex-wrap: nowrap;
 }

@@ -5,7 +5,8 @@ import threading
 from flask import Blueprint, request, send_file
 
 from amphi_logging.logger import get_logger
-from blueprints.utils import maybe_get_username, validate_and_create_upload_job, clean_str_array, validate_params
+from blueprints.utils import maybe_get_username, validate_and_create_upload_job, clean_str_array, validate_params, \
+    run_upload_job_and_cleanup
 from importer.import_crosses import import_crosses
 from model.crosses import add_requested_cross, remove_requested_cross, get_requested_crosses_csv, \
     add_completed_cross, get_possible_crosses, get_completed_crosses, set_cross_failed, \
@@ -26,8 +27,9 @@ def bulk_upload():
     LOGGER.info(f"Uploading crossed fish")
     job_id, username, t_file_dir = validate_and_create_upload_job(request)
 
-    t = threading.Thread(name="import_crosses", target=import_crosses,
-                         args=(os.path.join(t_file_dir.name, f'bulk_upload_{job_id}'), username, job_id),
+    t = threading.Thread(name="import_crosses", target=run_upload_job_and_cleanup,
+                         args=(t_file_dir, import_crosses,
+                               os.path.join(t_file_dir.name, f'bulk_upload_{job_id}'), username, job_id),
                          daemon=True)
     t.start()
     return {"job_id": job_id}

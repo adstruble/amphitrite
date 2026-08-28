@@ -101,9 +101,9 @@ def ingest_pedigree_data(ped_state):
                 results['pedigree'], _ = insert_table_data('pedigree', all_pedigrees, cursor)
 
                 # FMatrix values (don't include results in import results as this data is only used internally)
-                #start_row = 0
-                #batch_size = 500
-                #while start_row < len(ped_state.f_matrix.rows):
+                # start_row = 0
+                # batch_size = 500
+                # while start_row < len(ped_state.f_matrix.rows):
                 #    row_dicts, val_dicts = ped_state.f_matrix.get_matrix_dicts(start_row, start_row + batch_size)
                 #    insert_table_data('f_row_val', val_dicts, cursor)
                 #    insert_table_data('f_matrix_row', row_dicts, cursor)

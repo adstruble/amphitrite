@@ -5,4 +5,8 @@ flask-migrate==4.0.5
 networkx==3.3
 psycopg2==2.9.9
 pyjwt==2.8.0
+openpyxl==3.1.5
+google-api-python-client==2.144.0
+google-auth==2.34.0
+google-auth-httplib2==0.2.0
 # This is required for dev environment not sure about deployed app python-dotenv:0.21.0

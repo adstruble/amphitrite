@@ -42,7 +42,7 @@ export function CrossFishFilter({setFilterParent}) {
                     <span>Female PC/FSG:</span>
                 </Col>
                 <Col>
-                    <Input id="fGroupId" style={{width:"auto"}} onChange={()=>setFilter()}/>
+                    <Input id="fGroupId" bsSize="sm" style={{width:"auto"}} onChange={()=>setFilter()}/>
                 </Col>
             </Row>
             <Row>
@@ -50,7 +50,7 @@ export function CrossFishFilter({setFilterParent}) {
                     <span>Female Fish Tag:</span>
                 </Col>
                 <Col>
-                    <Input id="fTag" style={{width:"auto"}} onChange={()=>setFilter()}/>
+                    <Input id="fTag" bsSize="sm" style={{width:"auto"}} onChange={()=>setFilter()}/>
                 </Col>
             </Row>
             <Row>
@@ -58,7 +58,7 @@ export function CrossFishFilter({setFilterParent}) {
                     <span>Male PC/FSG:</span>
                 </Col>
                 <Col>
-                    <Input id="mGroupId" style={{width:"auto"}} onChange={()=>setFilter()}/>
+                    <Input id="mGroupId" bsSize="sm" style={{width:"auto"}} onChange={()=>setFilter()}/>
                 </Col>
             </Row>
             <Row>
@@ -66,7 +66,7 @@ export function CrossFishFilter({setFilterParent}) {
                     <span>Male Fish Tag:</span>
                 </Col>
                 <Col>
-                    <Input id="mTag" style={{width:"auto"}} onChange={()=>setFilter()}/>
+                    <Input id="mTag" bsSize="sm" style={{width:"auto"}} onChange={()=>setFilter()}/>
                 </Col>
             </Row>
         </div>
